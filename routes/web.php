@@ -54,14 +54,84 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/owners/dashboard', function () {
         $owner = \App\Models\Owner::where('user_id', auth()->id())->first();
 
-        $arenasCount = $owner ? $owner->arenas()->count() : 0;
+        $arenas = $owner ? $owner->arenas()->orderBy('name')->get() : collect();
+        $arenasCount = $arenas->count();
 
-        $courtsCount = $owner
-            ? \App\Models\Court::whereIn('arena_id', $owner->arenas()->select('id'))->count()
+        // Arena que ele está gerenciando agora (guardada na sessão).
+        $selectedArena = $arenas->firstWhere('id', session('selected_arena_id'));
+
+        // Tem mais de uma e ainda não escolheu -> pergunta em qual entrar.
+        if (! $selectedArena && $arenasCount > 1) {
+            return redirect()->route('owners.arena.choose');
+        }
+
+        // Só tem uma -> entra direto nela.
+        if (! $selectedArena && $arenasCount === 1) {
+            $selectedArena = $arenas->first();
+        }
+
+        if ($selectedArena) {
+            session(['selected_arena_id' => $selectedArena->id]);
+        }
+
+        // Dados abaixo são SÓ da arena selecionada (o card Arenas continua sendo o total).
+        $courtsCount = $selectedArena ? $selectedArena->courts()->count() : 0;
+
+        // Clientes = clientes distintos com reserva nas quadras desta arena
+        // (qualquer status, inclusive cancelada — quem reservou virou cliente).
+        $customersCount = $selectedArena
+            ? \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
+                ->distinct('client_id')
+                ->count('client_id')
             : 0;
 
-        return view('owners.dashboard', compact('arenasCount', 'courtsCount'));
+        // Próximos agendamentos desta arena (a partir de hoje).
+        $proximosAgendamentos = $selectedArena
+            ? \App\Models\Booking::with(['court', 'client.user'])
+                ->whereIn('court_id', $selectedArena->courts()->select('id'))
+                ->whereDate('date', '>=', now()->toDateString())
+                ->where('status', '!=', 'cancelled')
+                ->orderBy('date')
+                ->orderBy('start_time')
+                ->get()
+            : collect();
+
+        return view('owners.dashboard', compact(
+            'arenas', 'arenasCount', 'selectedArena',
+            'courtsCount', 'customersCount', 'proximosAgendamentos'
+        ));
     })->name('owners.dashboard');
+
+    // Tela "em qual arena entrar" (quando há mais de uma).
+    Route::get('/owners/arena/choose', function () {
+        $owner = \App\Models\Owner::where('user_id', auth()->id())->first();
+        $arenas = $owner ? $owner->arenas()->orderBy('name')->get() : collect();
+
+        if ($arenas->isEmpty()) {
+            return redirect()->route('arenas.create');
+        }
+
+        // Uma só não precisa escolher.
+        if ($arenas->count() === 1) {
+            session(['selected_arena_id' => $arenas->first()->id]);
+            return redirect()->route('owners.dashboard');
+        }
+
+        return view('owners.choose-arena', compact('arenas'));
+    })->name('owners.arena.choose');
+
+    // Define a arena selecionada (valida que pertence ao dono).
+    Route::post('/owners/arena/select', function (\Illuminate\Http\Request $request) {
+        $owner = \App\Models\Owner::where('user_id', auth()->id())->first();
+
+        $arena = $owner ? $owner->arenas()->find($request->input('arena_id')) : null;
+
+        if ($arena) {
+            session(['selected_arena_id' => $arena->id]);
+        }
+
+        return redirect()->route('owners.dashboard');
+    })->name('owners.arena.select');
 });
 
 Route::middleware(['auth'])->group(function () {

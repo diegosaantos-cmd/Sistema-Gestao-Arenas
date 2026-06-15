@@ -32,6 +32,9 @@ return new class extends Migration
             $table->timestamp('updated_at')
                 ->useCurrent()
                 ->useCurrentOnUpdate();
+
+            // Nome da quadra é único dentro da mesma arena (pode repetir entre arenas).
+            $table->unique(['arena_id', 'name'], 'uq_court_name_per_arena');
         });
     }
 

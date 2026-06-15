@@ -9,6 +9,16 @@
 
             <h2 class="mb-4">Nova Arena</h2>
 
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $erro)
+                            <li>{{ $erro }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form action="{{ route('arenas.store') }}" method="POST">
                 @csrf
 

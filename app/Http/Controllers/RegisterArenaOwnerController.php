@@ -27,19 +27,43 @@ class RegisterArenaOwnerController extends Controller
      */
     public function store(Request $request)
     {
+        $request->merge([
+            'company_name' => ArenaController::normalizarTexto($request->input('company_name')),
+            'name_arena' => ArenaController::normalizarTexto($request->input('name_arena')),
+            'email' => ArenaController::normalizarEmail($request->input('email')),
+            'email_arena' => ArenaController::normalizarEmail($request->input('email_arena')),
+            // CPF/CNPJ: guarda só os dígitos (123.456.789-00 -> 12345678900).
+            'tax_id' => preg_replace('/\D/', '', (string) $request->input('tax_id')),
+            'quadras' => ArenaController::normalizarNomesQuadras($request->input('quadras', [])),
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
-            'company_name' => ['required', 'string', 'max:150', 'unique:owners,company_name'],
-            'tax_id' => ['required', 'string', 'max:20', 'unique:owners,tax_id'],
-            'name_arena' => ['required', 'string', 'max:120', 'unique:arenas,name'],
+            'company_name' => ['required', 'string', 'max:150', function ($attribute, $value, $fail) {
+                $chave = ArenaController::chaveComparacao($value);
+                if (Owner::whereRaw("REPLACE(LOWER(company_name), ' ', '') = ?", [$chave])->exists()) {
+                    $fail('Já existe uma empresa cadastrada com esse nome.');
+                }
+            }],
+            'tax_id' => ['required', 'string', 'unique:owners,tax_id', 'regex:/^(\d{11}|\d{14})$/'],
+            'name_arena' => ['required', 'string', 'max:120', function ($attribute, $value, $fail) {
+                $chave = ArenaController::chaveComparacao($value);
+                if (Arena::whereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$chave])->exists()) {
+                    $fail('Já existe uma arena com esse nome.');
+                }
+            }],
             'description' => ['max:300'],
             'address_rua' => ['required', 'string', 'max:120'],
             'address_bairro' => ['required', 'string', 'max:120'],
             'address_numero' => ['required', 'string', 'max:15'],
             'phone' => ['required', 'string', 'max:20'],
-            'email_arena' => ['required', 'email', 'max:150', 'unique:arenas,contact_email'],
+            'email_arena' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) {
+                if (ArenaController::emailDeArenaEmUsoPorOutroDono($value, null)) {
+                    $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
+                }
+            }],
             'horarios' => ['required', 'array', function ($attribute, $value, $fail) {
                 $algumDia = collect($value)->contains(fn ($dia) => ! empty($dia['aberto']));
                 if (! $algumDia) {
@@ -53,7 +77,11 @@ class RegisterArenaOwnerController extends Controller
             'horarios.*.p2_fecha' => ['nullable', 'date_format:H:i'],
             'pagamentos' => ['required', 'array', 'min:1'],
             'pagamentos.*' => ['integer', 'exists:payment_methods,id'],
-            'quadras' => ['required', 'array', 'min:1'],
+            'quadras' => ['required', 'array', 'min:1', function ($attribute, $value, $fail) {
+                if (ArenaController::temNomesDeQuadraDuplicados($value)) {
+                    $fail('Há quadras com nomes equivalentes (ignorando espaços e maiúsculas).');
+                }
+            }],
             'quadras.*.nome' => ['required', 'string', 'max:80'],
             'quadras.*.descricao' => ['nullable', 'string'],
             'quadras.*.valor_hora' => ['required', 'numeric', 'min:0'],
@@ -61,8 +89,7 @@ class RegisterArenaOwnerController extends Controller
             'quadras.*.esportes' => ['required', 'array', 'min:1'],
             'quadras.*.esportes.*' => [Rule::in(array_keys(Court::SPORTS))],
         ], [
-            'company_name.unique' => 'Já existe uma empresa cadastrada com esse nome.',
-            'name_arena.unique' => 'Já existe uma arena com esse nome.',
+            'tax_id.regex' => 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.',
             'horarios.required' => 'Marque ao menos um dia de funcionamento.',
             'horarios.*.p1_abre.required_with' => 'Informe o horário de abertura do dia marcado.',
             'horarios.*.p1_fecha.required_with' => 'Informe o horário de fechamento do dia marcado.',

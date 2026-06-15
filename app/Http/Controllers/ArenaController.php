@@ -37,14 +37,29 @@ class ArenaController extends Controller
             abort(403, 'Apenas proprietários podem cadastrar arenas.');
         }
 
+        $request->merge([
+            'nome' => self::normalizarTexto($request->input('nome')),
+            'email_contato' => self::normalizarEmail($request->input('email_contato')),
+            'quadras' => self::normalizarNomesQuadras($request->input('quadras', [])),
+        ]);
+
         $validated = $request->validate([
-            'nome' => ['required', 'string', 'max:120', 'unique:arenas,name'],
+            'nome' => ['required', 'string', 'max:120', function ($attribute, $value, $fail) {
+                $chave = self::chaveComparacao($value);
+                if (Arena::whereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$chave])->exists()) {
+                    $fail('Já existe uma arena com esse nome.');
+                }
+            }],
             'rua' => ['required', 'string', 'max:120'],
             'bairro' => ['required', 'string', 'max:100'],
             'numero' => ['required', 'string', 'max:15'],
             'descricao' => ['nullable', 'string'],
             'telefone' => ['nullable', 'string', 'max:20'],
-            'email_contato' => ['nullable', 'email', 'max:150'],
+            'email_contato' => ['nullable', 'email', 'max:150', function ($attribute, $value, $fail) use ($owner) {
+                if (self::emailDeArenaEmUsoPorOutroDono($value, $owner->id)) {
+                    $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
+                }
+            }],
             'horarios' => ['required', 'array', function ($attribute, $value, $fail) {
                 $algumDia = collect($value)->contains(fn ($dia) => ! empty($dia['aberto']));
                 if (! $algumDia) {
@@ -58,7 +73,11 @@ class ArenaController extends Controller
             'horarios.*.p2_fecha' => ['nullable', 'date_format:H:i'],
             'pagamentos' => ['required', 'array', 'min:1'],
             'pagamentos.*' => ['integer', 'exists:payment_methods,id'],
-            'quadras' => ['required', 'array', 'min:1'],
+            'quadras' => ['required', 'array', 'min:1', function ($attribute, $value, $fail) {
+                if (self::temNomesDeQuadraDuplicados($value)) {
+                    $fail('Há quadras com nomes equivalentes (ignorando espaços e maiúsculas).');
+                }
+            }],
             'quadras.*.nome' => ['required', 'string', 'max:80'],
             'quadras.*.descricao' => ['nullable', 'string'],
             'quadras.*.valor_hora' => ['required', 'numeric', 'min:0'],
@@ -66,7 +85,6 @@ class ArenaController extends Controller
             'quadras.*.esportes' => ['required', 'array', 'min:1'],
             'quadras.*.esportes.*' => [Rule::in(array_keys(Court::SPORTS))],
         ], [
-            'nome.unique' => 'Já existe uma arena com esse nome.',
             'horarios.required' => 'Marque ao menos um dia de funcionamento.',
             'horarios.*.p1_abre.required_with' => 'Informe o horário de abertura do dia marcado.',
             'horarios.*.p1_fecha.required_with' => 'Informe o horário de fechamento do dia marcado.',
@@ -183,5 +201,96 @@ class ArenaController extends Controller
                 $court->sports()->create(['sport' => $sport]);
             }
         }
+    }
+
+    /**
+     * Normaliza um texto: remove espaços das pontas e colapsa espaços internos
+     * repetidos em um só. Assim "Arena  X " vira "Arena X", impedindo burlar a
+     * unicidade só mudando os espaços. Use em campos únicos (nome, empresa...).
+     */
+    public static function normalizarTexto(?string $valor): ?string
+    {
+        if ($valor === null) {
+            return null;
+        }
+
+        return preg_replace('/\s+/u', ' ', trim($valor));
+    }
+
+    /**
+     * Normaliza um e-mail: tira espaços e deixa minúsculo (e-mail é
+     * case-insensitive na prática). Retorna null se ficar vazio, para que
+     * campos opcionais sejam gravados como null em vez de string vazia.
+     */
+    public static function normalizarEmail(?string $valor): ?string
+    {
+        $valor = mb_strtolower(trim((string) $valor));
+
+        return $valor === '' ? null : $valor;
+    }
+
+    /**
+     * Diz se o e-mail já está em uso por uma arena de OUTRO proprietário.
+     * O mesmo dono pode reusar o e-mail em várias arenas dele; só não pode
+     * colidir com a arena de outro dono. Passe $ownerId null quando o dono
+     * ainda não existe (cadastro novo) — aí qualquer arena conta como "de outro".
+     */
+    public static function emailDeArenaEmUsoPorOutroDono(?string $email, ?int $ownerId): bool
+    {
+        if ($email === null || $email === '') {
+            return false;
+        }
+
+        return Arena::where('contact_email', $email)
+            ->when($ownerId, fn ($q) => $q->where('owner_id', '!=', $ownerId))
+            ->exists();
+    }
+
+    /**
+     * Gera a "chave" de comparação de unicidade: minúsculo e SEM nenhum espaço.
+     * Assim "Arena  X", "arena x" e "arenax" viram todos "arenax", impedindo
+     * burlar a unicidade adicionando/removendo espaços ou trocando a caixa.
+     */
+    public static function chaveComparacao(?string $valor): string
+    {
+        return preg_replace('/\s+/u', '', mb_strtolower(trim((string) $valor)));
+    }
+
+    /**
+     * Verifica se há nomes de quadra equivalentes (mesma chaveComparacao)
+     * dentro do mesmo envio.
+     */
+    public static function temNomesDeQuadraDuplicados(array $quadras): bool
+    {
+        $chaves = [];
+
+        foreach ($quadras as $dados) {
+            $nome = $dados['nome'] ?? '';
+            if ($nome === '') {
+                continue;
+            }
+
+            $chave = self::chaveComparacao($nome);
+            if (in_array($chave, $chaves, true)) {
+                return true;
+            }
+            $chaves[] = $chave;
+        }
+
+        return false;
+    }
+
+    /**
+     * Normaliza os nomes das quadras (aplica normalizarTexto em cada nome).
+     */
+    public static function normalizarNomesQuadras(array $quadras): array
+    {
+        foreach ($quadras as $i => $dados) {
+            if (isset($dados['nome'])) {
+                $quadras[$i]['nome'] = self::normalizarTexto($dados['nome']);
+            }
+        }
+
+        return $quadras;
     }
 }
