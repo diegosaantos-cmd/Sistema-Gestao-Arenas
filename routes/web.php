@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ArenaController;
 use App\Http\Controllers\QuadraController;
+use App\Http\Controllers\EmployeeController;
 use App\Models\Arena;
 use App\Http\Controllers\OwnersController;
 use App\Http\Controllers\RegisterArenaOwnerController;
@@ -85,6 +86,19 @@ Route::middleware(['auth'])->group(function () {
                 ->count('client_id')
             : 0;
 
+        // Funcionários desta arena.
+        $employeesCount = $selectedArena
+            ? \App\Models\Employee::where('arena_id', $selectedArena->id)->count()
+            : 0;
+
+        // Agendamentos de hoje desta arena (ignora cancelados).
+        $agendamentosHoje = $selectedArena
+            ? \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
+                ->whereDate('date', now()->toDateString())
+                ->where('status', '!=', 'cancelled')
+                ->count()
+            : 0;
+
         // Próximos agendamentos desta arena (a partir de hoje).
         $proximosAgendamentos = $selectedArena
             ? \App\Models\Booking::with(['court', 'client.user'])
@@ -98,7 +112,8 @@ Route::middleware(['auth'])->group(function () {
 
         return view('owners.dashboard', compact(
             'arenas', 'arenasCount', 'selectedArena',
-            'courtsCount', 'customersCount', 'proximosAgendamentos'
+            'courtsCount', 'customersCount', 'agendamentosHoje',
+            'employeesCount', 'proximosAgendamentos'
         ));
     })->name('owners.dashboard');
 
@@ -137,5 +152,6 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::resource('arenas', ArenaController::class);
     Route::resource('quadras', QuadraController::class);
+    Route::resource('employees', EmployeeController::class);
 });
 

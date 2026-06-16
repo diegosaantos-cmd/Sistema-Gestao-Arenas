@@ -104,7 +104,12 @@
         <div class="container-fluid">
             <div class="row">
                 @if(session('msg'))
-                    <p class="msg">{{ session('msg') }}</p>
+                    <div class="col-12">
+                        <div class="alert alert-success alert-dismissible fade show mt-3 shadow-sm" role="alert">
+                            ✅ {{ session('msg') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                    </div>
                 @endif
                 @yield('content')
             </div>

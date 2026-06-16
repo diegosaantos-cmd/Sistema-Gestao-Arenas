@@ -22,6 +22,11 @@ return new class extends Migration
                 ->constrained('users')
                 ->nullOnDelete();
 
+            // Arena em que o funcionário trabalha.
+            $table->foreignId('arena_id')
+                ->constrained('arenas')
+                ->restrictOnDelete();
+
             $table->string('position', 80);
 
             $table->enum('access_level', [
@@ -34,6 +39,10 @@ return new class extends Migration
 
             $table->timestamp('created_at')
                 ->useCurrent();
+
+            $table->timestamp('updated_at')
+                ->useCurrent()
+                ->useCurrentOnUpdate();
         });
     }
 

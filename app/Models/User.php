@@ -42,6 +42,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password_hash',
         'type', // Adiciona 'type' à lista de atributos preenchíveis
     ];

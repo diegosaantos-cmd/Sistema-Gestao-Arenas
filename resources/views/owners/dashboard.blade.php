@@ -65,8 +65,8 @@
         <div class="col-md-4">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h4 class="text-secondary">Today's Bookings</h4>
-                    <h1 class="fw-bold">0</h1>
+                    <h4 class="text-secondary">Reservas de Hoje</h4>
+                    <h1 class="fw-bold">{{ $agendamentosHoje }}</h1>
                 </div>
             </div>
         </div>
@@ -83,8 +83,8 @@
         <div class="col-md-4">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h4 class="text-secondary">Employees</h4>
-                    <h1 class="fw-bold">2</h1>
+                    <h4 class="text-secondary">Funcionários</h4>
+                    <h1 class="fw-bold">{{ $employeesCount }}</h1>
                 </div>
             </div>
         </div>
@@ -127,7 +127,7 @@
                             ⚽ Nova Quadra
                         </a>
 
-                        <a href="#"
+                        <a href="{{ route('employees.create') }}"
                             class="btn btn-outline-dark btn-lg">
                             👤 Novo Funcionário
                         </a>
