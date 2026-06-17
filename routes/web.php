@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ArenaController;
 use App\Http\Controllers\QuadraController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ClientController;
 use App\Models\Arena;
 use App\Http\Controllers\OwnersController;
 use App\Http\Controllers\RegisterArenaOwnerController;
@@ -156,6 +157,10 @@ Route::middleware(['auth'])->group(function () {
 
         return redirect()->route('owners.dashboard');
     })->name('owners.arena.select');
+
+    // Lista de clientes da arena atual.
+    Route::get('/owners/clients', [ClientController::class, 'index'])
+        ->name('clients.index');
 });
 
 Route::middleware(['auth'])->group(function () {

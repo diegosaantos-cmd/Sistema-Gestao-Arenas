@@ -6,14 +6,25 @@
 
 <div class="container py-4">
 
-    <div class="mb-4">
-        <h1 class="fw-bold">
-            Bem-vindo, {{ auth()->user()->name }}!
-        </h1>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold">
+                Bem-vindo, {{ auth()->user()->name }}!
+            </h1>
 
-        <p class="text-muted fs-4">
-            Gerencie suas arenas, quadras, reservas e funcionários
-        </p>
+            <p class="text-muted fs-4 mb-0">
+                Gerencie suas arenas, quadras, reservas e funcionários
+            </p>
+        </div>
+
+        <a href="{{ route('owners.arena.choose') }}" class="text-decoration-none text-reset">
+            <div class="card shadow-sm border-0 text-center card-hover">
+                <div class="card-body">
+                    <h6 class="text-secondary mb-1">Total de Arenas</h6>
+                    <h2 class="fw-bold mb-0">{{ $arenasCount }}</h2>
+                </div>
+            </div>
+        </a>
     </div>
 
     @if ($selectedArena)
@@ -45,25 +56,53 @@
     <div class="row g-4 mb-4">
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h4 class="text-secondary">Arenas</h4>
-                    <h1 class="fw-bold">{{ $arenasCount }}</h1>
+            @if ($selectedArena)
+                <a href="{{ route('arenas.show', $selectedArena->id) }}"
+                   class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover">
+                        <div class="card-body">
+                            <h4 class="text-secondary">Arena Atual</h4>
+                            <h3 class="fw-bold mb-1">{{ $selectedArena->name }}</h3>
+                            @if ($selectedArena->active)
+                                <span class="badge bg-success">Ativa</span>
+                            @else
+                                <span class="badge bg-secondary">Inativa</span>
+                            @endif
+                        </div>
+                    </div>
+                </a>
+            @else
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h4 class="text-secondary">Arena Atual</h4>
+                        <h3 class="fw-bold">—</h3>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h4 class="text-secondary">Quadras</h4>
-                    <h1 class="fw-bold">{{ $courtsCount }}</h1>
+            @if ($selectedArena)
+                <a href="{{ route('quadras.index') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover">
+                        <div class="card-body">
+                            <h4 class="text-secondary">Quadras</h4>
+                            <h1 class="fw-bold">{{ $courtsCount }}</h1>
+                        </div>
+                    </div>
+                </a>
+            @else
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h4 class="text-secondary">Quadras</h4>
+                        <h1 class="fw-bold">{{ $courtsCount }}</h1>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 h-100 card-hover">
                 <div class="card-body">
                     <h4 class="text-secondary">Reservas de Hoje</h4>
                     <h1 class="fw-bold">{{ $agendamentosHoje }}</h1>
@@ -72,16 +111,27 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h4 class="text-secondary">Clientes</h4>
-                    <h1 class="fw-bold">{{ $customersCount }}</h1>
+            @if ($selectedArena)
+                <a href="{{ route('clients.index') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover">
+                        <div class="card-body">
+                            <h4 class="text-secondary">Clientes</h4>
+                            <h1 class="fw-bold">{{ $customersCount }}</h1>
+                        </div>
+                    </div>
+                </a>
+            @else
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h4 class="text-secondary">Clientes</h4>
+                        <h1 class="fw-bold">{{ $customersCount }}</h1>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 h-100 card-hover">
                 <div class="card-body">
                     <h4 class="text-secondary">Funcionários</h4>
                     <h1 class="fw-bold">{{ $employeesCount }}</h1>
@@ -90,7 +140,7 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 h-100 card-hover">
                 <div class="card-body">
                     <h4 class="text-secondary">Monthly Revenue</h4>
                     <h1 class="fw-bold text-success">
@@ -107,7 +157,7 @@
 
         <div class="col-lg-6 mb-4">
 
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 h-100">
 
                 <div class="card-body">
 
@@ -147,7 +197,7 @@
 
         <div class="col-lg-6 mb-4">
 
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 h-100">
 
                 <div class="card-body">
 

@@ -120,7 +120,20 @@ class ArenaController extends Controller
     
     public function show($id)
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        // Só o dono vê os dados da própria arena.
+        $arena = $owner
+            ? $owner->arenas()
+                ->with(['courts.sports', 'businessHours', 'paymentMethods'])
+                ->find($id)
+            : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        return view('arenas.show', compact('arena'));
     }
 
     public function edit(string $id)

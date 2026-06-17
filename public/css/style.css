@@ -287,3 +287,13 @@ body{
 .section-title{
     font-weight:700;
 }
+
+/* Card clicável com leve destaque ao passar o mouse */
+.card-hover{
+    transition: transform .2s ease, box-shadow .2s ease;
+    cursor: pointer;
+}
+.card-hover:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}

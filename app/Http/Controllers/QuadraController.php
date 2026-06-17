@@ -14,7 +14,21 @@ class QuadraController extends Controller
      */
     public function index()
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner) {
+            abort(403, 'Apenas proprietários podem ver as quadras.');
+        }
+
+        $arena = $owner->arenas()->find(session('selected_arena_id'));
+
+        if (! $arena) {
+            return redirect()->route('owners.dashboard');
+        }
+
+        $courts = $arena->courts()->with('sports')->orderBy('name')->get();
+
+        return view('courts.index', compact('arena', 'courts'));
     }
 
     /**

@@ -22,7 +22,7 @@
                     <input type="hidden" name="arena_id" value="{{ $arena->id }}">
 
                     <button type="submit"
-                            class="card shadow-sm border-0 w-100 h-100 text-start p-0 bg-white">
+                            class="card shadow-sm border-0 w-100 h-100 text-start p-0 bg-white card-hover">
                         <div class="card-body">
                             <h4 class="fw-bold mb-1">{{ $arena->name }}</h4>
                             <p class="text-muted mb-0">
