@@ -30,9 +30,18 @@ Route::middleware([
             return redirect()->route('owners.dashboard');
         }
 
+        if (auth()->user()->type === 'employee') {
+            return redirect()->route('employees.dashboard');
+        }
         return view('dashboard');
 
     })->name('dashboard');
+    Route::get('/employees/dashboard', function () {
+        $employee = \App\Models\Employee::where('user_id', auth()->id())->first();
+        $arena = $employee?->arena;
+
+        return view('employees.dashboard', compact('employee', 'arena'));
+    })->name('employees.dashboard');
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
