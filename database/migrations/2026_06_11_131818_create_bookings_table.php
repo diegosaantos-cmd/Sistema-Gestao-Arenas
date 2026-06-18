@@ -59,10 +59,9 @@ return new class extends Migration
                 ->useCurrent()
                 ->useCurrentOnUpdate();
 
-            $table->unique(
-                ['court_id', 'date', 'start_time', 'end_time'],
-                'uq_booking_timeslot'
-            );
+            // Sem índice único de horário: a unicidade do slot é garantida na
+            // aplicação (checagem que ignora reservas canceladas, permitindo
+            // re-agendar um horário cancelado).
         });
     }
 
