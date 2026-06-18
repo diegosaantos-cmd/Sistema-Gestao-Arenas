@@ -33,4 +33,9 @@ class Arena extends Model
     {
         return $this->hasMany(Court::class);
     }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
 }

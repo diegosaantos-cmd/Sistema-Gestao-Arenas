@@ -73,10 +73,11 @@ body{
 .dashboard-card{
     background: white;
     border-radius: 18px;
-    padding: 30px;
+    padding: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
 
     box-shadow: 0 5px 20px rgba(0,0,0,0.06);
 
@@ -89,16 +90,19 @@ body{
 
 .dashboard-card h5{
     color: #6b7280;
-    font-size: 1.3rem;
+    font-size: 1rem;
+    margin-bottom: 4px;
 }
 
 .dashboard-card h2{
-    font-size: 3rem;
+    font-size: 2.4rem;
     font-weight: bold;
+    margin-bottom: 0;
 }
 
 .dashboard-icon{
-    font-size: 4rem;
+    font-size: 2.8rem;
+    flex-shrink: 0;
 }
 
 /* BOXES */
@@ -257,10 +261,14 @@ body{
 .dashboard-btn-outline{
     border:1px solid #cfd4da;
     background:white;
+    color:#021B35;
 }
 
 .dashboard-btn-outline:hover{
-    background:#f8f9fa;
+    background:#021B35;
+    color:#fff;
+    border-color:#021B35;
+    transform: translateY(-2px);
 }
 
 .dashboard-icon{

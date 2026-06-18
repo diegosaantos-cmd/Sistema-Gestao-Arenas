@@ -14,7 +14,40 @@ class EmployeeController extends Controller
 {
     public function index()
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner) {
+            abort(403, 'Apenas proprietários podem ver os funcionários.');
+        }
+
+        $arena = $owner->arenas()->find(session('selected_arena_id'));
+
+        if (! $arena) {
+            return redirect()->route('owners.dashboard');
+        }
+
+        $employees = $arena->employees()->with('user')->get();
+
+        return view('employees.index', compact('arena', 'employees'));
+    }
+
+    /**
+     * Ativa/desativa um funcionário (só muda o flag, preserva o histórico).
+     */
+    public function toggleActive(Employee $employee)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        // Garante que o funcionário é de uma arena deste proprietário.
+        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
+            abort(403);
+        }
+
+        $employee->update(['active' => ! $employee->active]);
+
+        return back()->with('msg', $employee->active
+            ? 'Funcionário ativado.'
+            : 'Funcionário desativado.');
     }
 
     /**

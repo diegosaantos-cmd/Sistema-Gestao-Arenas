@@ -20,12 +20,12 @@
     <!-- Cards Resumo -->
     <div class="row g-4 mb-4">
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="dashboard-card">
 
                 <div>
-                    <h5>Próximos</h5>
-                    <h2>0</h2>
+                    <h5>Agendamentos próximos</h5>
+                    <h2>{{ $proximosCount ?? 0 }}</h2>
                 </div>
 
                 <i class="bi bi-calendar-check dashboard-icon text-secondary"></i>
@@ -33,12 +33,25 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="dashboard-card">
 
                 <div>
-                    <h5>Pendentes</h5>
-                    <h2>1</h2>
+                    <h5>Agendamentos hoje</h5>
+                    <h2>{{ $hojeCount ?? 0 }}</h2>
+                </div>
+
+                <i class="bi bi-calendar-event dashboard-icon text-primary"></i>
+
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="dashboard-card">
+
+                <div>
+                    <h5>Agendamentos pendentes</h5>
+                    <h2>{{ $pendentes ?? 0 }}</h2>
                 </div>
 
                 <i class="bi bi-three-dots dashboard-icon text-warning"></i>
@@ -46,12 +59,12 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="dashboard-card">
 
                 <div>
-                    <h5>Confirmados</h5>
-                    <h2>1</h2>
+                    <h5>Agendamentos confirmados</h5>
+                    <h2>{{ $confirmados ?? 0 }}</h2>
                 </div>
 
                 <i class="bi bi-check-circle dashboard-icon text-success"></i>
@@ -71,15 +84,44 @@
 
                 <h2 class="section-title">
                     Próximos Agendamentos
+                    <span class="badge bg-secondary fs-6 align-middle">{{ $proximosCount ?? 0 }}</span>
                 </h2>
 
-                <p class="text-muted">
-                    Nenhum agendamento próximo
-                </p>
+                @php
+                    $badges = [
+                        'pending'   => ['Pendente', 'bg-warning text-dark'],
+                        'confirmed' => ['Confirmada', 'bg-success'],
+                    ];
+                @endphp
 
-                <button class="btn dashboard-btn-outline w-100 mt-4">
+                @forelse ($proximos ?? [] as $b)
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <div>
+                            <div>
+                                <span class="text-muted">Arena:</span>
+                                <strong>{{ $b->court->arena->name ?? '—' }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted">Quadra:</span>
+                                <strong>{{ $b->court->name ?? '—' }}</strong>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-calendar-event me-1"></i>{{ $b->date->format('d/m/Y') }}
+                                · {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
+                            </div>
+                        </div>
+                        @php [$rotulo, $cor] = $badges[$b->status] ?? [$b->status, 'bg-secondary']; @endphp
+                        <span class="badge {{ $cor }}">{{ $rotulo }}</span>
+                    </div>
+                @empty
+                    <p class="text-muted">
+                        Nenhum agendamento próximo
+                    </p>
+                @endforelse
+
+                <a href="{{ route('client.bookings.index') }}" class="btn dashboard-btn-outline w-100 mt-4">
                     VER TODOS OS AGENDAMENTOS
-                </button>
+                </a>
 
             </div>
 
@@ -97,17 +139,17 @@
 
                 <div class="d-grid gap-3 mt-4">
 
-                    <a href="#" class="btn dashboard-btn-primary">
+                    <a href="{{ route('client.arenas.index') }}" class="btn dashboard-btn-outline">
                         <i class="bi bi-calendar-plus me-2"></i>
                         NOVA RESERVA
                     </a>
 
-                    <a href="#" class="btn dashboard-btn-outline">
+                    <a href="{{ route('client.bookings.history') }}" class="btn dashboard-btn-outline">
                         <i class="bi bi-clock-history me-2"></i>
                         HISTÓRICO
                     </a>
 
-                    <a href="{{ route('profile.show') }}"
+                    <a href="{{ route('client.profile.edit') }}"
                        class="btn dashboard-btn-outline">
                         <i class="bi bi-person-fill me-2"></i>
                         MEU PERFIL

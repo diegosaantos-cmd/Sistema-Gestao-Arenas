@@ -21,7 +21,11 @@
             <div class="card shadow-sm border-0 text-center card-hover">
                 <div class="card-body">
                     <h6 class="text-secondary mb-1">Total de Arenas</h6>
-                    <h2 class="fw-bold mb-0">{{ $arenasCount }}</h2>
+                    <h2 class="fw-bold mb-1">{{ $arenasCount }}</h2>
+                    <div class="small">
+                        <span class="text-success">{{ $arenasActive }} ativas</span>
+                        · <span class="text-muted">{{ $arenasCount - $arenasActive }} inativas</span>
+                    </div>
                 </div>
             </div>
         </a>
@@ -87,7 +91,11 @@
                     <div class="card shadow-sm border-0 h-100 card-hover">
                         <div class="card-body">
                             <h4 class="text-secondary">Quadras</h4>
-                            <h1 class="fw-bold">{{ $courtsCount }}</h1>
+                            <h1 class="fw-bold mb-1">{{ $courtsCount }}</h1>
+                            <div class="small">
+                                <span class="text-success">{{ $courtsActive }} ativas</span>
+                                · <span class="text-muted">{{ $courtsCount - $courtsActive }} inativas</span>
+                            </div>
                         </div>
                     </div>
                 </a>
@@ -102,12 +110,23 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100 card-hover">
-                <div class="card-body">
-                    <h4 class="text-secondary">Reservas de Hoje</h4>
-                    <h1 class="fw-bold">{{ $agendamentosHoje }}</h1>
+            @if ($selectedArena)
+                <a href="{{ route('bookings.today') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover">
+                        <div class="card-body">
+                            <h4 class="text-secondary">Reservas de Hoje</h4>
+                            <h1 class="fw-bold">{{ $agendamentosHoje }}</h1>
+                        </div>
+                    </div>
+                </a>
+            @else
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h4 class="text-secondary">Reservas de Hoje</h4>
+                        <h1 class="fw-bold">{{ $agendamentosHoje }}</h1>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
 
         <div class="col-md-4">
@@ -131,12 +150,27 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100 card-hover">
-                <div class="card-body">
-                    <h4 class="text-secondary">Funcionários</h4>
-                    <h1 class="fw-bold">{{ $employeesCount }}</h1>
+            @if ($selectedArena)
+                <a href="{{ route('employees.index') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover">
+                        <div class="card-body">
+                            <h4 class="text-secondary">Funcionários</h4>
+                            <h1 class="fw-bold mb-1">{{ $employeesCount }}</h1>
+                            <div class="small">
+                                <span class="text-success">{{ $employeesActive }} ativos</span>
+                                · <span class="text-muted">{{ $employeesCount - $employeesActive }} inativos</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            @else
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h4 class="text-secondary">Funcionários</h4>
+                        <h1 class="fw-bold">{{ $employeesCount }}</h1>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
 
         <div class="col-md-4">
@@ -204,10 +238,20 @@
                     <h2 class="fw-bold mb-4">
                         Proximos Agendamentos
                         <span class="badge bg-secondary fs-6 align-middle">
-                            {{ $proximosAgendamentos->count() }}
+                            {{ $proximosCount }}
                         </span>
                     </h2>
 
+                    @php
+                        $statusInfo = [
+                            'pending'   => ['Pendente',   'bg-warning text-dark'],
+                            'confirmed' => ['Confirmada', 'bg-success'],
+                            'completed' => ['Concluída',  'bg-primary'],
+                            'cancelled' => ['Cancelada',  'bg-danger'],
+                        ];
+                    @endphp
+
+                    <div class="table-responsive">
                     <table class="table align-middle">
 
                         <thead>
@@ -215,33 +259,23 @@
                                 <th>Cliente</th>
                                 <th>Quadra</th>
                                 <th>Data</th>
-                                <th class="text-end">Ações</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
 
                         <tbody>
 
-                            @forelse ($proximosAgendamentos as $i => $booking)
-                                <tr class="{{ $i >= 5 ? 'agendamento-extra d-none' : '' }}">
+                            @forelse ($proximosAgendamentos as $booking)
+                                <tr>
                                     <td>{{ $booking->client->user->name }}</td>
                                     <td>{{ $booking->court->name }}</td>
                                     <td>
                                         {{ $booking->date->format('d/m/Y') }}
-                                        {{ substr($booking->start_time, 0, 5) }}
+                                        {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
                                     </td>
-                                    <td class="text-end text-nowrap">
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-primary"
-                                                data-editar-agendamento
-                                                data-booking-id="{{ $booking->id }}">
-                                            Editar horário
-                                        </button>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-cancelar-agendamento
-                                                data-booking-id="{{ $booking->id }}">
-                                            Cancelar
-                                        </button>
+                                    <td>
+                                        @php $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary']; @endphp
+                                        <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
                                     </td>
                                 </tr>
                             @empty
@@ -255,38 +289,17 @@
                         </tbody>
 
                     </table>
+                    </div>
 
-                    @if ($proximosAgendamentos->count() > 5)
-                        <div class="text-center">
-                            <button type="button"
-                                    class="btn btn-outline-dark btn-sm"
-                                    data-toggle-agendamentos
-                                    data-total="{{ $proximosAgendamentos->count() }}">
-                                Ver todos ({{ $proximosAgendamentos->count() }})
-                            </button>
-                        </div>
-
-                        <script>
-                            document.addEventListener('DOMContentLoaded', function () {
-                                var btn = document.querySelector('[data-toggle-agendamentos]');
-                                if (!btn) return;
-
-                                btn.addEventListener('click', function () {
-                                    var extras = document.querySelectorAll('.agendamento-extra');
-                                    var expandido = btn.dataset.expandido === '1';
-
-                                    extras.forEach(function (linha) {
-                                        linha.classList.toggle('d-none', expandido);
-                                    });
-
-                                    btn.dataset.expandido = expandido ? '0' : '1';
-                                    btn.textContent = expandido
-                                        ? 'Ver todos (' + btn.dataset.total + ')'
-                                        : 'Ver menos';
-                                });
-                            });
-                        </script>
-                    @endif
+                    <div class="text-center">
+                        <a href="{{ route('bookings.index') }}" class="btn btn-outline-dark btn-sm">
+                            @if ($proximosCount > 4)
+                                Ver todos ({{ $proximosCount }})
+                            @else
+                                Gerenciar agendamentos
+                            @endif
+                        </a>
+                    </div>
 
                 </div>
 

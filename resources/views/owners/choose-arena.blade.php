@@ -24,7 +24,14 @@
                     <button type="submit"
                             class="card shadow-sm border-0 w-100 h-100 text-start p-0 bg-white card-hover">
                         <div class="card-body">
-                            <h4 class="fw-bold mb-1">{{ $arena->name }}</h4>
+                            <h4 class="fw-bold mb-1">
+                                {{ $arena->name }}
+                                @if ($arena->active)
+                                    <span class="badge bg-success align-middle">Ativa</span>
+                                @else
+                                    <span class="badge bg-secondary align-middle">Inativa</span>
+                                @endif
+                            </h4>
                             <p class="text-muted mb-0">
                                 {{ $arena->address_rua }}, {{ $arena->address_numero }}
                                 - {{ $arena->address_bairro }}

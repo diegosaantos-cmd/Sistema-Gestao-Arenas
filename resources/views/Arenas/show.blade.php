@@ -21,7 +21,7 @@
                     <span class="badge bg-secondary align-middle">Inativa</span>
                 @endif
             </h1>
-            <button type="button" class="btn btn-sm btn-outline-primary">✏️ Editar nome</button>
+            <button type="button" class="btn btn-sm btn-outline-primary">✏️ Editar nome da arena</button>
         </div>
 
         {{-- Botões sem ação por enquanto (lógica depois) --}}
@@ -119,7 +119,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0">Quadras ({{ $arena->courts->count() }})</h5>
-                        <a href="{{ route('quadras.index') }}" class="btn btn-sm btn-outline-primary">✏️ Editar</a>
+                        <a href="{{ route('quadras.index', ['from' => 'arena']) }}" class="btn btn-sm btn-outline-primary">✏️ Editar</a>
                     </div>
 
                     @forelse ($arena->courts as $court)

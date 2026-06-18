@@ -2,11 +2,18 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Booking extends Model
 {
     protected $table = 'bookings';
+
+    protected $fillable = [
+        'court_id', 'client_id', 'employee_id', 'date',
+        'start_time', 'end_time', 'total_amount', 'status', 'notes',
+        'cancelled_by', 'cancellation_reason', 'cancelled_at',
+    ];
 
     protected $casts = [
         'date' => 'date',
@@ -20,5 +27,78 @@ class Booking extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Regra de cancelamento pelo CLIENTE:
+     * - pendente: pode cancelar sempre, sem taxa;
+     * - confirmada: grátis até 1h antes do início, com taxa se faltar 1h ou menos;
+     * - já começou/passada/cancelada/concluída: não pode.
+     *
+     * Retorna 'livre' | 'taxa' | null (null = não pode cancelar).
+     */
+    public function regraCancelamentoCliente(): ?string
+    {
+        $inicio = Carbon::parse($this->date->toDateString() . ' ' . $this->start_time);
+
+        if (now()->greaterThanOrEqualTo($inicio)) {
+            return null;
+        }
+
+        if ($this->status === 'pending') {
+            return 'livre';
+        }
+
+        if ($this->status === 'confirmed') {
+            return now()->lt($inicio->copy()->subHour()) ? 'livre' : 'taxa';
+        }
+
+        return null;
+    }
+
+    /**
+     * Prazo que o dono/atendente tem para confirmar/cancelar a reserva.
+     * - criada com mais de 10 min até o início: 10 min;
+     * - criada com 10 min ou menos: metade do tempo que faltava.
+     */
+    public function prazoConfirmacao(): Carbon
+    {
+        $inicio = Carbon::parse($this->date->toDateString() . ' ' . $this->start_time);
+        $criado = $this->created_at ?? now();
+        $minsAteInicio = $criado->diffInMinutes($inicio, false); // negativo se já passou
+
+        if ($minsAteInicio <= 10) {
+            return $criado->copy()->addSeconds(max(0, (int) ($minsAteInicio * 60 / 2)));
+        }
+
+        return $criado->copy()->addMinutes(10);
+    }
+
+    /**
+     * Está pendente e o prazo de confirmação já passou.
+     */
+    public function deveAutoConfirmar(): bool
+    {
+        return $this->status === 'pending'
+            && now()->greaterThanOrEqualTo($this->prazoConfirmacao());
+    }
+
+    /**
+     * Confirma automaticamente as reservas pendentes cujo prazo expirou.
+     * Chamada de forma "preguiçosa" ao abrir as telas de agendamentos.
+     */
+    public static function autoConfirmarExpiradas(?array $courtIds = null): void
+    {
+        $query = static::where('status', 'pending');
+
+        if ($courtIds !== null) {
+            $query->whereIn('court_id', $courtIds);
+        }
+
+        foreach ($query->get() as $booking) {
+            if ($booking->deveAutoConfirmar()) {
+                $booking->update(['status' => 'confirmed']);
+            }
+        }
     }
 }
