@@ -229,6 +229,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/owners/bookings', [BookingController::class, 'index'])
         ->name('bookings.index');
 
+    // Histórico de agendamentos da arena atual.
+    Route::get('/owners/bookings/history', [BookingController::class, 'history'])
+        ->name('bookings.history');
+
     // Reservas de hoje (só confirmadas).
     Route::get('/owners/bookings/today', [BookingController::class, 'today'])
         ->name('bookings.today');

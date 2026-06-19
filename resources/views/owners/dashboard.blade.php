@@ -291,13 +291,16 @@
                     </table>
                     </div>
 
-                    <div class="text-center">
+                    <div class="text-center d-flex justify-content-center gap-2">
                         <a href="{{ route('bookings.index') }}" class="btn btn-outline-dark btn-sm">
                             @if ($proximosCount > 4)
                                 Ver todos ({{ $proximosCount }})
                             @else
                                 Gerenciar agendamentos
                             @endif
+                        </a>
+                        <a href="{{ route('bookings.history') }}" class="btn btn-outline-dark btn-sm">
+                            <i class="bi bi-clock-history me-1"></i> Histórico
                         </a>
                     </div>
 

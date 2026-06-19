@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Agendamentos da Arena')
+@section('title', 'Histórico de Agendamentos')
 
 @section('content')
 
@@ -10,13 +10,13 @@
         <a href="{{ route('owners.dashboard') }}" class="btn btn-dark btn-sm">
             ← Voltar ao painel
         </a>
-        <a href="{{ route('bookings.history') }}" class="btn btn-dark btn-sm">
-            ← Ver histórico
+        <a href="{{ route('bookings.index') }}" class="btn btn-dark btn-sm">
+            ← Ver próximos
         </a>
     </div>
 
     <h1 class="fw-bold mb-4">
-        Próximos Agendamentos
+        Histórico de Agendamentos
         <span class="badge bg-secondary fs-6 align-middle">{{ $bookings->count() }}</span>
         — {{ $arena->name }}
     </h1>
@@ -31,7 +31,7 @@
                style="max-width: 280px;" placeholder="Buscar...">
         <button class="btn btn-primary">Buscar</button>
         @if (request('q'))
-            <a href="{{ route('bookings.index') }}" class="btn btn-outline-secondary">Limpar</a>
+            <a href="{{ route('bookings.history') }}" class="btn btn-outline-secondary">Limpar</a>
         @endif
     </form>
 
@@ -47,7 +47,7 @@
                 if (limpar) input.value = '';
             }
 
-            ajustar(false);                                    // estado inicial (mantém valor)
+            ajustar(false);
             campo.addEventListener('change', function () { ajustar(true); });
         })();
     </script>
@@ -71,7 +71,6 @@
                         <th>Quadra</th>
                         <th>Data</th>
                         <th>Status</th>
-                        <th class="text-end">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -87,24 +86,11 @@
                                 @php $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary']; @endphp
                                 <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
                             </td>
-                            <td class="text-end text-nowrap">
-                                {{-- Sem ação por enquanto (lógica depois) --}}
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-primary"
-                                        data-booking-id="{{ $booking->id }}">
-                                    ✏️ Editar agendamento
-                                </button>
-                                <button type="button"
-                                        class="btn btn-sm btn-danger"
-                                        data-booking-id="{{ $booking->id }}">
-                                    🚫 Cancelar
-                                </button>
-                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted">
-                                Nenhum agendamento por enquanto
+                            <td colspan="4" class="text-center text-muted">
+                                Nenhum agendamento no histórico ainda
                             </td>
                         </tr>
                     @endforelse

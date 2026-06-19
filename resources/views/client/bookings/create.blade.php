@@ -77,7 +77,12 @@
                     <input type="hidden" name="date" value="{{ $date }}">
 
                     <div class="dashboard-box mb-4">
-                        <h2 class="section-title" style="font-size: 1.4rem;">2. Escolha o(s) horário(s)</h2>
+                        @php $dSel = \Carbon\Carbon::parse($date); @endphp
+                        <h2 class="section-title mb-1" style="font-size: 1.4rem;">2. Escolha o(s) horário(s)</h2>
+                        <p class="fw-bold mb-3" style="color: #021B35;">
+                            <i class="bi bi-calendar-event me-1"></i>
+                            {{ $diasNome[$dSel->dayOfWeek] }}, {{ $dSel->format('d/m/Y') }}
+                        </p>
 
                         <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
                             <span><span class="d-inline-block border rounded me-1" style="width:14px;height:14px;vertical-align:middle;background:#fff;"></span> Livre</span>

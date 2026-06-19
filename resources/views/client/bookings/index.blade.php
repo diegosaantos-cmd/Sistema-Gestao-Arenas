@@ -6,14 +6,14 @@
 
 <div class="dashboard-container container-fluid py-4">
 
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div class="d-flex flex-column align-items-start gap-2 mb-3">
         <a href="{{ route('dashboard') }}" class="btn btn-dark btn-sm">
             ← Voltar ao painel
         </a>
         <a href="{{ route('client.bookings.history') }}" class="btn btn-dark btn-sm">
-            Ver histórico →
+            ← Ver histórico
         </a>
-        <a href="{{ route('client.arenas.index') }}" class="btn btn-primary btn-sm ms-auto">
+        <a href="{{ route('client.arenas.index') }}" class="btn btn-primary btn-sm">
             + Nova reserva
         </a>
     </div>
