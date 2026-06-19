@@ -22,6 +22,9 @@
         5 => 'Sexta-feira',
         6 => 'Sábado',
     ];
+
+    // Valores atuais (modo edição). Vazio nos formulários de cadastro.
+    $horariosAtuais = $horariosAtuais ?? [];
 @endphp
 
 <div class="bh" data-business-hours>
@@ -35,14 +38,14 @@
     </p>
 
     @foreach ($dias as $num => $nome)
-        <div class="bh__row {{ old("horarios.$num.aberto") ? 'is-open' : '' }}" data-bh-day>
+        <div class="bh__row {{ old("horarios.$num.aberto", $horariosAtuais[$num]['aberto'] ?? false) ? 'is-open' : '' }}" data-bh-day>
 
             <label class="bh__day">
                 <input type="checkbox"
                        name="horarios[{{ $num }}][aberto]"
                        value="1"
                        data-bh-toggle
-                       {{ old("horarios.$num.aberto") ? 'checked' : '' }}>
+                       {{ old("horarios.$num.aberto", $horariosAtuais[$num]['aberto'] ?? false) ? 'checked' : '' }}>
                 <span>{{ $nome }}</span>
             </label>
 
@@ -51,12 +54,12 @@
                 <div class="bh__period">
                     <input type="time"
                            name="horarios[{{ $num }}][p1_abre]"
-                           value="{{ old("horarios.$num.p1_abre") }}"
+                           value="{{ old("horarios.$num.p1_abre", $horariosAtuais[$num]['p1_abre'] ?? '') }}"
                            aria-label="{{ $nome }} - abre">
                     <span class="bh__sep">às</span>
                     <input type="time"
                            name="horarios[{{ $num }}][p1_fecha]"
-                           value="{{ old("horarios.$num.p1_fecha") }}"
+                           value="{{ old("horarios.$num.p1_fecha", $horariosAtuais[$num]['p1_fecha'] ?? '') }}"
                            aria-label="{{ $nome }} - fecha">
                 </div>
 
@@ -64,12 +67,12 @@
                     <span class="bh__period-label">Após o almoço</span>
                     <input type="time"
                            name="horarios[{{ $num }}][p2_abre]"
-                           value="{{ old("horarios.$num.p2_abre") }}"
+                           value="{{ old("horarios.$num.p2_abre", $horariosAtuais[$num]['p2_abre'] ?? '') }}"
                            aria-label="{{ $nome }} - reabre">
                     <span class="bh__sep">às</span>
                     <input type="time"
                            name="horarios[{{ $num }}][p2_fecha]"
-                           value="{{ old("horarios.$num.p2_fecha") }}"
+                           value="{{ old("horarios.$num.p2_fecha", $horariosAtuais[$num]['p2_fecha'] ?? '') }}"
                            aria-label="{{ $nome }} - fecha (2º)">
                 </div>
 

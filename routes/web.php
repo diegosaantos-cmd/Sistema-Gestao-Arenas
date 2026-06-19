@@ -279,6 +279,10 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
+    Route::patch('/arenas/{arena}/pagamentos', [ArenaController::class, 'updatePayments'])
+        ->name('arenas.payments.update');
+    Route::patch('/arenas/{arena}/horarios', [ArenaController::class, 'updateBusinessHours'])
+        ->name('arenas.hours.update');
     Route::resource('arenas', ArenaController::class);
     Route::resource('quadras', QuadraController::class);
     Route::resource('employees', EmployeeController::class);

@@ -68,6 +68,10 @@ class RegisterArenaOwnerController extends Controller
                 $algumDia = collect($value)->contains(fn ($dia) => ! empty($dia['aberto']));
                 if (! $algumDia) {
                     $fail('Marque ao menos um dia de funcionamento.');
+                    return;
+                }
+                if ($erro = ArenaController::erroNosPeriodos($value)) {
+                    $fail($erro);
                 }
             }],
             'horarios.*.aberto' => ['nullable', 'boolean'],

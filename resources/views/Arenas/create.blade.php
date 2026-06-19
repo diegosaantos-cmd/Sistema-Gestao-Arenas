@@ -11,7 +11,8 @@
 
             @if ($errors->any())
                 <div class="alert alert-danger">
-                    <ul class="mb-0">
+                    <strong>Não foi possível salvar.</strong> Corrija o que está marcado abaixo:
+                    <ul class="mb-0 mt-1">
                         @foreach ($errors->all() as $erro)
                             <li>{{ $erro }}</li>
                         @endforeach
