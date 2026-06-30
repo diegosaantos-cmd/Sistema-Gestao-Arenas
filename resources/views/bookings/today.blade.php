@@ -45,9 +45,13 @@
                                 <span class="badge bg-success text-center" style="min-width: 100px;">Confirmada</span>
                             </td>
                             <td class="text-end text-nowrap">
+                                <a href="{{ route('bookings.show', $booking) }}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-info-circle me-1"></i> Detalhes
+                                </a>
                                 {{-- Sem ação por enquanto (lógica depois) --}}
                                 <button type="button"
-                                        class="btn btn-sm btn-outline-primary"
+                                        class="btn btn-sm btn-warning"
                                         data-booking-id="{{ $booking->id }}">
                                     ✏️ Editar agendamento
                                 </button>

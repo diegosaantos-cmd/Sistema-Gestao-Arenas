@@ -75,10 +75,10 @@
                 </div>
 
                 <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ route('owners.dashboard') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('owners.dashboard') }}" class="btn btn-secondary">
                         Cancelar
                     </a>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-success">
                         Salvar
                     </button>
                 </div>

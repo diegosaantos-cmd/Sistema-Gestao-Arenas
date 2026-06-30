@@ -32,12 +32,12 @@
                     <span class="badge bg-secondary align-middle">Inativa</span>
                 @endif
             </h1>
-            <button type="button" class="btn btn-sm btn-outline-primary">✏️ Editar nome da arena</button>
+            <button type="button" class="btn btn-sm btn-warning">✏️ Editar nome da arena</button>
         </div>
 
         {{-- Botões sem ação por enquanto (lógica depois) --}}
         <div class="d-flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-warning">
+            <button type="button" class="btn {{ $arena->active ? 'btn-secondary' : 'btn-success' }}">
                 {{ $arena->active ? '🚫 Desativar' : '✅ Reativar' }}
             </button>
             <button type="button" class="btn btn-danger">🗑️ Excluir</button>
@@ -52,7 +52,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0">Endereço &amp; Contato</h5>
-                        <button type="button" class="btn btn-sm btn-outline-primary">✏️ Editar</button>
+                        <button type="button" class="btn btn-sm btn-warning">✏️ Editar</button>
                     </div>
                     <h6 class="fw-bold">Endereço</h6>
                     <p class="mb-1">{{ $arena->address_rua }}, {{ $arena->address_numero }}</p>
@@ -117,7 +117,7 @@
                                     data-bs-toggle="modal" data-bs-target="#confirmPagamentos">
                                 Salvar
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCancelarPagamentos">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btnCancelarPagamentos">
                                 Cancelar
                             </button>
                         </div>
@@ -197,7 +197,7 @@
 
                         <div class="d-flex gap-2 mt-3">
                             <button type="submit" class="btn btn-success btn-sm">Salvar</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCancelarHorarios">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btnCancelarHorarios">
                                 Cancelar
                             </button>
                         </div>
@@ -212,7 +212,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0">Quadras ({{ $arena->courts->count() }})</h5>
-                        <a href="{{ route('quadras.index', ['from' => 'arena']) }}" class="btn btn-sm btn-outline-primary">✏️ Editar</a>
+                        <a href="{{ route('quadras.index', ['from' => 'arena']) }}" class="btn btn-sm btn-warning">✏️ Editar</a>
                     </div>
 
                     @forelse ($arena->courts as $court)

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\Arena;
+use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Owner;
 use App\Models\PaymentMethod;
@@ -230,12 +232,133 @@ class ArenaController extends Controller
             'horarios.*.p1_fecha.required_with' => 'Informe o horário de fechamento do dia marcado.',
         ]);
 
-        // Substitui todos os horários antigos pelos novos.
+        $horarios = $request->input('horarios', []);
+
+        // Reservas futuras (todas as quadras) que ficariam fora do novo horário.
+        $afetados = self::agendamentosForaDoHorario($arena, $horarios);
+
+        // Se alguma reserva seria afetada, pede confirmação + motivo antes.
+        if ($afetados->isNotEmpty()) {
+            return view('arenas.hours-confirm', [
+                'arena' => $arena,
+                'afetados' => $afetados,
+                'horarios' => $horarios,
+            ]);
+        }
+
+        // Nenhuma afetada: substitui os horários direto.
         $arena->businessHours()->delete();
-        $this->salvarHorarios($arena, $request->input('horarios', []));
+        $this->salvarHorarios($arena, $horarios);
 
         return redirect()->route('arenas.show', $arena->id)
             ->with('msg', 'Horários de funcionamento atualizados.');
+    }
+
+    /**
+     * Confirma a troca de horários cancelando as reservas que ficaram fora.
+     * O motivo é o mesmo para todas as reservas afetadas.
+     */
+    public function confirmBusinessHours(Request $request, string $id)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        $horarios = $request->input('horarios', []);
+        $motivo = trim((string) $request->input('motivo'));
+
+        // Validação leve (os horários já vieram de um envio válido).
+        $erros = [];
+        $algumDia = collect($horarios)->contains(fn ($dia) => ! empty($dia['aberto']));
+        if (! $algumDia) {
+            $erros[] = 'Marque ao menos um dia de funcionamento.';
+        } elseif ($erro = self::erroNosPeriodos($horarios)) {
+            $erros[] = $erro;
+        }
+        if ($motivo === '') {
+            $erros[] = 'Informe o motivo do cancelamento.';
+        }
+
+        if (! empty($erros)) {
+            return view('arenas.hours-confirm', [
+                'arena' => $arena,
+                'afetados' => self::agendamentosForaDoHorario($arena, $horarios),
+                'horarios' => $horarios,
+                'erros' => $erros,
+                'motivo' => $motivo,
+            ]);
+        }
+
+        DB::transaction(function () use ($arena, $horarios, $motivo) {
+            // Cancela as reservas que ficariam fora do novo horário.
+            foreach (self::agendamentosForaDoHorario($arena, $horarios) as $booking) {
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $motivo,
+                ]);
+            }
+
+            // Substitui os horários.
+            $arena->businessHours()->delete();
+            self::salvarHorarios($arena, $horarios);
+        });
+
+        return redirect()->route('arenas.show', $arena->id)
+            ->with('msg', 'Horários atualizados e reservas afetadas canceladas.');
+    }
+
+    /**
+     * Diz se um intervalo [start, end] cabe em algum período aberto do dia.
+     */
+    public static function cabeNoHorario(int $weekday, string $start, string $end, array $horarios): bool
+    {
+        $info = $horarios[$weekday] ?? null;
+
+        if (empty($info['aberto'])) {
+            return false;
+        }
+
+        $s = substr($start, 0, 5);
+        $e = substr($end, 0, 5);
+
+        $periodos = [
+            ['abre' => $info['p1_abre'] ?? null, 'fecha' => $info['p1_fecha'] ?? null],
+            ['abre' => $info['p2_abre'] ?? null, 'fecha' => $info['p2_fecha'] ?? null],
+        ];
+
+        foreach ($periodos as $p) {
+            if (empty($p['abre']) || empty($p['fecha'])) {
+                continue;
+            }
+            if ($p['abre'] <= $s && $e <= $p['fecha']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Reservas futuras (pendentes/confirmadas) de TODAS as quadras da arena
+     * que NÃO cabem nos horários informados.
+     */
+    public static function agendamentosForaDoHorario(Arena $arena, array $horarios)
+    {
+        return Booking::with(['court', 'client.user'])
+            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereDate('date', '>=', now()->toDateString())
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->orderBy('date')->orderBy('start_time')
+            ->get()
+            ->filter(fn ($b) => ! self::cabeNoHorario(
+                $b->date->dayOfWeek, $b->start_time, $b->end_time, $horarios
+            ))
+            ->values();
     }
 
     /**

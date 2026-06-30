@@ -246,7 +246,7 @@
                         $statusInfo = [
                             'pending'   => ['Pendente',   'bg-warning text-dark'],
                             'confirmed' => ['Confirmada', 'bg-success'],
-                            'completed' => ['Concluída',  'bg-primary'],
+                            'completed' => ['Concluída',  'bg-success'],
                             'cancelled' => ['Cancelada',  'bg-danger'],
                         ];
                     @endphp
@@ -260,6 +260,7 @@
                                 <th>Quadra</th>
                                 <th>Data</th>
                                 <th>Status</th>
+                                <th class="text-end">Ações</th>
                             </tr>
                         </thead>
 
@@ -277,10 +278,16 @@
                                         @php $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary']; @endphp
                                         <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
                                     </td>
+                                    <td class="text-end text-nowrap">
+                                        <a href="{{ route('bookings.show', $booking) }}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-info-circle me-1"></i> Detalhes
+                                        </a>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">
+                                    <td colspan="5" class="text-center text-muted">
                                         Nenhum agendamento por enquanto
                                     </td>
                                 </tr>

@@ -78,7 +78,7 @@
                         <button type="submit" class="btn btn-success px-4">
                             <i class="bi bi-check-circle me-2"></i> Salvar dados
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" id="btnCancelarPerfil">
+                        <button type="button" class="btn btn-secondary" id="btnCancelarPerfil">
                             Cancelar
                         </button>
                     </div>
@@ -125,7 +125,7 @@
                         <button type="submit" class="btn btn-success px-4">
                             <i class="bi bi-shield-lock me-2"></i> Alterar senha
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" id="btnCancelarSenha">
+                        <button type="button" class="btn btn-secondary" id="btnCancelarSenha">
                             Cancelar
                         </button>
                     </div>

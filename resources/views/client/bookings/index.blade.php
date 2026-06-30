@@ -42,7 +42,7 @@
             'pending'   => ['Pendente', 'bg-warning text-dark'],
             'confirmed' => ['Confirmada', 'bg-success'],
             'cancelled' => ['Cancelada', 'bg-danger'],
-            'completed' => ['Concluída', 'bg-secondary'],
+            'completed' => ['Concluída', 'bg-success'],
         ];
         $dias = [
             0 => 'Dom', 1 => 'Seg', 2 => 'Ter', 3 => 'Qua',

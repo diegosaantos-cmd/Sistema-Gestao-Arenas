@@ -23,7 +23,7 @@ class BookingController extends Controller
 
         $arena->load(['paymentMethods', 'businessHours']);
 
-        $date = $request->query('date') ?: $this->diaPadrao($arena);
+        $date = $request->query('date') ?: $this->primeiroDiaComHorario($court, $arena);
 
         $weekday = Carbon::parse($date)->dayOfWeek;
         $aberto = $arena->businessHours->where('day_of_week', $weekday)->isNotEmpty();
@@ -45,6 +45,7 @@ class BookingController extends Controller
     public function index()
     {
         Booking::autoConfirmarExpiradas();
+        Booking::autoCompletarRealizadas();
 
         $client = Client::where('user_id', auth()->id())->first();
 
@@ -79,7 +80,7 @@ class BookingController extends Controller
     /**
      * Cancela uma reserva do próprio cliente, respeitando a regra de cancelamento.
      */
-    public function cancel(Booking $booking)
+    public function cancel(Request $request, Booking $booking)
     {
         $client = Client::where('user_id', auth()->id())->first();
 
@@ -93,13 +94,17 @@ class BookingController extends Controller
             return back()->withErrors(['cancel' => 'Esta reserva não pode mais ser cancelada.']);
         }
 
+        $validated = $request->validate([
+            'motivo' => ['required', 'string', 'max:255'],
+        ], [
+            'motivo.required' => 'Informe o motivo do cancelamento.',
+        ]);
+
         $booking->update([
             'status' => 'cancelled',
             'cancelled_by' => auth()->id(),
             'cancelled_at' => now(),
-            'cancellation_reason' => $regra === 'taxa'
-                ? 'Cancelada pelo cliente (sujeita a taxa).'
-                : 'Cancelada pelo cliente.',
+            'cancellation_reason' => $validated['motivo'],
         ]);
 
         return back()->with('status', $regra === 'taxa'
@@ -199,6 +204,30 @@ class BookingController extends Controller
         }
 
         return now()->toDateString();
+    }
+
+    /**
+     * Primeiro dia (a partir de hoje) em que a arena abre E a quadra ainda
+     * tem ao menos um horário livre. Assim a tela já abre num dia com vaga,
+     * pulando dias lotados/sem horário. Cai no diaPadrao se não achar.
+     */
+    private function primeiroDiaComHorario(Court $court, Arena $arena): string
+    {
+        for ($i = 0; $i < 60; $i++) {
+            $d = now()->addDays($i);
+
+            if ($arena->businessHours->where('day_of_week', $d->dayOfWeek)->isEmpty()) {
+                continue; // fechado nesse dia
+            }
+
+            $slots = $this->slotsDoDia($court, $arena, $d->toDateString());
+
+            if ($slots->contains(fn ($s) => ! $s['ocupado'])) {
+                return $d->toDateString();
+            }
+        }
+
+        return $this->diaPadrao($arena);
     }
 
     /**

@@ -17,6 +17,7 @@ class Booking extends Model
 
     protected $casts = [
         'date' => 'date',
+        'cancelled_at' => 'datetime',
     ];
 
     public function court()
@@ -98,6 +99,27 @@ class Booking extends Model
         foreach ($query->get() as $booking) {
             if ($booking->deveAutoConfirmar()) {
                 $booking->update(['status' => 'confirmed']);
+            }
+        }
+    }
+
+    /**
+     * Marca como realizadas (completed) as reservas confirmadas cujo horário
+     * de término já passou. Chamada de forma "preguiçosa" ao abrir as telas.
+     */
+    public static function autoCompletarRealizadas(?array $courtIds = null): void
+    {
+        $query = static::where('status', 'confirmed');
+
+        if ($courtIds !== null) {
+            $query->whereIn('court_id', $courtIds);
+        }
+
+        foreach ($query->get() as $booking) {
+            $fim = Carbon::parse($booking->date->toDateString() . ' ' . $booking->end_time);
+
+            if (now()->greaterThan($fim)) {
+                $booking->update(['status' => 'completed']);
             }
         }
     }

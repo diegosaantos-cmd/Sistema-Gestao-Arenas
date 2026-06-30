@@ -43,12 +43,12 @@
 
                 <div class="d-flex gap-2">
                     {{-- Editar sem ação por enquanto (lógica depois) --}}
-                    <button type="button" class="btn btn-sm btn-outline-primary">✏️ Editar</button>
+                    <button type="button" class="btn btn-sm btn-warning">✏️ Editar</button>
 
                     <form action="{{ route('employees.toggle', $employee) }}" method="POST" class="d-inline">
                         @csrf
                         @method('PATCH')
-                        <button type="submit" class="btn btn-sm btn-warning">
+                        <button type="submit" class="btn btn-sm {{ $employee->active ? 'btn-secondary' : 'btn-success' }}">
                             {{ $employee->active ? '🚫 Desativar' : '✅ Ativar' }}
                         </button>
                     </form>

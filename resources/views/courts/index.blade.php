@@ -53,8 +53,8 @@
 
                 {{-- Botões sem ação por enquanto (lógica depois) --}}
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-primary">✏️ Editar</button>
-                    <button type="button" class="btn btn-sm btn-warning">
+                    <button type="button" class="btn btn-sm btn-warning">✏️ Editar</button>
+                    <button type="button" class="btn btn-sm {{ $court->active ? 'btn-secondary' : 'btn-success' }}">
                         {{ $court->active ? '🚫 Desativar' : '✅ Reativar' }}
                     </button>
                 </div>

@@ -56,7 +56,7 @@
         $statusInfo = [
             'pending'   => ['Pendente',   'bg-warning text-dark'],
             'confirmed' => ['Confirmada', 'bg-success'],
-            'completed' => ['Concluída',  'bg-primary'],
+            'completed' => ['Concluída',  'bg-success'],
             'cancelled' => ['Cancelada',  'bg-danger'],
         ];
     @endphp
@@ -88,9 +88,13 @@
                                 <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
                             </td>
                             <td class="text-end text-nowrap">
+                                <a href="{{ route('bookings.show', $booking) }}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-info-circle me-1"></i> Detalhes
+                                </a>
                                 {{-- Sem ação por enquanto (lógica depois) --}}
                                 <button type="button"
-                                        class="btn btn-sm btn-outline-primary"
+                                        class="btn btn-sm btn-warning"
                                         data-booking-id="{{ $booking->id }}">
                                     ✏️ Editar agendamento
                                 </button>

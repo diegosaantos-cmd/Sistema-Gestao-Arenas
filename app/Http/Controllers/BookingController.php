@@ -25,7 +25,9 @@ class BookingController extends Controller
             return redirect()->route('owners.dashboard');
         }
 
-        Booking::autoConfirmarExpiradas($arena->courts()->pluck('id')->all());
+        $idsQuadras = $arena->courts()->pluck('id')->all();
+        Booking::autoConfirmarExpiradas($idsQuadras);
+        Booking::autoCompletarRealizadas($idsQuadras);
 
         $campo = request('campo', 'cliente');
         $q = trim((string) request('q'));
@@ -33,7 +35,7 @@ class BookingController extends Controller
         $query = Booking::with(['court', 'client.user'])
             ->whereIn('court_id', $arena->courts()->select('id'))
             ->whereDate('date', '>=', now()->toDateString())
-            ->where('status', '!=', 'cancelled');
+            ->whereIn('status', ['pending', 'confirmed']);
 
         if ($q !== '') {
             $query->where(function ($qb) use ($campo, $q) {
@@ -115,7 +117,9 @@ class BookingController extends Controller
             return redirect()->route('owners.dashboard');
         }
 
-        Booking::autoConfirmarExpiradas($arena->courts()->pluck('id')->all());
+        $idsQuadras = $arena->courts()->pluck('id')->all();
+        Booking::autoConfirmarExpiradas($idsQuadras);
+        Booking::autoCompletarRealizadas($idsQuadras);
 
         $bookings = Booking::with(['court', 'client.user'])
             ->whereIn('court_id', $arena->courts()->select('id'))

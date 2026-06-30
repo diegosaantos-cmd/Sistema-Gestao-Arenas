@@ -94,30 +94,46 @@
                     ];
                 @endphp
 
-                @forelse ($proximos ?? [] as $b)
-                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                        <div>
-                            <div>
-                                <span class="text-muted">Arena:</span>
-                                <strong>{{ $b->court->arena->name ?? '—' }}</strong>
-                            </div>
-                            <div>
-                                <span class="text-muted">Quadra:</span>
-                                <strong>{{ $b->court->name ?? '—' }}</strong>
-                            </div>
-                            <div class="text-muted small mt-1">
-                                <i class="bi bi-calendar-event me-1"></i>{{ $b->date->format('d/m/Y') }}
-                                · {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
-                            </div>
-                        </div>
-                        @php [$rotulo, $cor] = $badges[$b->status] ?? [$b->status, 'bg-secondary']; @endphp
-                        <span class="badge {{ $cor }}">{{ $rotulo }}</span>
-                    </div>
-                @empty
+                @if (($proximos ?? collect())->isEmpty())
                     <p class="text-muted">
                         Nenhum agendamento próximo
                     </p>
-                @endforelse
+                @else
+                    <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Arena</th>
+                                <th>Quadra</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($proximos as $b)
+                                <tr>
+                                    <td>{{ $b->court->arena->name ?? '—' }}</td>
+                                    <td>{{ $b->court->name ?? '—' }}</td>
+                                    <td>
+                                        {{ $b->date->format('d/m/Y') }}
+                                        {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
+                                    </td>
+                                    <td>
+                                        @php [$rotulo, $cor] = $badges[$b->status] ?? [$b->status, 'bg-secondary']; @endphp
+                                        <span class="badge {{ $cor }}">{{ $rotulo }}</span>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <a href="{{ route('bookings.show', $b) }}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-info-circle me-1"></i> Detalhes
+                                        </a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    </div>
+                @endif
 
                 <a href="{{ route('client.bookings.index') }}" class="btn dashboard-btn-outline w-100 mt-4">
                     VER TODOS OS AGENDAMENTOS

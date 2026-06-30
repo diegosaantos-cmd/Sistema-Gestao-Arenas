@@ -12,6 +12,7 @@ use App\Http\Controllers\Client\ProfileController as ClientProfileController;
 use App\Models\Arena;
 use App\Http\Controllers\OwnersController;
 use App\Http\Controllers\RegisterArenaOwnerController;
+use App\Http\Controllers\BookingDetailController;
 
 Route::get('/', function () {
     $arenas = Arena::all();
@@ -39,8 +40,9 @@ Route::middleware([
             return redirect()->route('employees.dashboard');
         }
 
-        // Confirma automaticamente as reservas pendentes cujo prazo expirou.
+        // Confirma automaticamente as pendentes vencidas e conclui as realizadas.
         \App\Models\Booking::autoConfirmarExpiradas();
+        \App\Models\Booking::autoCompletarRealizadas();
 
         // Cliente: resumo das próprias reservas.
         $client = \App\Models\Client::where('user_id', auth()->id())->first();
@@ -131,10 +133,11 @@ Route::middleware(['auth'])->group(function () {
         if ($selectedArena) {
             session(['selected_arena_id' => $selectedArena->id]);
 
-            // Confirma automaticamente as reservas pendentes cujo prazo expirou.
-            \App\Models\Booking::autoConfirmarExpiradas(
-                $selectedArena->courts()->pluck('id')->all()
-            );
+            // Confirma automaticamente as reservas pendentes cujo prazo expirou
+            // e marca como realizadas as confirmadas que já terminaram.
+            $idsQuadras = $selectedArena->courts()->pluck('id')->all();
+            \App\Models\Booking::autoConfirmarExpiradas($idsQuadras);
+            \App\Models\Booking::autoCompletarRealizadas($idsQuadras);
         }
 
         // Dados abaixo são SÓ da arena selecionada (o card Arenas continua sendo o total).
@@ -172,7 +175,7 @@ Route::middleware(['auth'])->group(function () {
         if ($selectedArena) {
             $base = \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
                 ->whereDate('date', '>=', now()->toDateString())
-                ->where('status', '!=', 'cancelled');
+                ->whereIn('status', ['pending', 'confirmed']);
 
             $proximosCount = (clone $base)->count();
 
@@ -257,6 +260,10 @@ Route::middleware(['auth'])->group(function () {
         return view('client.bookings.success');
     })->name('client.bookings.success');
 
+    // Detalhes completos de uma reserva (cliente dono, dono da arena ou funcionário).
+    Route::get('/reservas/{booking}/detalhes', [BookingDetailController::class, 'show'])
+        ->name('bookings.show');
+
     // Próximos agendamentos, histórico e cancelar.
     Route::get('/client/reservas', [ClientBookingController::class, 'index'])
         ->name('client.bookings.index');
@@ -283,6 +290,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('arenas.payments.update');
     Route::patch('/arenas/{arena}/horarios', [ArenaController::class, 'updateBusinessHours'])
         ->name('arenas.hours.update');
+    Route::post('/arenas/{arena}/horarios/confirmar', [ArenaController::class, 'confirmBusinessHours'])
+        ->name('arenas.hours.confirm');
     Route::resource('arenas', ArenaController::class);
     Route::resource('quadras', QuadraController::class);
     Route::resource('employees', EmployeeController::class);

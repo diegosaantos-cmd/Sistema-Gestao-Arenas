@@ -141,7 +141,7 @@
                 <tbody>
 
                     
- class="btn btn-sm btn-outline-danger">
+ class="btn btn-sm btn-danger">
                                     Cancelar
                                 </button>
 

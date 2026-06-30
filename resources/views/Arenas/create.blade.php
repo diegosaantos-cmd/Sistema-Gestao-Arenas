@@ -98,12 +98,12 @@
 
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('arenas.index') }}"
-                       class="btn btn-outline-secondary">
+                       class="btn btn-secondary">
                         Cancelar
                     </a>
 
                     <button type="submit"
-                            class="btn btn-primary">
+                            class="btn btn-success">
                         Salvar
                     </button>
                 </div>
