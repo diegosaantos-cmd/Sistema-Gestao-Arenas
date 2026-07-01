@@ -10,6 +10,7 @@ use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Owner;
 use App\Models\PaymentMethod;
+use App\Models\User;
 class ArenaController extends Controller
 {
     /**
@@ -61,6 +62,8 @@ class ArenaController extends Controller
             'email_contato' => ['nullable', 'email', 'max:150', function ($attribute, $value, $fail) use ($owner) {
                 if (self::emailDeArenaEmUsoPorOutroDono($value, $owner->id)) {
                     $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
+                } elseif (self::emailPertenceAOutroUsuario($value, auth()->id())) {
+                    $fail('Este e-mail pertence à conta de outra pessoa. Use um e-mail que não seja de outro usuário.');
                 }
             }],
             'horarios' => ['required', 'array', function ($attribute, $value, $fail) {
@@ -196,6 +199,176 @@ class ArenaController extends Controller
 
         return redirect()->route('arenas.show', $arena->id)
             ->with('msg', 'Formas de pagamento atualizadas.');
+    }
+
+    /**
+     * Atualiza só o nome da arena (mesma regra de unicidade do cadastro:
+     * ignora espaços e maiúsculas, e desconsidera a própria arena).
+     */
+    public function updateName(Request $request, string $id)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        $request->merge([
+            'nome' => self::normalizarTexto($request->input('nome')),
+        ]);
+
+        $validated = $request->validate([
+            'nome' => ['required', 'string', 'max:120', function ($attribute, $value, $fail) use ($arena) {
+                $chave = self::chaveComparacao($value);
+                if (Arena::whereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$chave])
+                        ->where('id', '!=', $arena->id)
+                        ->exists()) {
+                    $fail('Já existe uma arena com esse nome.');
+                }
+            }],
+        ]);
+
+        $arena->update(['name' => $validated['nome']]);
+
+        return redirect()->route('arenas.show', $arena->id)
+            ->with('msg', 'Nome da arena atualizado.');
+    }
+
+    /**
+     * Ativa/desativa a arena. Reativar é direto. Desativar só é direto se não
+     * houver reservas futuras pendentes/confirmadas; se houver, pede confirmação
+     * com motivo (mesma ideia da troca de horários).
+     */
+    public function toggleActive(string $id)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        // Reativar.
+        if (! $arena->active) {
+            $arena->update(['active' => true]);
+
+            return redirect()->route('arenas.show', $arena->id)
+                ->with('msg', 'Arena reativada.');
+        }
+
+        // Desativar: verifica reservas que seriam canceladas.
+        $afetados = self::agendamentosAtivosDaArena($arena);
+
+        if ($afetados->isEmpty()) {
+            $arena->update(['active' => false]);
+
+            return redirect()->route('arenas.show', $arena->id)
+                ->with('msg', 'Arena desativada.');
+        }
+
+        return view('arenas.deactivate-confirm', compact('arena', 'afetados'));
+    }
+
+    /**
+     * Confirma a desativação da arena cancelando as reservas afetadas.
+     * O motivo é o mesmo para todas.
+     */
+    public function confirmDeactivate(Request $request, string $id)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        $motivo = trim((string) $request->input('motivo'));
+
+        if ($motivo === '') {
+            return view('arenas.deactivate-confirm', [
+                'arena' => $arena,
+                'afetados' => self::agendamentosAtivosDaArena($arena),
+                'erroMotivo' => 'Informe o motivo do cancelamento.',
+                'motivo' => $motivo,
+            ]);
+        }
+
+        DB::transaction(function () use ($arena, $motivo) {
+            foreach (self::agendamentosAtivosDaArena($arena) as $booking) {
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $motivo,
+                ]);
+            }
+
+            $arena->update(['active' => false]);
+        });
+
+        return redirect()->route('arenas.show', $arena->id)
+            ->with('msg', 'Arena desativada e reservas afetadas canceladas.');
+    }
+
+    /**
+     * Reservas futuras (pendentes/confirmadas) de todas as quadras da arena.
+     */
+    public static function agendamentosAtivosDaArena(Arena $arena)
+    {
+        return Booking::with(['court', 'client.user'])
+            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereDate('date', '>=', now()->toDateString())
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->orderBy('date')->orderBy('start_time')
+            ->get();
+    }
+
+    /**
+     * Atualiza o endereço e o contato da arena.
+     */
+    public function updateContact(Request $request, string $id)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        $request->merge([
+            'email_contato' => self::normalizarEmail($request->input('email_contato')),
+        ]);
+
+        $validated = $request->validate([
+            'rua' => ['required', 'string', 'max:120'],
+            'bairro' => ['required', 'string', 'max:100'],
+            'numero' => ['required', 'string', 'max:15'],
+            'telefone' => ['required', 'string', 'max:20'],
+            'descricao' => ['nullable', 'string', 'max:300'],
+            'email_contato' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($owner) {
+                if (self::emailDeArenaEmUsoPorOutroDono($value, $owner->id)) {
+                    $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
+                } elseif (self::emailPertenceAOutroUsuario($value, auth()->id())) {
+                    $fail('Este e-mail pertence à conta de outra pessoa. Use um e-mail que não seja de outro usuário.');
+                }
+            }],
+        ], [
+            'telefone.required' => 'Informe o telefone.',
+            'email_contato.required' => 'Informe o e-mail de contato.',
+        ]);
+
+        $arena->update([
+            'address_rua' => $validated['rua'],
+            'address_bairro' => $validated['bairro'],
+            'address_numero' => $validated['numero'],
+            'phone' => $validated['telefone'],
+            'contact_email' => $validated['email_contato'],
+            'description' => $validated['descricao'] ?? null,
+        ]);
+
+        return redirect()->route('arenas.show', $arena->id)
+            ->with('msg', 'Endereço e contato atualizados.');
     }
 
     /**
@@ -362,11 +535,81 @@ class ArenaController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Exclui a arena (soft delete: mantém o histórico no banco). Direto se não
+     * houver reservas futuras; se houver, pede confirmação com motivo.
      */
     public function destroy(string $id)
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        $afetados = self::agendamentosAtivosDaArena($arena);
+
+        if ($afetados->isEmpty()) {
+            $this->excluirArena($arena);
+
+            return redirect()->route('owners.dashboard')
+                ->with('msg', 'Arena excluída.');
+        }
+
+        return view('arenas.delete-confirm', compact('arena', 'afetados'));
+    }
+
+    /**
+     * Confirma a exclusão da arena cancelando as reservas afetadas.
+     * O motivo é o mesmo para todas.
+     */
+    public function confirmDelete(Request $request, string $id)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        $motivo = trim((string) $request->input('motivo'));
+
+        if ($motivo === '') {
+            return view('arenas.delete-confirm', [
+                'arena' => $arena,
+                'afetados' => self::agendamentosAtivosDaArena($arena),
+                'erroMotivo' => 'Informe o motivo do cancelamento.',
+                'motivo' => $motivo,
+            ]);
+        }
+
+        DB::transaction(function () use ($arena, $motivo) {
+            foreach (self::agendamentosAtivosDaArena($arena) as $booking) {
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $motivo,
+                ]);
+            }
+
+            $this->excluirArena($arena);
+        });
+
+        return redirect()->route('owners.dashboard')
+            ->with('msg', 'Arena excluída e reservas afetadas canceladas.');
+    }
+
+    /**
+     * Faz o soft delete da arena e limpa a seleção de sessão, se for ela.
+     */
+    private function excluirArena(Arena $arena): void
+    {
+        if (session('selected_arena_id') == $arena->id) {
+            session()->forget('selected_arena_id');
+        }
+
+        $arena->delete(); // soft delete: histórico permanece
     }
 
     /**
@@ -512,6 +755,22 @@ class ArenaController extends Controller
 
         return Arena::where('contact_email', $email)
             ->when($ownerId, fn ($q) => $q->where('owner_id', '!=', $ownerId))
+            ->exists();
+    }
+
+    /**
+     * Diz se o e-mail pertence à conta de OUTRO usuário (users.email).
+     * Assim o contato da arena não pode ser o e-mail de outra pessoa
+     * (ex.: um cliente). Passe o id do usuário atual para liberar o próprio.
+     */
+    public static function emailPertenceAOutroUsuario(?string $email, ?int $userId): bool
+    {
+        if ($email === null || $email === '') {
+            return false;
+        }
+
+        return User::where('email', $email)
+            ->when($userId, fn ($q) => $q->where('id', '!=', $userId))
             ->exists();
     }
 

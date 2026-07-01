@@ -14,7 +14,11 @@ class BookingDetailController extends Controller
      */
     public function show(Booking $booking)
     {
-        $booking->load(['court.arena.owner', 'client.user']);
+        // Arena carregada mesmo se excluída (soft delete), para o histórico.
+        $booking->load([
+            'court.arena' => fn ($q) => $q->withTrashed()->with('owner'),
+            'client.user',
+        ]);
 
         $userId = auth()->id();
 

@@ -16,8 +16,10 @@ return new class extends Migration
                 ->constrained('owners')
                 ->restrictOnDelete();
 
-            $table->string('name', 120)
-                ->unique();
+            // Sem unique no banco: a unicidade do nome é garantida na aplicação
+            // (ignorando espaços/maiúsculas e as arenas excluídas via soft delete),
+            // assim um nome de arena excluída pode ser reutilizado.
+            $table->string('name', 120);
 
             $table->text('description')
                 ->nullable();
@@ -43,6 +45,9 @@ return new class extends Migration
              $table->timestamp('updated_at')
                 ->useCurrent()
                 ->useCurrentOnUpdate();
+
+            // Exclusão lógica: mantém o histórico (reservas, etc.) no banco.
+            $table->softDeletes();
         });
     }
 

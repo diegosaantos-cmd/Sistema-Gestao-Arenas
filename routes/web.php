@@ -15,7 +15,7 @@ use App\Http\Controllers\RegisterArenaOwnerController;
 use App\Http\Controllers\BookingDetailController;
 
 Route::get('/', function () {
-    $arenas = Arena::all();
+    $arenas = Arena::where('active', true)->get();
     return view('welcome', compact('arenas'));
 });
 
@@ -288,6 +288,16 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::patch('/arenas/{arena}/pagamentos', [ArenaController::class, 'updatePayments'])
         ->name('arenas.payments.update');
+    Route::patch('/arenas/{arena}/toggle', [ArenaController::class, 'toggleActive'])
+        ->name('arenas.toggle');
+    Route::post('/arenas/{arena}/desativar/confirmar', [ArenaController::class, 'confirmDeactivate'])
+        ->name('arenas.deactivate.confirm');
+    Route::post('/arenas/{arena}/excluir/confirmar', [ArenaController::class, 'confirmDelete'])
+        ->name('arenas.delete.confirm');
+    Route::patch('/arenas/{arena}/nome', [ArenaController::class, 'updateName'])
+        ->name('arenas.name.update');
+    Route::patch('/arenas/{arena}/contato', [ArenaController::class, 'updateContact'])
+        ->name('arenas.contact.update');
     Route::patch('/arenas/{arena}/horarios', [ArenaController::class, 'updateBusinessHours'])
         ->name('arenas.hours.update');
     Route::post('/arenas/{arena}/horarios/confirmar', [ArenaController::class, 'confirmBusinessHours'])

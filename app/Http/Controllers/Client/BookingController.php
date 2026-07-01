@@ -70,7 +70,7 @@ class BookingController extends Controller
         $historico = $client
             ? Booking::where('client_id', $client->id)
                 ->whereIn('status', ['cancelled', 'completed'])
-                ->with('court.arena')
+                ->with(['court.arena' => fn ($q) => $q->withTrashed()])
                 ->orderBy('date', 'desc')->orderBy('start_time', 'desc')->get()
             : collect();
 

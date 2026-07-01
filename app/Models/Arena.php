@@ -1,8 +1,11 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 class Arena extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'owner_id',
         'name',
@@ -11,7 +14,12 @@ class Arena extends Model
         'address_bairro',
         'address_numero',
         'phone',
-        'contact_email'
+        'contact_email',
+        'active',
+    ];
+
+    protected $casts = [
+        'active' => 'boolean',
     ];
 
     public function owner()

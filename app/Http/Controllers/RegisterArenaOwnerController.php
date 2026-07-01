@@ -59,9 +59,12 @@ class RegisterArenaOwnerController extends Controller
             'address_bairro' => ['required', 'string', 'max:120'],
             'address_numero' => ['required', 'string', 'max:15'],
             'phone' => ['required', 'string', 'max:20'],
-            'email_arena' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) {
+            'email_arena' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($request) {
                 if (ArenaController::emailDeArenaEmUsoPorOutroDono($value, null)) {
                     $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
+                } elseif ($value !== $request->input('email')
+                    && ArenaController::emailPertenceAOutroUsuario($value, null)) {
+                    $fail('Este e-mail pertence à conta de outra pessoa. Use um e-mail que não seja de outro usuário.');
                 }
             }],
             'horarios' => ['required', 'array', function ($attribute, $value, $fail) {
