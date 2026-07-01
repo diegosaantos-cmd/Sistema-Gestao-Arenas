@@ -58,8 +58,8 @@ class ArenaController extends Controller
             'bairro' => ['required', 'string', 'max:100'],
             'numero' => ['required', 'string', 'max:15'],
             'descricao' => ['nullable', 'string'],
-            'telefone' => ['nullable', 'string', 'max:20'],
-            'email_contato' => ['nullable', 'email', 'max:150', function ($attribute, $value, $fail) use ($owner) {
+            'telefone' => ['required', 'string', 'max:20'],
+            'email_contato' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($owner) {
                 if (self::emailDeArenaEmUsoPorOutroDono($value, $owner->id)) {
                     $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
                 } elseif (self::emailPertenceAOutroUsuario($value, auth()->id())) {
@@ -95,6 +95,8 @@ class ArenaController extends Controller
             'quadras.*.esportes' => ['required', 'array', 'min:1'],
             'quadras.*.esportes.*' => [Rule::in(array_keys(Court::SPORTS))],
         ], [
+            'telefone.required' => 'Informe o telefone.',
+            'email_contato.required' => 'Informe o e-mail de contato.',
             'horarios.required' => 'Marque ao menos um dia de funcionamento.',
             'horarios.*.p1_abre.required_with' => 'Informe o horário de abertura do dia marcado.',
             'horarios.*.p1_fecha.required_with' => 'Informe o horário de fechamento do dia marcado.',

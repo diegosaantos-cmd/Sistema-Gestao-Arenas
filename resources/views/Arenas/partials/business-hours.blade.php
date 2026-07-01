@@ -37,6 +37,13 @@
         o almoço.
     </p>
 
+    <p class="bh__hint">
+        💡 <strong>Dica:</strong> use horários em <strong>hora cheia</strong>
+        (ex.: 08:00, 22:00) para os agendamentos ficarem certinhos de 1 em 1 hora.
+        Para abrir <strong>até a meia-noite</strong>, use o fechamento
+        <strong>23:59</strong>. A arena precisa abrir e fechar <strong>no mesmo dia</strong>.
+    </p>
+
     @foreach ($dias as $num => $nome)
         <div class="bh__row {{ old("horarios.$num.aberto", $horariosAtuais[$num]['aberto'] ?? false) ? 'is-open' : '' }}" data-bh-day>
 

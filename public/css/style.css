@@ -141,8 +141,9 @@ body{
 }
 
 .dashboard-btn-outline{
-    background: white;
-    border: 2px solid #d1d5db;
+    background: #021B35;
+    color: #fff;
+    border: 1px solid #021B35;
     border-radius: 12px;
     padding: 16px;
     font-size: 1.1rem;
@@ -151,7 +152,9 @@ body{
 }
 
 .dashboard-btn-outline:hover{
-    background: #f9fafb;
+    background: #fff;
+    color: #021B35;
+    border-color: #021B35;
     transform: translateY(-2px);
 }
 
@@ -259,16 +262,29 @@ body{
 }
 
 .dashboard-btn-outline{
-    border:1px solid #cfd4da;
-    background:white;
-    color:#021B35;
+    border:1px solid #021B35;
+    background:#021B35;
+    color:#fff;
 }
 
 .dashboard-btn-outline:hover{
-    background:#021B35;
-    color:#fff;
+    background:white;
+    color:#021B35;
     border-color:#021B35;
     transform: translateY(-2px);
+}
+
+/* Botões escuros (área do dono): preenchidos por padrão, brancos no hover. */
+.btn-outline-dark{
+    background-color:#021B35;
+    color:#fff;
+    border-color:#021B35;
+}
+
+.btn-outline-dark:hover{
+    background-color:#fff;
+    color:#021B35;
+    border-color:#021B35;
 }
 
 .dashboard-icon{

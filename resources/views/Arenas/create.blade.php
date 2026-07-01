@@ -78,7 +78,9 @@
                             type="text"
                             name="telefone"
                             class="form-control"
-                            placeholder="Telefone">
+                            placeholder="Telefone"
+                            value="{{ old('telefone') }}"
+                            required>
                     </div>
 
                     <div class="col-md-6 mb-3">
@@ -86,7 +88,9 @@
                             type="email"
                             name="email_contato"
                             class="form-control"
-                            placeholder="Email de Contato">
+                            placeholder="Email de Contato"
+                            value="{{ old('email_contato') }}"
+                            required>
                     </div>
                 </div>
 

@@ -12,9 +12,13 @@
                 Bem-vindo, {{ auth()->user()->name }}!
             </h1>
 
-            <p class="text-muted fs-4 mb-0">
+            <p class="text-muted fs-4 mb-2">
                 Gerencie suas arenas, quadras, reservas e funcionários
             </p>
+
+            <a href="{{ route('owner.profile.edit') }}" class="btn btn-outline-dark btn-sm">
+                <i class="bi bi-person-gear me-1"></i> Minha Conta
+            </a>
         </div>
 
         <a href="{{ route('owners.arena.choose') }}" class="text-decoration-none text-reset">

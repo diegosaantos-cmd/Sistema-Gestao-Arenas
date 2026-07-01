@@ -113,8 +113,7 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                         </div>
                         <div class="modal-body">
-                            A arena será <strong>excluída</strong> e sairá da sua gestão e dos catálogos.
-                            O <strong>histórico de reservas é mantido</strong>. Se houver reservas futuras,
+                            A arena será <strong>excluída</strong> e sairá da sua gestão e dos catálogos. Se houver reservas futuras,
                             você poderá informar o motivo do cancelamento na próxima tela.
                             <br><span class="text-danger">Esta ação não pode ser desfeita.</span>
                         </div>

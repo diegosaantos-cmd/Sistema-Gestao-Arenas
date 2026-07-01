@@ -269,9 +269,15 @@ class BookingController extends Controller
             $inicio = Carbon::parse($intervalo->opens_at);
             $fim = Carbon::parse($intervalo->closes_at);
 
-            while ($inicio->copy()->addHour()->lessThanOrEqualTo($fim)) {
+            // Blocos de 1h; o último é "cortado" no fechamento (ex.: 23:00–23:59).
+            while ($inicio->lessThan($fim)) {
+                $proximo = $inicio->copy()->addHour();
+                if ($proximo->greaterThan($fim)) {
+                    $proximo = $fim->copy();
+                }
+
                 $blocoInicio = $inicio->format('H:i');
-                $blocoFim = $inicio->copy()->addHour()->format('H:i');
+                $blocoFim = $proximo->format('H:i');
 
                 $inicio->addHour();
 

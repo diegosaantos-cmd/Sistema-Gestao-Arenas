@@ -13,6 +13,7 @@ use App\Models\Arena;
 use App\Http\Controllers\OwnersController;
 use App\Http\Controllers\RegisterArenaOwnerController;
 use App\Http\Controllers\BookingDetailController;
+use App\Http\Controllers\Owner\ProfileController as OwnerProfileController;
 
 Route::get('/', function () {
     $arenas = Arena::where('active', true)->get();
@@ -192,6 +193,16 @@ Route::middleware(['auth'])->group(function () {
             'employeesCount', 'employeesActive', 'proximosAgendamentos', 'proximosCount'
         ));
     })->name('owners.dashboard');
+
+    // Minha Conta do dono (dados pessoais + empresa + senha).
+    Route::get('/owners/perfil', [OwnerProfileController::class, 'edit'])
+        ->name('owner.profile.edit');
+    Route::patch('/owners/perfil/pessoais', [OwnerProfileController::class, 'updatePersonal'])
+        ->name('owner.profile.personal');
+    Route::patch('/owners/perfil/empresa', [OwnerProfileController::class, 'updateCompany'])
+        ->name('owner.profile.company');
+    Route::put('/owners/perfil/senha', [OwnerProfileController::class, 'updatePassword'])
+        ->name('owner.profile.password');
 
     // Tela "em qual arena entrar" (quando há mais de uma).
     Route::get('/owners/arena/choose', function () {
