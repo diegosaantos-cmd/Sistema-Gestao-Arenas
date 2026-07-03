@@ -167,7 +167,7 @@ class CashRegisterController extends Controller
             $saidas = (clone $doMes)->where('type', 'expense')->sum('amount');
             $totalLancamentos = (clone $doMes)->count();
             $lancamentos = (clone $doMes)
-                ->with('booking.client.user')
+                ->with('booking.client.user', 'cashRegister')
                 ->orderByDesc('id')
                 ->limit(5)
                 ->get();
@@ -199,7 +199,7 @@ class CashRegisterController extends Controller
             $entradas = (clone $doMes)->where('type', 'income')->sum('amount');
             $saidas = (clone $doMes)->where('type', 'expense')->sum('amount');
             $lancamentos = (clone $doMes)
-                ->with('booking.client.user')
+                ->with('booking.client.user', 'cashRegister')
                 ->orderByDesc('id')
                 ->get();
         }

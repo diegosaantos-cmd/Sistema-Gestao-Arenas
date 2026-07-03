@@ -37,6 +37,7 @@
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
+                            <th>Caixa</th>
                             <th>Aberto</th>
                             <th>Fechado</th>
                             <th>Operador</th>
@@ -47,6 +48,7 @@
                     <tbody>
                         @forelse ($caixasFechados as $c)
                             <tr>
+                                <td class="fw-semibold">#{{ $c->id }}</td>
                                 <td class="text-nowrap">{{ optional($c->opened_at)->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td class="text-nowrap">{{ optional($c->closed_at)->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td>{{ $c->user->name ?? '—' }}</td>
@@ -59,7 +61,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="6" class="text-center text-muted">
                                     Nenhum caixa fechado ainda.
                                 </td>
                             </tr>

@@ -50,13 +50,6 @@
                 </form>
             @endif
         </div>
-    @elseif ($owner)
-        <div class="d-flex justify-content-end mb-3">
-            <button type="button" class="btn btn-outline-warning btn-sm"
-                    data-bs-toggle="modal" data-bs-target="#modalDesativarMinhaEmpresa">
-                <i class="bi bi-power me-1"></i> Desativar minha empresa
-            </button>
-        </div>
     @endif
 
     @if ($errors->has('empresa'))
@@ -384,30 +377,5 @@
     </div>
 
 </div>
-
-@if ($owner && $owner->active)
-    <div class="modal fade" id="modalDesativarMinhaEmpresa" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form method="POST" action="{{ route('owners.company.deactivate') }}">
-                    @csrf
-                    @method('PATCH')
-                    <div class="modal-header">
-                        <h5 class="modal-title">Desativar minha empresa</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        Deseja realmente desativar sua empresa? Todas as arenas e quadras ficarão indisponíveis.
-                        Como a desativação será feita por você, será possível reativá-la depois.
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-warning">Sim, desativar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-@endif
 
 @endsection
