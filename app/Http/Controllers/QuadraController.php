@@ -50,6 +50,11 @@ class QuadraController extends Controller
             return redirect()->route('owners.dashboard');
         }
 
+        if (! $arena->active) {
+            return redirect()->route('owners.dashboard')
+                ->with('aviso', 'A arena "' . $arena->name . '" está inativa. Reative-a para cadastrar quadras.');
+        }
+
         return view('courts.create', compact('arena'));
     }
 
@@ -69,6 +74,11 @@ class QuadraController extends Controller
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
+        }
+
+        if (! $arena->active) {
+            return redirect()->route('owners.dashboard')
+                ->with('aviso', 'A arena "' . $arena->name . '" está inativa. Reative-a para cadastrar quadras.');
         }
 
         $arenaId = $arena->id;

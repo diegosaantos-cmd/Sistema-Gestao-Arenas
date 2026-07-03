@@ -71,6 +71,7 @@
                         <th>Quadra</th>
                         <th>Data</th>
                         <th>Status</th>
+                        <th>Pagamento</th>
                         <th class="text-end">Ações</th>
                     </tr>
                 </thead>
@@ -86,6 +87,9 @@
                             <td>
                                 @php $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary']; @endphp
                                 <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
+                            </td>
+                            <td>
+                                @include('partials.payment-badge', ['booking' => $booking])
                             </td>
                             <td class="text-end text-nowrap">
                                 <a href="{{ route('bookings.show', $booking) }}"
@@ -107,7 +111,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted">
+                            <td colspan="6" class="text-center text-muted">
                                 Nenhum agendamento por enquanto
                             </td>
                         </tr>

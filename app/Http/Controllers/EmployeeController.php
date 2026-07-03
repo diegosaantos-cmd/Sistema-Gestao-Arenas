@@ -67,6 +67,11 @@ class EmployeeController extends Controller
             return redirect()->route('owners.dashboard');
         }
 
+        if (! $arena->active) {
+            return redirect()->route('owners.dashboard')
+                ->with('aviso', 'A arena "' . $arena->name . '" está inativa. Reative-a para cadastrar funcionários.');
+        }
+
         return view('employees.create', compact('arena'));
     }
 
@@ -85,6 +90,11 @@ class EmployeeController extends Controller
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
+        }
+
+        if (! $arena->active) {
+            return redirect()->route('owners.dashboard')
+                ->with('aviso', 'A arena "' . $arena->name . '" está inativa. Reative-a para cadastrar funcionários.');
         }
 
         $request->merge([

@@ -30,6 +30,48 @@ class Booking extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * A reserva já tem um pagamento confirmado (status 'paid')?
+     * Usa a relação já carregada quando disponível (evita N+1 nas listagens).
+     */
+    public function isPaga(): bool
+    {
+        if ($this->relationLoaded('payments')) {
+            return $this->payments->contains(fn ($p) => $p->status === 'paid');
+        }
+
+        return $this->payments()->where('status', 'paid')->exists();
+    }
+
+    /**
+     * Situação de pagamento da reserva:
+     * - 'pago'     : já tem pagamento confirmado;
+     * - 'atrasado' : não pago e o horário já terminou;
+     * - 'a_pagar'  : não pago e ainda vai acontecer;
+     * - null       : não se aplica (pendente ou cancelada — ainda não é uma
+     *                reserva que vai acontecer).
+     */
+    public function situacaoPagamento(): ?string
+    {
+        // Só confirmadas/realizadas têm situação de pagamento.
+        if (! in_array($this->status, ['confirmed', 'completed'])) {
+            return null;
+        }
+
+        if ($this->isPaga()) {
+            return 'pago';
+        }
+
+        $fim = Carbon::parse($this->date->toDateString() . ' ' . $this->end_time);
+
+        return now()->greaterThan($fim) ? 'atrasado' : 'a_pagar';
+    }
+
     /**
      * Regra de cancelamento pelo CLIENTE:
      * - pendente: pode cancelar sempre, sem taxa;

@@ -32,7 +32,7 @@ class BookingController extends Controller
         $campo = request('campo', 'cliente');
         $q = trim((string) request('q'));
 
-        $query = Booking::with(['court', 'client.user'])
+        $query = Booking::with(['court', 'client.user', 'payments'])
             ->whereIn('court_id', $arena->courts()->select('id'))
             ->whereDate('date', '>=', now()->toDateString())
             ->whereIn('status', ['pending', 'confirmed']);
@@ -76,7 +76,7 @@ class BookingController extends Controller
         $campo = request('campo', 'cliente');
         $q = trim((string) request('q'));
 
-        $query = Booking::with(['court', 'client.user'])
+        $query = Booking::with(['court', 'client.user', 'payments'])
             ->whereIn('court_id', $arena->courts()->select('id'))
             ->where(function ($w) {
                 $w->whereDate('date', '<', now()->toDateString())

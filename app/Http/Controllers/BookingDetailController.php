@@ -18,6 +18,7 @@ class BookingDetailController extends Controller
         $booking->load([
             'court.arena' => fn ($q) => $q->withTrashed()->with('owner'),
             'client.user',
+            'payments.paymentMethod',
         ]);
 
         $userId = auth()->id();

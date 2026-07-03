@@ -263,6 +263,7 @@ class ArenaController extends Controller
         $afetados = self::agendamentosAtivosDaArena($arena);
 
         if ($afetados->isEmpty()) {
+            self::fecharCaixaAbertoDaArena($arena);
             $arena->update(['active' => false]);
 
             return redirect()->route('arenas.show', $arena->id)
@@ -306,6 +307,7 @@ class ArenaController extends Controller
                 ]);
             }
 
+            self::fecharCaixaAbertoDaArena($arena);
             $arena->update(['active' => false]);
         });
 
@@ -324,6 +326,29 @@ class ArenaController extends Controller
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('date')->orderBy('start_time')
             ->get();
+    }
+
+    /**
+     * Fecha automaticamente o caixa aberto da arena (se houver), apurando o
+     * saldo final. Usado ao desativar ou excluir a arena.
+     */
+    public static function fecharCaixaAbertoDaArena(Arena $arena): void
+    {
+        $caixa = \App\Models\CashRegister::where('arena_id', $arena->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (! $caixa) {
+            return;
+        }
+
+        $caixa->update([
+            'status' => 'closed',
+            'closed_at' => now(),
+            'closing_balance' => $caixa->saldoAtual(),
+            'notes' => trim(($caixa->notes ? $caixa->notes . ' | ' : '')
+                . 'Fechado automaticamente ao desativar/excluir a arena.'),
+        ]);
     }
 
     /**
@@ -611,6 +636,7 @@ class ArenaController extends Controller
             session()->forget('selected_arena_id');
         }
 
+        self::fecharCaixaAbertoDaArena($arena);
         $arena->delete(); // soft delete: histórico permanece
     }
 

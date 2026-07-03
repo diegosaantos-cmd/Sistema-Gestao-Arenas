@@ -85,6 +85,15 @@
                                 </a>
                             </li>
 
+                            @if (auth()->user()->type === 'owner')
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('owner.profile.edit') }}">
+                                        <i class="bi bi-person-gear"></i>
+                                        MINHA CONTA
+                                    </a>
+                                </li>
+                            @endif
+
 
                             <li class="nav-item">
                                 <form action="/logout" method="POST">
@@ -108,6 +117,14 @@
                     <div class="col-12">
                         <div class="alert alert-success alert-dismissible fade show mt-3 shadow-sm" role="alert">
                             ✅ {{ session('msg') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                    </div>
+                @endif
+                @if(session('aviso'))
+                    <div class="col-12">
+                        <div class="alert alert-warning alert-dismissible fade show mt-3 shadow-sm" role="alert">
+                            ⚠️ {{ session('aviso') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
                         </div>
                     </div>

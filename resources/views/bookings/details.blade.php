@@ -27,6 +27,7 @@
     <div class="d-flex align-items-center gap-2 mb-4">
         <h1 class="fw-bold mb-0">Reserva #{{ $booking->id }}</h1>
         <span class="badge {{ $st[1] }}">{{ $st[0] }}</span>
+        @include('partials.payment-badge', ['booking' => $booking])
     </div>
 
     <div class="row g-4">
@@ -51,6 +52,26 @@
                         R$ {{ number_format($booking->total_amount, 2, ',', '.') }}
                     </p>
                     <p class="mb-0"><strong>Status:</strong> {{ $st[0] }}</p>
+
+                    @if (in_array($booking->status, ['confirmed', 'completed']))
+                        @php $pago = $booking->payments->firstWhere('status', 'paid'); @endphp
+                        <hr>
+                        <p class="mb-1">
+                            <strong>Pagamento:</strong>
+                            @include('partials.payment-badge', ['booking' => $booking])
+                        </p>
+                        @if ($pago)
+                            <p class="mb-1"><strong>Forma:</strong> {{ $pago->paymentMethod->label ?? '—' }}</p>
+                            <p class="mb-1">
+                                <strong>Valor pago:</strong>
+                                R$ {{ number_format($pago->amount, 2, ',', '.') }}
+                            </p>
+                            <p class="mb-0">
+                                <strong>Pago em:</strong>
+                                {{ optional($pago->paid_at)->format('d/m/Y H:i') ?? '—' }}
+                            </p>
+                        @endif
+                    @endif
                 </div>
             </div>
         </div>

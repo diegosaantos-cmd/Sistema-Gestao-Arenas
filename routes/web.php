@@ -14,6 +14,7 @@ use App\Http\Controllers\OwnersController;
 use App\Http\Controllers\RegisterArenaOwnerController;
 use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\Owner\ProfileController as OwnerProfileController;
+use App\Http\Controllers\Owner\CashRegisterController;
 
 Route::get('/', function () {
     $arenas = Arena::where('active', true)->get();
@@ -187,10 +188,34 @@ Route::middleware(['auth'])->group(function () {
                 ->get();
         }
 
+        // Lucro do mês: todas as entradas menos as saídas lançadas no caixa da
+        // arena no mês atual (inclui pagamentos de reservas, receitas avulsas e
+        // as despesas).
+        $entradasMes = 0;
+        $saidasMes = 0;
+        if ($selectedArena) {
+            $entriesMes = \App\Models\CashRegisterEntry::query()
+                ->whereIn('cash_register_id', \App\Models\CashRegister::where('arena_id', $selectedArena->id)->select('id'))
+                ->whereYear('created_at', now()->year)
+                ->whereMonth('created_at', now()->month);
+
+            $entradasMes = (clone $entriesMes)->where('type', 'income')->sum('amount');
+            $saidasMes = (clone $entriesMes)->where('type', 'expense')->sum('amount');
+        }
+        $lucroMes = $entradasMes - $saidasMes;
+
+        $nomesMes = [
+            1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
+            5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
+            9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro',
+        ];
+        $mesAtualLabel = $nomesMes[(int) now()->month] . '/' . now()->year;
+
         return view('owners.dashboard', compact(
             'arenas', 'arenasCount', 'arenasActive', 'selectedArena',
             'courtsCount', 'courtsActive', 'customersCount', 'agendamentosHoje',
-            'employeesCount', 'employeesActive', 'proximosAgendamentos', 'proximosCount'
+            'employeesCount', 'employeesActive', 'proximosAgendamentos', 'proximosCount',
+            'lucroMes', 'entradasMes', 'saidasMes', 'mesAtualLabel'
         ));
     })->name('owners.dashboard');
 
@@ -250,6 +275,33 @@ Route::middleware(['auth'])->group(function () {
     // Reservas de hoje (só confirmadas).
     Route::get('/owners/bookings/today', [BookingController::class, 'today'])
         ->name('bookings.today');
+
+    // Caixa da arena atual.
+    Route::get('/owners/caixa', [CashRegisterController::class, 'index'])
+        ->name('caixa.index');
+    // Páginas de cada seção (fixas ANTES do {caixa} para não conflitar).
+    Route::get('/owners/caixa/reservas-a-receber', [CashRegisterController::class, 'receivables'])
+        ->name('caixa.receivables');
+    Route::get('/owners/caixa/lancamentos', [CashRegisterController::class, 'entries'])
+        ->name('caixa.entries');
+    Route::get('/owners/caixa/fechados', [CashRegisterController::class, 'closed'])
+        ->name('caixa.closed');
+    Route::get('/owners/caixa/financeiro', [CashRegisterController::class, 'report'])
+        ->name('caixa.report');
+    Route::get('/owners/caixa/financeiro/lancamentos', [CashRegisterController::class, 'reportEntries'])
+        ->name('caixa.report.entries');
+    Route::get('/owners/caixa/balanco', [CashRegisterController::class, 'balance'])
+        ->name('caixa.balance');
+    Route::post('/owners/caixa/abrir', [CashRegisterController::class, 'open'])
+        ->name('caixa.open');
+    Route::post('/owners/caixa/lancamento', [CashRegisterController::class, 'entry'])
+        ->name('caixa.entry');
+    Route::post('/owners/caixa/reservas/{booking}/receber', [CashRegisterController::class, 'pay'])
+        ->name('caixa.pay');
+    Route::post('/owners/caixa/fechar', [CashRegisterController::class, 'close'])
+        ->name('caixa.close');
+    Route::get('/owners/caixa/{caixa}', [CashRegisterController::class, 'show'])
+        ->name('caixa.show');
 });
 
 // Área do cliente — navegar nas arenas.

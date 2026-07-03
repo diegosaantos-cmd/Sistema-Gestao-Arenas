@@ -17,7 +17,10 @@
                     <strong>{{ $b->court->name ?? '—' }}</strong>
                 </div>
             </div>
-            <span class="badge {{ $cor }}">{{ $rotulo }}</span>
+            <div class="d-flex flex-column align-items-end gap-1">
+                <span class="badge {{ $cor }}">{{ $rotulo }}</span>
+                @include('partials.payment-badge', ['booking' => $b])
+            </div>
         </div>
 
         <div class="small mb-1">

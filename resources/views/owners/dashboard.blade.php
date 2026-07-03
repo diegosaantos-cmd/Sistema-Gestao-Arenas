@@ -12,13 +12,9 @@
                 Bem-vindo, {{ auth()->user()->name }}!
             </h1>
 
-            <p class="text-muted fs-4 mb-2">
+            <p class="text-muted fs-4 mb-0">
                 Gerencie suas arenas, quadras, reservas e funcionários
             </p>
-
-            <a href="{{ route('owner.profile.edit') }}" class="btn btn-outline-dark btn-sm">
-                <i class="bi bi-person-gear me-1"></i> Minha Conta
-            </a>
         </div>
 
         <a href="{{ route('owners.arena.choose') }}" class="text-decoration-none text-reset">
@@ -57,6 +53,13 @@
                     </select>
                 </form>
             @endif
+        </div>
+    @endif
+
+    @if ($selectedArena && ! $selectedArena->active)
+        <div class="alert alert-warning">
+            ⚠️ Esta arena está <strong>inativa</strong>. Reative-a para abrir o caixa,
+            cadastrar quadras ou funcionários.
         </div>
     @endif
 
@@ -178,14 +181,30 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100 card-hover">
-                <div class="card-body">
-                    <h4 class="text-secondary">Monthly Revenue</h4>
-                    <h1 class="fw-bold text-success">
-                        R$ 390,00
-                    </h1>
+            @if ($selectedArena)
+                <a href="{{ route('caixa.report') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover">
+                        <div class="card-body">
+                            <h4 class="text-secondary">Lucro do mês</h4>
+                            <h1 class="fw-bold {{ $lucroMes >= 0 ? 'text-success' : 'text-danger' }}">
+                                R$ {{ number_format($lucroMes, 2, ',', '.') }}
+                            </h1>
+                            <div class="small text-muted">
+                                {{ $mesAtualLabel }} ·
+                                <span class="text-success">+{{ number_format($entradasMes, 2, ',', '.') }}</span>
+                                <span class="text-danger">−{{ number_format($saidasMes, 2, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            @else
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h4 class="text-secondary">Lucro do mês</h4>
+                        <h1 class="fw-bold text-success">R$ 0,00</h1>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
 
     </div>
@@ -203,26 +222,35 @@
                         Açoes Rápidas
                     </h2>
 
+                    @php $arenaInativa = $selectedArena && ! $selectedArena->active; @endphp
+
                     <div class="d-grid gap-3">
+
+                        <a href="{{ route('caixa.index') }}"
+                            class="btn btn-outline-dark btn-lg">
+                            💰 Caixa
+                        </a>
+
+                        <a href="{{ route('caixa.balance') }}"
+                            class="btn btn-outline-dark btn-lg">
+                            📊 Balanço financeiro
+                        </a>
+
+                        <a href="{{ route('employees.create') }}"
+                            class="btn btn-outline-dark btn-lg {{ $arenaInativa ? 'disabled' : '' }}"
+                            @if ($arenaInativa) aria-disabled="true" tabindex="-1" title="Arena inativa" @endif>
+                            👤 Novo Funcionário
+                        </a>
+
+                        <a href="{{ route('quadras.create') }}"
+                            class="btn btn-outline-dark btn-lg {{ $arenaInativa ? 'disabled' : '' }}"
+                            @if ($arenaInativa) aria-disabled="true" tabindex="-1" title="Arena inativa" @endif>
+                            ⚽ Nova Quadra
+                        </a>
 
                         <a href="{{ route('arenas.create') }}"
                             class="btn btn-outline-dark btn-lg">
                             🏟 Nova Arena
-                        </a>
-
-                        <a href="{{ route('quadras.create') }}"
-                            class="btn btn-outline-dark btn-lg">
-                            ⚽ Nova Quadra
-                        </a>
-
-                        <a href="{{ route('employees.create') }}"
-                            class="btn btn-outline-dark btn-lg">
-                            👤 Novo Funcionário
-                        </a>
-
-                        <a href="#"
-                            class="btn btn-outline-dark btn-lg">
-                            💰 Abrir Caixa
                         </a>
 
                     </div>
