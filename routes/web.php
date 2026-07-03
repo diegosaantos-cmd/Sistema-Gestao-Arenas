@@ -8,6 +8,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Client\ArenaController as ClientArenaController;
 use App\Http\Controllers\Client\BookingController as ClientBookingController;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\ProfileController as ClientProfileController;
 use App\Models\Arena;
 use App\Http\Controllers\OwnersController;
@@ -15,10 +16,20 @@ use App\Http\Controllers\RegisterArenaOwnerController;
 use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\Owner\ProfileController as OwnerProfileController;
 use App\Http\Controllers\Owner\CashRegisterController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 
-Route::get('/', function () {
-    $arenas = Arena::where('active', true)->get();
-    return view('welcome', compact('arenas'));
+Route::get('/', function (\Illuminate\Http\Request $request) {
+    $busca = trim((string) $request->query('busca'));
+
+    $arenas = Arena::where('active', true)
+        ->pesquisar($busca)
+        ->with('owner.user')
+        ->withCount([
+            'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
+        ])
+        ->orderBy('name')
+        ->get();
+    return view('welcome', compact('arenas', 'busca'));
 });
 
 Route::get('/registerArenaOwners', [RegisterArenaOwnerController::class, 'create'])
@@ -32,61 +43,8 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-
-        if (auth()->user()->type === 'owner') {
-            return redirect()->route('owners.dashboard');
-        }
-
-        if (auth()->user()->type === 'employee') {
-            return redirect()->route('employees.dashboard');
-        }
-
-        // Confirma automaticamente as pendentes vencidas e conclui as realizadas.
-        \App\Models\Booking::autoConfirmarExpiradas();
-        \App\Models\Booking::autoCompletarRealizadas();
-
-        // Cliente: resumo das próprias reservas.
-        $client = \App\Models\Client::where('user_id', auth()->id())->first();
-        $hoje = now()->toDateString();
-
-        $pendentes = 0;
-        $confirmados = 0;
-        $hojeCount = 0;
-        $proximos = collect();
-
-        if ($client) {
-            $pendentes = \App\Models\Booking::where('client_id', $client->id)
-                ->whereDate('date', '>=', $hoje)
-                ->where('status', 'pending')
-                ->count();
-
-            $confirmados = \App\Models\Booking::where('client_id', $client->id)
-                ->whereDate('date', '>=', $hoje)
-                ->where('status', 'confirmed')
-                ->count();
-
-            // Agendamentos de hoje (não cancelados).
-            $hojeCount = \App\Models\Booking::where('client_id', $client->id)
-                ->whereDate('date', $hoje)
-                ->where('status', '!=', 'cancelled')
-                ->count();
-
-            $proximos = \App\Models\Booking::where('client_id', $client->id)
-                ->whereDate('date', '>=', $hoje)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->with('court.arena')
-                ->orderBy('date')
-                ->orderBy('start_time')
-                ->limit(4)
-                ->get();
-        }
-
-        $proximosCount = $pendentes + $confirmados;
-
-        return view('dashboard', compact('pendentes', 'confirmados', 'hojeCount', 'proximosCount', 'proximos'));
-
-    })->name('dashboard');
+    Route::get('/dashboard', [ClientDashboardController::class, 'index'])
+        ->name('dashboard');
     Route::get('/employees/dashboard', function () {
         $employee = \App\Models\Employee::where('user_id', auth()->id())->first();
         $arena = $employee?->arena;
@@ -96,9 +54,24 @@ Route::middleware([
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/admin', function () {
-        return view('admin.dashboard');
-    });
+    Route::get('/admin', [AdminDashboardController::class, 'index'])
+        ->name('admin.dashboard');
+    Route::get('/admin/proprietarios', [AdminDashboardController::class, 'owners'])
+        ->name('admin.owners.index');
+    Route::get('/admin/proprietarios/{owner}', [AdminDashboardController::class, 'ownerDetails'])
+        ->name('admin.owners.show');
+    Route::get('/admin/proprietarios/{owner}/perfil', [AdminDashboardController::class, 'ownerProfile'])
+        ->name('admin.owners.profile');
+    Route::patch('/admin/proprietarios/{owner}/desativar', [AdminDashboardController::class, 'deactivateOwner'])
+        ->name('admin.owners.deactivate');
+    Route::patch('/admin/proprietarios/{owner}/ativar', [AdminDashboardController::class, 'activateOwner'])
+        ->name('admin.owners.activate');
+    Route::delete('/admin/proprietarios/{owner}', [AdminDashboardController::class, 'destroyOwner'])
+        ->name('admin.owners.destroy');
+    Route::get('/admin/proprietarios/{owner}/arenas', [AdminDashboardController::class, 'ownerArenas'])
+        ->name('admin.owners.arenas');
+    Route::get('/admin/arenas/{arena}/quadras', [AdminDashboardController::class, 'arenaCourts'])
+        ->name('admin.arenas.courts');
 });
 
 Route::middleware('auth')->group(function () {
@@ -108,6 +81,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/owners', [OwnersController::class, 'store'])
         ->name('owners.store');
+
+    Route::patch('/owners/empresa/desativar', [OwnersController::class, 'deactivateCompany'])
+        ->name('owners.company.deactivate');
+
+    Route::patch('/owners/empresa/ativar', [OwnersController::class, 'activateCompany'])
+        ->name('owners.company.activate');
 
 });
 
@@ -212,7 +191,7 @@ Route::middleware(['auth'])->group(function () {
         $mesAtualLabel = $nomesMes[(int) now()->month] . '/' . now()->year;
 
         return view('owners.dashboard', compact(
-            'arenas', 'arenasCount', 'arenasActive', 'selectedArena',
+            'owner', 'arenas', 'arenasCount', 'arenasActive', 'selectedArena',
             'courtsCount', 'courtsActive', 'customersCount', 'agendamentosHoje',
             'employeesCount', 'employeesActive', 'proximosAgendamentos', 'proximosCount',
             'lucroMes', 'entradasMes', 'saidasMes', 'mesAtualLabel'
@@ -331,6 +310,21 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/client/reservas', [ClientBookingController::class, 'index'])
         ->name('client.bookings.index');
 
+    Route::get('/client/reservas/hoje', [ClientBookingController::class, 'today'])
+        ->name('client.bookings.today');
+
+    Route::get('/client/reservas/pendentes', [ClientBookingController::class, 'pending'])
+        ->name('client.bookings.pending');
+
+    Route::get('/client/reservas/confirmados', [ClientBookingController::class, 'confirmed'])
+        ->name('client.bookings.confirmed');
+
+    Route::get('/client/reservas/{booking}/editar', [ClientBookingController::class, 'edit'])
+        ->name('client.bookings.edit');
+
+    Route::patch('/client/reservas/{booking}', [ClientBookingController::class, 'update'])
+        ->name('client.bookings.update');
+
     Route::get('/client/reservas/historico', [ClientBookingController::class, 'history'])
         ->name('client.bookings.history');
 
@@ -346,6 +340,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::put('/client/perfil/senha', [ClientProfileController::class, 'updatePassword'])
         ->name('client.profile.password');
+
+    Route::delete('/client/perfil', [ClientProfileController::class, 'destroy'])
+        ->name('client.profile.destroy');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -371,4 +368,3 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/employees/{employee}/toggle', [EmployeeController::class, 'toggleActive'])
         ->name('employees.toggle');
 });
-

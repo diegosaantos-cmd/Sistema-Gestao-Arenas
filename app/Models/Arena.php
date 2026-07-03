@@ -22,6 +22,27 @@ class Arena extends Model
         'active' => 'boolean',
     ];
 
+    public function scopePesquisar($query, ?string $busca)
+    {
+        $chave = preg_replace('/\s+/u', '', mb_strtolower(trim((string) $busca)));
+
+        if ($chave === '') {
+            return $query;
+        }
+
+        $termo = $chave . '%';
+
+        return $query->where(function ($filtro) use ($termo) {
+            $filtro->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                ->orWhereHas('owner', function ($owner) use ($termo) {
+                    $owner->whereRaw("REPLACE(LOWER(company_name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereHas('user', fn ($user) =>
+                            $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        );
+                });
+        });
+    }
+
     public function owner()
     {
         return $this->belongsTo(Owner::class);

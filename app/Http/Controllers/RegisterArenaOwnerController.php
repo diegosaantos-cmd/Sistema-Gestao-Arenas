@@ -41,6 +41,7 @@ class RegisterArenaOwnerController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
+            'terms' => ['required', 'accepted'],
             'company_name' => ['required', 'string', 'max:150', function ($attribute, $value, $fail) {
                 $chave = ArenaController::chaveComparacao($value);
                 if (Owner::whereRaw("REPLACE(LOWER(company_name), ' ', '') = ?", [$chave])->exists()) {
@@ -120,6 +121,7 @@ class RegisterArenaOwnerController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password_hash' => Hash::make($validated['password']),
+                'terms_accepted_at' => now(),
                 'type' => 'owner',
             ]);
 

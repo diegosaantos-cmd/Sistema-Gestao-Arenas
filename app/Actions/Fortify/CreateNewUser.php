@@ -30,6 +30,7 @@ class CreateNewUser implements CreatesNewUsers
             'name' => $input['name'],
             'email' => $input['email'],
             'password_hash' => Hash::make($input['password']),
+            'terms_accepted_at' => now(),
             'type' => 'client', // Define o papel padrão como 'cliente'
         ]);
     }

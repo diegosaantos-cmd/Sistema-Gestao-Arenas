@@ -6,21 +6,24 @@
 
 <div class="dashboard-container container-fluid py-4">
 
-    <div class="d-flex flex-column align-items-start gap-2 mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <a href="{{ route('dashboard') }}" class="btn btn-dark btn-sm">
             ← Voltar ao painel
         </a>
-        <a href="{{ route('client.bookings.history') }}" class="btn btn-dark btn-sm">
-            ← Ver histórico
-        </a>
-        <a href="{{ route('client.arenas.index') }}" class="btn btn-primary btn-sm">
-            + Nova reserva
-        </a>
+
+        <div class="d-flex gap-2">
+            <a href="{{ route('client.bookings.history') }}" class="btn btn-dark btn-sm">
+                Ver histórico
+            </a>
+            <a href="{{ route('client.arenas.index') }}" class="btn btn-primary btn-sm">
+                + Nova reserva
+            </a>
+        </div>
     </div>
 
     <div class="mb-4">
-        <h1 class="dashboard-title mb-1">Próximos agendamentos</h1>
-        <p class="dashboard-subtitle mb-0">Suas reservas pendentes e confirmadas</p>
+        <h1 class="dashboard-title mb-1">{{ $titulo ?? 'Próximos agendamentos' }}</h1>
+        <p class="dashboard-subtitle mb-0">{{ $subtitulo ?? 'Suas reservas pendentes e confirmadas' }}</p>
     </div>
 
     @if (session('status'))
@@ -56,7 +59,7 @@
         @empty
             <div class="col-12">
                 <div class="dashboard-box text-center text-muted">
-                    Você não tem agendamentos próximos.
+                    {{ $mensagemVazia ?? 'Você não tem agendamentos próximos.' }}
                     <div class="mt-3">
                         <a href="{{ route('client.arenas.index') }}" class="btn dashboard-btn-primary">
                             <i class="bi bi-calendar-plus me-2"></i> Nova reserva

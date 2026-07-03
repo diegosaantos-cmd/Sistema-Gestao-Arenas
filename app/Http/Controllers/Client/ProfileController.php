@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -15,8 +20,9 @@ class ProfileController extends Controller
     public function edit()
     {
         $user = auth()->user();
+        $client = Client::where('user_id', $user->id)->first();
 
-        return view('client.profile.edit', compact('user'));
+        return view('client.profile.edit', compact('user', 'client'));
     }
 
     /**
@@ -33,6 +39,7 @@ class ProfileController extends Controller
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'phone' => ['nullable', 'string', 'max:20'],
+            'date_of_birth' => ['nullable', 'date', 'before_or_equal:today'],
         ]);
 
         $user->update([
@@ -40,6 +47,11 @@ class ProfileController extends Controller
             'email' => mb_strtolower(trim($validated['email'])),
             'phone' => $validated['phone'] ?? null,
         ]);
+
+        Client::updateOrCreate(
+            ['user_id' => $user->id],
+            ['date_of_birth' => $validated['date_of_birth'] ?? null]
+        );
 
         return back()->with('status', 'Dados atualizados com sucesso.');
     }
@@ -67,5 +79,83 @@ class ProfileController extends Controller
         $user->update(['password_hash' => $request->password]);
 
         return back()->with('status', 'Senha alterada com sucesso.');
+    }
+
+    /**
+     * Exclui permanentemente a conta do cliente quando não há pendências.
+     */
+    public function destroy(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validateWithBag('deleteAccount', [
+            'delete_password' => ['required'],
+        ], [
+            'delete_password.required' => 'Informe sua senha para excluir a conta.',
+        ]);
+
+        if (! Hash::check($request->delete_password, $user->password_hash)) {
+            return back()->withErrors([
+                'delete_password' => 'A senha informada está incorreta.',
+            ], 'deleteAccount');
+        }
+
+        if ($user->type !== 'client') {
+            return back()->withErrors([
+                'delete_account' => 'Esta exclusão está disponível somente para contas de cliente.',
+            ], 'deleteAccount');
+        }
+
+        $client = Client::where('user_id', $user->id)->first();
+        $bookingIds = $client
+            ? Booking::where('client_id', $client->id)->pluck('id')
+            : collect();
+
+        $temAgendamentoAtivo = $client && Booking::where('client_id', $client->id)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->exists();
+
+        $temPagamentoPendente = $bookingIds->isNotEmpty()
+            && DB::table('payments')
+                ->whereIn('booking_id', $bookingIds)
+                ->where('status', 'pending')
+                ->exists();
+
+        $impedimentos = [];
+
+        if ($temAgendamentoAtivo) {
+            $impedimentos[] = 'Você não pode excluir a conta enquanto possuir horários agendados.';
+        }
+
+        if ($temPagamentoPendente) {
+            $impedimentos[] = 'Você não pode excluir a conta enquanto possuir pagamentos pendentes.';
+        }
+
+        if ($impedimentos) {
+            return back()->withErrors([
+                'delete_account' => implode(' ', $impedimentos),
+            ], 'deleteAccount');
+        }
+
+        DB::transaction(function () use ($user, $client, $bookingIds) {
+            if ($bookingIds->isNotEmpty()) {
+                DB::table('payments')->whereIn('booking_id', $bookingIds)->delete();
+                Booking::whereIn('id', $bookingIds)->delete();
+            }
+
+            $client?->delete();
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            if (Schema::hasTable('personal_access_tokens')) {
+                $user->tokens()->delete();
+            }
+            $user->deleteProfilePhoto();
+            $user->delete();
+        });
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/')->with('status', 'Sua conta foi excluída permanentemente.');
     }
 }

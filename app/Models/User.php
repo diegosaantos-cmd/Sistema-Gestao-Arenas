@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
@@ -14,6 +15,8 @@ use App\Models\Arena;
 
 class User extends Authenticatable
 {
+    use SoftDeletes;
+
     use HasApiTokens;
 
     /** @use HasFactory<UserFactory> */
@@ -44,6 +47,8 @@ class User extends Authenticatable
         'email',
         'phone',
         'password_hash',
+        'terms_accepted_at',
+        'active',
         'type', // Adiciona 'type' à lista de atributos preenchíveis
     ];
 
@@ -77,6 +82,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'password_hash' => 'hashed',
         ];
     }

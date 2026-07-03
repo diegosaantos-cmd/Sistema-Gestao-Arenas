@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Owner;
+use App\Models\Court;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OwnersController extends Controller
 {
@@ -76,5 +78,49 @@ class OwnersController extends Controller
     public function destroy(Owner $owner)
     {
         //
+    }
+
+    public function deactivateCompany()
+    {
+        $owner = Owner::where('user_id', auth()->id())->firstOrFail();
+
+        DB::transaction(function () use ($owner) {
+            $owner->update([
+                'active' => false,
+                'deactivated_by' => auth()->id(),
+                'deactivation_source' => 'self',
+                'deactivated_at' => now(),
+            ]);
+            $owner->arenas()->update(['active' => false]);
+            Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))
+                ->update(['active' => false]);
+        });
+
+        return back()->with('msg', 'Sua empresa foi desativada. Você pode reativá-la quando desejar.');
+    }
+
+    public function activateCompany()
+    {
+        $owner = Owner::where('user_id', auth()->id())->firstOrFail();
+
+        if ($owner->deactivation_source !== 'self') {
+            return back()->withErrors([
+                'empresa' => 'A empresa foi desativada pelo administrador do sistema e somente ele pode reativá-la.',
+            ]);
+        }
+
+        DB::transaction(function () use ($owner) {
+            $owner->update([
+                'active' => true,
+                'deactivated_by' => null,
+                'deactivation_source' => null,
+                'deactivated_at' => null,
+            ]);
+            $owner->arenas()->update(['active' => true]);
+            Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))
+                ->update(['active' => true]);
+        });
+
+        return back()->with('msg', 'Sua empresa foi ativada com sucesso.');
     }
 }

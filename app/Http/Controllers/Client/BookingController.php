@@ -7,6 +7,10 @@ use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\Client;
 use App\Models\Court;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -57,7 +61,186 @@ class BookingController extends Controller
                 ->orderBy('date')->orderBy('start_time')->get()
             : collect();
 
+        $this->prepararTaxasDeCancelamento($proximas);
+
         return view('client.bookings.index', compact('proximas'));
+    }
+
+    /**
+     * Todos os agendamentos do cliente marcados para hoje.
+     */
+    public function today()
+    {
+        Booking::autoConfirmarExpiradas();
+        Booking::autoCompletarRealizadas();
+
+        $client = Client::where('user_id', auth()->id())->first();
+
+        $proximas = $client
+            ? Booking::where('client_id', $client->id)
+                ->whereDate('date', today())
+                ->where('status', '!=', 'cancelled')
+                ->with('court.arena')
+                ->orderBy('start_time')
+                ->get()
+            : collect();
+
+        $this->prepararTaxasDeCancelamento($proximas);
+
+        return view('client.bookings.index', [
+            'proximas' => $proximas,
+            'titulo' => 'Agendamentos de hoje',
+            'subtitulo' => 'Suas reservas marcadas para hoje',
+            'mensagemVazia' => 'Você não tem agendamentos para hoje.',
+        ]);
+    }
+
+    /**
+     * Agendamentos do cliente que ainda aguardam confirmação.
+     */
+    public function pending()
+    {
+        Booking::autoConfirmarExpiradas();
+        Booking::autoCompletarRealizadas();
+
+        $client = Client::where('user_id', auth()->id())->first();
+
+        $proximas = $client
+            ? Booking::where('client_id', $client->id)
+                ->whereDate('date', '>=', today())
+                ->where('status', 'pending')
+                ->with('court.arena')
+                ->orderBy('date')
+                ->orderBy('start_time')
+                ->get()
+            : collect();
+
+        return view('client.bookings.index', [
+            'proximas' => $proximas,
+            'titulo' => 'Agendamentos pendentes',
+            'subtitulo' => 'Suas reservas que ainda aguardam confirmação',
+            'mensagemVazia' => 'Você não tem agendamentos pendentes.',
+        ]);
+    }
+
+    /**
+     * Agendamentos futuros do cliente que já foram confirmados.
+     */
+    public function confirmed()
+    {
+        Booking::autoConfirmarExpiradas();
+        Booking::autoCompletarRealizadas();
+
+        $client = Client::where('user_id', auth()->id())->first();
+
+        $proximas = $client
+            ? Booking::where('client_id', $client->id)
+                ->whereDate('date', '>=', today())
+                ->where('status', 'confirmed')
+                ->with('court.arena')
+                ->orderBy('date')
+                ->orderBy('start_time')
+                ->get()
+            : collect();
+
+        $this->prepararTaxasDeCancelamento($proximas);
+
+        return view('client.bookings.index', [
+            'proximas' => $proximas,
+            'titulo' => 'Agendamentos confirmados',
+            'subtitulo' => 'Suas reservas que já foram confirmadas',
+            'mensagemVazia' => 'Você não tem agendamentos confirmados.',
+        ]);
+    }
+
+    /**
+     * Formulário para alterar a data e o horário de uma reserva.
+     */
+    public function edit(Request $request, Booking $booking)
+    {
+        $this->autorizarClienteDaReserva($booking);
+
+        if (! $booking->podeSerEditadaPeloCliente()) {
+            return redirect()->route('client.bookings.index')
+                ->withErrors(['edit' => 'Este agendamento não pode ser editado porque falta menos de 1 hora para o horário reservado.']);
+        }
+
+        $booking->load('court.arena.paymentMethods', 'court.arena.businessHours');
+        $court = $booking->court;
+        $arena = $court->arena;
+        $date = $request->query('date', $booking->date->toDateString());
+        $weekday = Carbon::parse($date)->dayOfWeek;
+        $aberto = $arena->businessHours->where('day_of_week', $weekday)->isNotEmpty();
+        $slots = $aberto ? $this->slotsDoDia($court, $arena, $date, $booking) : collect();
+
+        return view('client.bookings.edit', [
+            'booking' => $booking,
+            'arena' => $arena,
+            'court' => $court,
+            'date' => $date,
+            'aberto' => $aberto,
+            'slots' => $slots,
+            'diasAbertos' => $this->diasAbertos($arena),
+        ]);
+    }
+
+    /**
+     * Atualiza a reserva, mantendo a antecedência mínima de uma hora.
+     */
+    public function update(Request $request, Booking $booking)
+    {
+        $this->autorizarClienteDaReserva($booking);
+
+        if (! $booking->podeSerEditadaPeloCliente()) {
+            return redirect()->route('client.bookings.index')
+                ->withErrors(['edit' => 'Este agendamento não pode ser editado porque falta menos de 1 hora para o horário reservado.']);
+        }
+
+        $validated = $request->validate([
+            'date' => ['required', 'date', 'after_or_equal:today'],
+            'horario' => ['required', 'regex:/^\d{2}:\d{2}-\d{2}:\d{2}$/'],
+        ], [
+            'horario.required' => 'Selecione um horário.',
+            'horario.regex' => 'O horário selecionado é inválido.',
+        ]);
+
+        [$startTime, $endTime] = explode('-', $validated['horario']);
+        $novoInicio = Carbon::parse($validated['date'] . ' ' . $startTime);
+
+        if ($novoInicio->lt(now()->addHour())) {
+            return back()
+                ->withErrors(['horario' => 'Escolha um horário com pelo menos 1 hora de antecedência.'])
+                ->withInput();
+        }
+
+        $booking->load('court.arena.businessHours');
+        $slots = $this->slotsDoDia(
+            $booking->court,
+            $booking->court->arena,
+            $validated['date'],
+            $booking
+        );
+
+        $disponivel = $slots->contains(fn ($slot) =>
+            ! $slot['ocupado']
+            && $slot['start'] === $startTime
+            && $slot['end'] === $endTime
+        );
+
+        if (! $disponivel) {
+            return back()
+                ->withErrors(['horario' => 'Esse horário não está disponível. Escolha outro.'])
+                ->withInput();
+        }
+
+        $booking->update([
+            'date' => $validated['date'],
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+        ]);
+
+        return redirect()->route('client.bookings.index')
+            ->with('status', 'Agendamento atualizado com sucesso.');
     }
 
     /**
@@ -94,10 +277,17 @@ class BookingController extends Controller
             return back()->withErrors(['cancel' => 'Esta reserva não pode mais ser cancelada.']);
         }
 
-        $validated = $request->validate([
+        $regras = [
             'motivo' => ['required', 'string', 'max:255'],
-        ], [
+        ];
+
+        if ($regra === 'taxa') {
+            $regras['pagamento_taxa'] = ['accepted'];
+        }
+
+        $validated = $request->validate($regras, [
             'motivo.required' => 'Informe o motivo do cancelamento.',
+            'pagamento_taxa.accepted' => 'Confirme o pagamento da taxa via PIX para cancelar a reserva.',
         ]);
 
         $booking->update([
@@ -108,7 +298,7 @@ class BookingController extends Controller
         ]);
 
         return back()->with('status', $regra === 'taxa'
-            ? 'Reserva cancelada. Uma taxa será aplicada (valor a definir).'
+            ? 'Pagamento PIX simulado e reserva cancelada com sucesso.'
             : 'Reserva cancelada.');
     }
 
@@ -249,7 +439,7 @@ class BookingController extends Controller
      * horário de funcionamento, cada um com a flag 'ocupado' (pending/confirmed).
      * Blocos de hoje que já passaram não entram (não dá para reservar o passado).
      */
-    private function slotsDoDia(Court $court, Arena $arena, string $date)
+    private function slotsDoDia(Court $court, Arena $arena, string $date, ?Booking $ignorar = null)
     {
         $dia = Carbon::parse($date);
         $weekday = $dia->dayOfWeek;            // 0 = Domingo ... 6 = Sábado
@@ -258,10 +448,15 @@ class BookingController extends Controller
 
         $intervalos = $arena->businessHours->where('day_of_week', $weekday);
 
-        $ocupados = Booking::where('court_id', $court->id)
+        $ocupadosQuery = Booking::where('court_id', $court->id)
             ->where('date', $dia->toDateString())
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->get(['start_time', 'end_time']);
+            ->whereIn('status', ['pending', 'confirmed']);
+
+        if ($ignorar) {
+            $ocupadosQuery->where($ignorar->getKeyName(), '!=', $ignorar->getKey());
+        }
+
+        $ocupados = $ocupadosQuery->get(['start_time', 'end_time']);
 
         $slots = collect();
 
@@ -300,5 +495,42 @@ class BookingController extends Controller
         }
 
         return $slots;
+    }
+
+    private function autorizarClienteDaReserva(Booking $booking): void
+    {
+        $client = Client::where('user_id', auth()->id())->first();
+
+        if (! $client || $booking->client_id !== $client->id) {
+            abort(403);
+        }
+    }
+
+    private function prepararTaxasDeCancelamento($bookings): void
+    {
+        $renderer = new ImageRenderer(
+            new RendererStyle(220, 1),
+            new SvgImageBackEnd()
+        );
+        $writer = new Writer($renderer);
+
+        foreach ($bookings as $booking) {
+            if ($booking->regraCancelamentoCliente() !== 'taxa') {
+                continue;
+            }
+
+            $valor = $booking->valorTaxaCancelamento();
+            $conteudo = implode('|', [
+                'PIX-SIMULACAO',
+                'RESERVA-' . $booking->id,
+                number_format($valor, 2, '.', ''),
+                $booking->court->arena->name ?? 'ARENA',
+            ]);
+
+            $booking->taxa_cancelamento_percentual = $booking->percentualTaxaCancelamento();
+            $booking->taxa_cancelamento_valor = $valor;
+            $booking->taxa_cancelamento_qrcode = 'data:image/svg+xml;base64,'
+                . base64_encode($writer->writeString($conteudo));
+        }
     }
 }

@@ -38,37 +38,30 @@
         Arenas Disponíveis
     </h2>
 
-    <div class="row">
+    <form method="GET" action="{{ url('/') }}"
+          class="arena-search-form arena-search-box shadow-sm mb-4" data-update-url="true">
+        <div class="input-group">
+            <input type="search" name="busca" class="form-control border-end-0"
+                   value="{{ $busca }}"
+                   placeholder="Pesquisar pelo nome da arena ou do proprietário"
+                   aria-label="Pesquisar arena">
+            <button type="submit" class="btn bg-white text-secondary border border-start-0"
+                    aria-label="Pesquisar" title="Pesquisar">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+    </form>
+
+    <div class="row" data-arena-results>
         @forelse($arenas as $arena)
 
-            <div class="col-md-4 mb-4">
-                <div class="card shadow-sm h-100">
-
-                    <div class="card-body">
-
-                        <h4>{{ $arena->name }}</h4>
-
-                        <p class="text-muted">
-                            {{ $arena->address_rua }}, {{ $arena->address_numero }}
-                            - {{ $arena->address_bairro }}
-                        </p>
-
-                        <p>
-                            {{ $arena->description }}
-                        </p>
-
-                    </div>
-
-                    <div class="card-footer bg-white">
-
-                        <a href="{{ route('arenas.show', $arena->id) }}"
-                        class="btn btn-primary w-100">
-                            Ver Arena
-                        </a>
-
-                    </div>
-
-                </div>
+            <div class="col-6 col-lg-3 mb-4">
+                @include('client.arenas._gallery-card', [
+                    'arenaUrl' => auth()->check()
+                        ? route('client.arenas.show', $arena)
+                        : route('login'),
+                    'botaoTexto' => 'Ver arena',
+                ])
             </div>
 
         @empty
@@ -82,4 +75,6 @@
     </div>
 
 </div>
+
+@include('client.arenas._live-search')
 @endsection

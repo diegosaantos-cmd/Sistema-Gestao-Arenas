@@ -73,6 +73,43 @@ class Booking extends Model
     }
 
     /**
+     * O cliente pode editar somente até uma hora antes do início.
+     */
+    public function podeSerEditadaPeloCliente(): bool
+    {
+        if (! in_array($this->status, ['pending', 'confirmed'])) {
+            return false;
+        }
+
+        $inicio = Carbon::parse($this->date->toDateString() . ' ' . $this->start_time);
+
+        return now()->lessThanOrEqualTo($inicio->copy()->subHour());
+    }
+
+    /**
+     * Usa a taxa definida na arena/sistema e adota 30% como padrão.
+     */
+    public function percentualTaxaCancelamento(): float
+    {
+        $arena = $this->court?->arena;
+
+        foreach (['cancellation_fee_percentage', 'cancellation_fee_percent', 'cancel_fee_percent'] as $campo) {
+            $percentual = $arena?->getAttribute($campo);
+
+            if (is_numeric($percentual)) {
+                return max(0, (float) $percentual);
+            }
+        }
+
+        return max(0, (float) config('bookings.cancellation_fee_percent', 30));
+    }
+
+    public function valorTaxaCancelamento(): float
+    {
+        return round((float) $this->total_amount * $this->percentualTaxaCancelamento() / 100, 2);
+    }
+
+    /**
      * Regra de cancelamento pelo CLIENTE:
      * - pendente: pode cancelar sempre, sem taxa;
      * - confirmada: grátis até 1h antes do início, com taxa se faltar 1h ou menos;

@@ -14,7 +14,7 @@
 </head>
 
 <body>
-    <header>
+    <header class="sticky-top">
         <nav class="navbar navbar-expand-lg custom-navbar">
             <div class="container-fluid px-4">
 

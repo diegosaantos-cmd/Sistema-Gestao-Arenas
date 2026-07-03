@@ -42,9 +42,9 @@
             </a>
 
             @if (in_array($b->status, ['pending', 'confirmed']))
-                <button type="button" class="btn btn-warning btn-sm" title="Em breve">
+                <a href="{{ route('client.bookings.edit', $b) }}" class="btn btn-warning btn-sm">
                     <i class="bi bi-pencil me-1"></i> Editar
-                </button>
+                </a>
             @endif
 
             @if ($regra)
@@ -59,7 +59,7 @@
         @if ($regra)
             @php
                 $msgCancelar = $regra === 'taxa'
-                    ? 'Falta menos de 1 hora para o horário, então o cancelamento pode ter taxa. Deseja cancelar mesmo assim?'
+                    ? 'Falta menos de 1 hora para o horário. Para cancelar, é necessário pagar a taxa via PIX.'
                     : 'Tem certeza que deseja cancelar esta reserva?';
             @endphp
 
@@ -83,6 +83,41 @@
                                     {{ $b->date->format('d/m/Y') }}
                                     {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
                                 </p>
+
+                                @if ($regra === 'taxa')
+                                    <div class="border rounded p-3 mb-3 text-center bg-light">
+                                        <div class="small text-muted">Taxa de cancelamento</div>
+                                        <div class="fs-3 fw-bold text-danger mb-1">
+                                            R$ {{ number_format($b->taxa_cancelamento_valor, 2, ',', '.') }}
+                                        </div>
+                                        <div class="small text-muted mb-3">
+                                            {{ number_format($b->taxa_cancelamento_percentual, 2, ',', '.') }}%
+                                            do valor da reserva
+                                        </div>
+
+                                        <img src="{{ $b->taxa_cancelamento_qrcode }}"
+                                             alt="QR Code PIX simulado para pagamento da taxa"
+                                             class="img-fluid border rounded bg-white p-2"
+                                             style="max-width: 220px;">
+
+                                        <div class="alert alert-warning small mt-3 mb-3">
+                                            Simulação: este QR Code não realiza uma cobrança bancária real.
+                                        </div>
+
+                                        <div class="form-check text-start">
+                                            <input class="form-check-input confirmacao-pix"
+                                                   type="checkbox"
+                                                   name="pagamento_taxa"
+                                                   value="1"
+                                                   id="pagamentoTaxa{{ $b->id }}"
+                                                   required>
+                                            <label class="form-check-label" for="pagamentoTaxa{{ $b->id }}">
+                                                Confirmo que simulei o pagamento da taxa via PIX.
+                                            </label>
+                                        </div>
+                                    </div>
+                                @endif
+
                                 <label class="form-label">Motivo do cancelamento</label>
                                 <textarea name="motivo" class="form-control" rows="3" required
                                           placeholder="Ex.: Não vou poder comparecer."></textarea>
@@ -91,7 +126,9 @@
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                     Voltar
                                 </button>
-                                <button type="submit" class="btn btn-danger">
+                                <button type="submit"
+                                        class="btn btn-danger botao-cancelar"
+                                        @if ($regra === 'taxa') disabled @endif>
                                     <i class="bi bi-x-circle me-1"></i> Sim, cancelar
                                 </button>
                             </div>
@@ -99,6 +136,20 @@
                     </div>
                 </div>
             </div>
+
+            @if ($regra === 'taxa')
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const modal = document.getElementById('cancelModal{{ $b->id }}');
+                        const confirmacao = modal?.querySelector('.confirmacao-pix');
+                        const botao = modal?.querySelector('.botao-cancelar');
+
+                        confirmacao?.addEventListener('change', function () {
+                            botao.disabled = !this.checked;
+                        });
+                    });
+                </script>
+            @endif
         @endif
 
     </div>

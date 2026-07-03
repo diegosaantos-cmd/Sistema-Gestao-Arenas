@@ -4,6 +4,14 @@
             <x-authentication-card-logo />
         </x-slot>
 
+        <div class="flex justify-end mb-3">
+            <a href="{{ auth()->check() ? route('dashboard') : url('/') }}"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-full text-2xl leading-none text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+               aria-label="Fechar formulário" title="Fechar">
+                &times;
+            </a>
+        </div>
+
         <x-validation-errors class="mb-4" />
 
         <form method="POST" action="{{ route('register.arena.owners.store') }}">
