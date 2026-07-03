@@ -6,12 +6,12 @@
 
 <div class="container py-4">
 
-    <a href="{{ route('caixa.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar ao caixa
+    <a href="{{ route('caixa.closed') }}" class="btn btn-dark btn-sm mb-3">
+        ← Voltar aos caixas fechados
     </a>
 
     <div class="d-flex align-items-center gap-2 mb-1">
-        <h1 class="fw-bold mb-0">Caixa #{{ $caixa->id }}</h1>
+        <h1 class="fw-bold mb-0">Caixa #{{ $numeros[$caixa->id] ?? $caixa->id }}</h1>
         <span class="badge bg-secondary">Fechado</span>
     </div>
     <p class="text-muted">Arena: <strong>{{ $arena->name }}</strong></p>

@@ -51,16 +51,56 @@
                     </div>
                 </div>
 
-                {{-- Botões sem ação por enquanto (lógica depois) --}}
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-warning">✏️ Editar</button>
-                    <button type="button" class="btn btn-sm {{ $court->active ? 'btn-secondary' : 'btn-success' }}">
-                        {{ $court->active ? '🚫 Desativar' : '✅ Reativar' }}
-                    </button>
+                    <a href="{{ route('quadras.edit', $court) }}" class="btn btn-sm btn-warning">✏️ Editar</a>
+                    @if ($court->active)
+                        <button type="button" class="btn btn-sm btn-secondary"
+                                data-bs-toggle="modal" data-bs-target="#desativarQuadraModal{{ $court->id }}">
+                            🚫 Desativar
+                        </button>
+                    @else
+                        <form method="POST" action="{{ route('quadras.toggle', $court) }}" class="d-inline">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="btn btn-sm btn-success">✅ Reativar</button>
+                        </form>
+                    @endif
                 </div>
 
             </div>
         </div>
+
+        @if ($court->active)
+            {{-- Modal de confirmação de desativação --}}
+            <div class="modal fade" id="desativarQuadraModal{{ $court->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Desativar quadra</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+                        <div class="modal-body">
+                            Ao desativar, a quadra <strong>{{ $court->name }}</strong>
+                            <strong>deixa de aparecer para novos agendamentos</strong>.
+                            Se houver reservas futuras, você poderá informar o motivo do
+                            cancelamento na próxima tela.
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                Voltar
+                            </button>
+                            <form method="POST" action="{{ route('quadras.toggle', $court) }}" class="d-inline">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="btn btn-danger">
+                                    🚫 Sim, desativar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
     @empty
         <div class="alert alert-light border text-center text-muted">
             Nenhuma quadra cadastrada nesta arena.

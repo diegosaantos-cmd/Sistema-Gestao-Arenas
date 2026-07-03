@@ -91,13 +91,16 @@
     <!-- Cards -->
     <div class="row g-4 mb-4">
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             @if ($selectedArena)
                 <a href="{{ route('arenas.show', $selectedArena->id) }}"
                    class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover">
                         <div class="card-body">
-                            <h4 class="text-secondary">Arena Atual</h4>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="text-secondary">Arena Atual</h4>
+                                <span class="text-muted small">Visualizar</span>
+                            </div>
                             <h3 class="fw-bold mb-1">{{ $selectedArena->name }}</h3>
                             @if ($selectedArena->active)
                                 <span class="badge bg-success">Ativa</span>
@@ -117,12 +120,15 @@
             @endif
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             @if ($selectedArena)
                 <a href="{{ route('quadras.index') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover">
                         <div class="card-body">
-                            <h4 class="text-secondary">Quadras</h4>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="text-secondary">Quadras</h4>
+                                <span class="text-muted small">Visualizar</span>
+                            </div>
                             <h1 class="fw-bold mb-1">{{ $courtsCount }}</h1>
                             <div class="small">
                                 <span class="text-success">{{ $courtsActive }} ativas</span>
@@ -141,12 +147,15 @@
             @endif
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             @if ($selectedArena)
                 <a href="{{ route('bookings.today') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover">
                         <div class="card-body">
-                            <h4 class="text-secondary">Reservas de Hoje</h4>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="text-secondary">Reservas de Hoje</h4>
+                                <span class="text-muted small">Visualizar</span>
+                            </div>
                             <h1 class="fw-bold">{{ $agendamentosHoje }}</h1>
                         </div>
                     </div>
@@ -161,12 +170,43 @@
             @endif
         </div>
 
+        <div class="col-md-3">
+            @if ($selectedArena)
+                <a href="{{ route('bookings.pending') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover {{ $pendentesCount > 0 ? 'border border-warning' : '' }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="text-secondary">Aguardando confirmação</h4>
+                                <span class="text-muted small">Visualizar</span>
+                            </div>
+                            <h1 class="fw-bold mb-1">{{ $pendentesCount }}</h1>
+                            @if ($pendentesCount > 0)
+                                <span class="badge bg-warning text-dark">Requer ação</span>
+                            @else
+                                <div class="small text-muted">Tudo em dia</div>
+                            @endif
+                        </div>
+                    </div>
+                </a>
+            @else
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h4 class="text-secondary">Aguardando confirmação</h4>
+                        <h1 class="fw-bold">{{ $pendentesCount }}</h1>
+                    </div>
+                </div>
+            @endif
+        </div>
+
         <div class="col-md-4">
             @if ($selectedArena)
                 <a href="{{ route('clients.index') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover">
                         <div class="card-body">
-                            <h4 class="text-secondary">Clientes</h4>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="text-secondary">Clientes</h4>
+                                <span class="text-muted small">Visualizar</span>
+                            </div>
                             <h1 class="fw-bold">{{ $customersCount }}</h1>
                         </div>
                     </div>
@@ -186,7 +226,10 @@
                 <a href="{{ route('employees.index') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover">
                         <div class="card-body">
-                            <h4 class="text-secondary">Funcionários</h4>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="text-secondary">Funcionários</h4>
+                                <span class="text-muted small">Visualizar</span>
+                            </div>
                             <h1 class="fw-bold mb-1">{{ $employeesCount }}</h1>
                             <div class="small">
                                 <span class="text-success">{{ $employeesActive }} ativos</span>
@@ -210,7 +253,10 @@
                 <a href="{{ route('caixa.report') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover">
                         <div class="card-body">
-                            <h4 class="text-secondary">Lucro do mês</h4>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="text-secondary">Lucro do mês</h4>
+                                <span class="text-muted small">Visualizar</span>
+                            </div>
                             <h1 class="fw-bold {{ $lucroMes >= 0 ? 'text-success' : 'text-danger' }}">
                                 R$ {{ number_format($lucroMes, 2, ',', '.') }}
                             </h1>
@@ -244,7 +290,7 @@
                 <div class="card-body">
 
                     <h2 class="fw-bold mb-4">
-                        Açoes Rápidas
+                        Ações Rápidas
                     </h2>
 
                     @php $arenaInativa = $selectedArena && ! $selectedArena->active; @endphp
@@ -355,7 +401,7 @@
                     </table>
                     </div>
 
-                    <div class="text-center d-flex justify-content-center gap-2">
+                    <div class="text-center d-flex flex-wrap justify-content-center gap-2">
                         <a href="{{ route('bookings.index') }}" class="btn btn-outline-dark btn-sm">
                             @if ($proximosCount > 4)
                                 Ver todos ({{ $proximosCount }})

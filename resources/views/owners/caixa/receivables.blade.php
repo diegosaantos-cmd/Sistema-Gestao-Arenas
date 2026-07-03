@@ -117,9 +117,8 @@
                     </div>
 
                     <div class="mb-0">
-                        <label class="form-label">Valor recebido (R$)</label>
-                        <input type="number" step="0.01" min="0.01" name="amount" class="form-control"
-                               value="{{ number_format($reserva->total_amount, 2, '.', '') }}" required>
+                        <span class="text-muted">Valor a receber (fixo da reserva):</span>
+                        <div class="fs-4 fw-bold">R$ {{ number_format($reserva->total_amount, 2, ',', '.') }}</div>
                     </div>
                 </div>
                 <div class="modal-footer">

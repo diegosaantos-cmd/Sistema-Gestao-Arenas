@@ -141,8 +141,10 @@ class CashRegisterController extends Controller
 
         $caixasFechados = $query->get();
 
+        $numeros = $this->numerosDaArena($arena);
+
         return view('owners.caixa.closed', compact(
-            'arena', 'caixasFechados', 'meses', 'mesSelecionado'
+            'arena', 'caixasFechados', 'meses', 'mesSelecionado', 'numeros'
         ));
     }
 
@@ -175,9 +177,11 @@ class CashRegisterController extends Controller
 
         $lucro = $entradas - $saidas;
 
+        $numeros = $this->numerosDaArena($arena);
+
         return view('owners.caixa.report', compact(
             'arena', 'meses', 'mesSelecionado', 'mesLabel',
-            'entradas', 'saidas', 'lucro', 'lancamentos', 'totalLancamentos'
+            'entradas', 'saidas', 'lucro', 'lancamentos', 'totalLancamentos', 'numeros'
         ));
     }
 
@@ -206,9 +210,11 @@ class CashRegisterController extends Controller
 
         $lucro = $entradas - $saidas;
 
+        $numeros = $this->numerosDaArena($arena);
+
         return view('owners.caixa.report-entries', compact(
             'arena', 'mesSelecionado', 'mesLabel',
-            'entradas', 'saidas', 'lucro', 'lancamentos'
+            'entradas', 'saidas', 'lucro', 'lancamentos', 'numeros'
         ));
     }
 
@@ -398,10 +404,8 @@ class CashRegisterController extends Controller
 
         $validated = $request->validate([
             'payment_method_id' => ['required', 'integer'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
         ], [
             'payment_method_id.required' => 'Escolha a forma de pagamento.',
-            'amount.min' => 'O valor precisa ser maior que zero.',
         ]);
 
         // A forma de pagamento precisa ser uma das aceitas pela arena.
@@ -410,11 +414,14 @@ class CashRegisterController extends Controller
             return back()->withErrors(['pay' => 'Forma de pagamento inválida.']);
         }
 
-        DB::transaction(function () use ($booking, $metodo, $validated, $caixa) {
+        // O valor é fixo: vem da reserva, não do formulário (não pode ser alterado).
+        $valor = $booking->total_amount;
+
+        DB::transaction(function () use ($booking, $metodo, $valor, $caixa) {
             Payment::create([
                 'booking_id' => $booking->id,
                 'payment_method_id' => $metodo->id,
-                'amount' => $validated['amount'],
+                'amount' => $valor,
                 'status' => 'paid',
                 'origin' => 'local',
                 'paid_at' => now(),
@@ -424,7 +431,7 @@ class CashRegisterController extends Controller
                 'cash_register_id' => $caixa->id,
                 'booking_id' => $booking->id,
                 'type' => 'income',
-                'amount' => $validated['amount'],
+                'amount' => $valor,
                 'description' => 'Pagamento reserva #' . $booking->id . ' — ' . $metodo->label,
             ]);
         });
@@ -471,7 +478,9 @@ class CashRegisterController extends Controller
             'entries.booking.client.user',
         ]);
 
-        return view('owners.caixa.show', compact('arena', 'caixa'));
+        $numeros = $this->numerosDaArena($arena);
+
+        return view('owners.caixa.show', compact('arena', 'caixa', 'numeros'));
     }
 
     /**
@@ -485,6 +494,22 @@ class CashRegisterController extends Controller
         return Booking::whereIn('court_id', $courtIds)
             ->whereIn('status', ['confirmed', 'completed'])
             ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'));
+    }
+
+    /**
+     * Mapa [id_do_caixa => número sequencial na arena], por ordem de abertura.
+     * Assim cada arena tem seus caixas numerados 1, 2, 3... independente do id
+     * do banco.
+     */
+    private function numerosDaArena(Arena $arena): array
+    {
+        return CashRegister::where('arena_id', $arena->id)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->flip()
+            ->map(fn ($pos) => $pos + 1)
+            ->all();
     }
 
     /**

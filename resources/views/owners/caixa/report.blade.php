@@ -105,7 +105,7 @@
                                     </td>
                                     <td>{{ $entry->description }}</td>
                                     <td class="text-nowrap">
-                                        Caixa #{{ $entry->cash_register_id }}
+                                        Caixa #{{ $numeros[$entry->cash_register_id] ?? $entry->cash_register_id }}
                                         @if ($entry->cashRegister)
                                             <div class="small text-muted">
                                                 {{ optional($entry->cashRegister->opened_at)->format('d/m/Y H:i') ?? '—' }}

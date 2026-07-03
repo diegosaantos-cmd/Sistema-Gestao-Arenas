@@ -41,6 +41,8 @@
                             <th>Aberto</th>
                             <th>Fechado</th>
                             <th>Operador</th>
+                            <th class="text-end">Troco inicial</th>
+                            <th class="text-end">Total lançamentos</th>
                             <th class="text-end">Saldo final</th>
                             <th class="text-end">Relatório</th>
                         </tr>
@@ -48,10 +50,15 @@
                     <tbody>
                         @forelse ($caixasFechados as $c)
                             <tr>
-                                <td class="fw-semibold">#{{ $c->id }}</td>
+                                <td class="fw-semibold">#{{ $numeros[$c->id] ?? $c->id }}</td>
                                 <td class="text-nowrap">{{ optional($c->opened_at)->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td class="text-nowrap">{{ optional($c->closed_at)->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td>{{ $c->user->name ?? '—' }}</td>
+                                <td class="text-end">R$ {{ number_format($c->opening_balance, 2, ',', '.') }}</td>
+                                @php $resultado = $c->closing_balance - $c->opening_balance; @endphp
+                                <td class="text-end fw-semibold {{ $resultado >= 0 ? 'text-success' : 'text-danger' }}">
+                                    R$ {{ number_format($resultado, 2, ',', '.') }}
+                                </td>
                                 <td class="text-end fw-semibold">R$ {{ number_format($c->closing_balance, 2, ',', '.') }}</td>
                                 <td class="text-end">
                                     <a href="{{ route('caixa.show', $c) }}" class="btn btn-sm btn-primary">
@@ -61,7 +68,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center text-muted">
+                                <td colspan="8" class="text-center text-muted">
                                     Nenhum caixa fechado ainda.
                                 </td>
                             </tr>

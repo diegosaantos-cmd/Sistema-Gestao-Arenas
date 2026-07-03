@@ -150,13 +150,15 @@ Route::middleware(['auth'])->group(function () {
             : 0;
 
         // Próximos agendamentos desta arena: preview de 4 + total (badge / "Ver todos").
+        // Só CONFIRMADOS — os pendentes ficam na tela "Aguardando confirmação".
         $proximosAgendamentos = collect();
         $proximosCount = 0;
+        $pendentesCount = 0;
 
         if ($selectedArena) {
             $base = \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
                 ->whereDate('date', '>=', now()->toDateString())
-                ->whereIn('status', ['pending', 'confirmed']);
+                ->where('status', 'confirmed');
 
             $proximosCount = (clone $base)->count();
 
@@ -165,6 +167,10 @@ Route::middleware(['auth'])->group(function () {
                 ->orderBy('start_time')
                 ->limit(4)
                 ->get();
+
+            $pendentesCount = \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
+                ->where('status', 'pending')
+                ->count();
         }
 
         // Lucro do mês: todas as entradas menos as saídas lançadas no caixa da
@@ -194,7 +200,7 @@ Route::middleware(['auth'])->group(function () {
             'owner', 'arenas', 'arenasCount', 'arenasActive', 'selectedArena',
             'courtsCount', 'courtsActive', 'customersCount', 'agendamentosHoje',
             'employeesCount', 'employeesActive', 'proximosAgendamentos', 'proximosCount',
-            'lucroMes', 'entradasMes', 'saidasMes', 'mesAtualLabel'
+            'pendentesCount', 'lucroMes', 'entradasMes', 'saidasMes', 'mesAtualLabel'
         ));
     })->name('owners.dashboard');
 
@@ -254,6 +260,18 @@ Route::middleware(['auth'])->group(function () {
     // Reservas de hoje (só confirmadas).
     Route::get('/owners/bookings/today', [BookingController::class, 'today'])
         ->name('bookings.today');
+
+    // Reservas aguardando confirmação (pendentes) + ações do dono.
+    Route::get('/owners/bookings/pendentes', [BookingController::class, 'pending'])
+        ->name('bookings.pending');
+    Route::patch('/owners/bookings/{booking}/confirmar', [BookingController::class, 'confirm'])
+        ->name('bookings.confirm');
+    Route::patch('/owners/bookings/{booking}/cancelar', [BookingController::class, 'cancel'])
+        ->name('bookings.cancel');
+    Route::get('/owners/bookings/{booking}/reagendar', [BookingController::class, 'editSchedule'])
+        ->name('bookings.schedule.edit');
+    Route::patch('/owners/bookings/{booking}/reagendar', [BookingController::class, 'updateSchedule'])
+        ->name('bookings.schedule.update');
 
     // Caixa da arena atual.
     Route::get('/owners/caixa', [CashRegisterController::class, 'index'])
@@ -363,6 +381,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/arenas/{arena}/horarios/confirmar', [ArenaController::class, 'confirmBusinessHours'])
         ->name('arenas.hours.confirm');
     Route::resource('arenas', ArenaController::class);
+    Route::patch('/quadras/{quadra}/toggle', [QuadraController::class, 'toggleActive'])
+        ->name('quadras.toggle');
+    Route::post('/quadras/{quadra}/desativar/confirmar', [QuadraController::class, 'confirmDeactivate'])
+        ->name('quadras.deactivate.confirm');
     Route::resource('quadras', QuadraController::class);
     Route::resource('employees', EmployeeController::class);
     Route::patch('/employees/{employee}/toggle', [EmployeeController::class, 'toggleActive'])
