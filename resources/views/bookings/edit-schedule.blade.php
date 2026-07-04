@@ -1,28 +1,25 @@
 @extends('layouts.main')
 
-@section('title', 'Editar agendamento')
+@section('title', 'Reagendar reserva')
 
 @section('content')
 
 <div class="container py-4">
 
-    <a href="{{ route('client.bookings.index') }}" class="btn btn-dark btn-sm mb-3">
+    <a href="{{ route('bookings.index') }}" class="btn btn-dark btn-sm mb-3">
         ← Voltar aos agendamentos
     </a>
 
-    <h1 class="fw-bold mb-1">Editar agendamento #{{ $booking->id }}</h1>
+    <h1 class="fw-bold mb-1">Reagendar reserva #{{ $booking->id }}</h1>
     <p class="text-muted">
-        {{ $arena->name }} · Quadra <strong>{{ $court->name }}</strong>
+        {{ $arena->name }} · Quadra <strong>{{ $court->name }}</strong> ·
+        Cliente {{ $booking->client->user->name ?? '—' }}
     </p>
 
     <div class="alert alert-secondary">
         <strong>Agendamento atual:</strong>
         {{ $booking->date->format('d/m/Y') }},
         {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
-    </div>
-
-    <div class="alert alert-info">
-        Alterações são permitidas somente com pelo menos <strong>1 hora de antecedência</strong>.
     </div>
 
     @if ($errors->any())
@@ -49,7 +46,7 @@
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
                     <h5 class="fw-bold mb-3">1. Escolha o novo dia</h5>
-                    <form method="GET" action="{{ route('client.bookings.edit', $booking) }}"
+                    <form method="GET" action="{{ route('bookings.schedule.edit', $booking) }}"
                           class="d-flex gap-2 flex-wrap">
                         <input type="date" name="date" value="{{ $date }}"
                                min="{{ now()->toDateString() }}"
@@ -73,7 +70,7 @@
                 </div>
             @else
                 @php $temLivre = $slots->contains(fn ($s) => ! $s['ocupado']); @endphp
-                <form method="POST" action="{{ route('client.bookings.update', $booking) }}">
+                <form method="POST" action="{{ route('bookings.schedule.update', $booking) }}">
                     @csrf
                     @method('PATCH')
                     <input type="hidden" name="date" value="{{ $date }}">
@@ -123,9 +120,9 @@
 
                     @if ($temLivre)
                         <div class="d-flex gap-2">
-                            <a href="{{ route('client.bookings.index') }}" class="btn btn-secondary">Cancelar</a>
+                            <a href="{{ route('bookings.index') }}" class="btn btn-secondary">Cancelar</a>
                             <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-circle me-1"></i> Salvar alteração
+                                <i class="bi bi-check-circle me-1"></i> Salvar reagendamento
                             </button>
                         </div>
                     @endif

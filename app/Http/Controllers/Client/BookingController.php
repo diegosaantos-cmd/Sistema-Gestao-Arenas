@@ -7,6 +7,7 @@ use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\Client;
 use App\Models\Court;
+use App\Services\CourtScheduleService;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -27,11 +28,11 @@ class BookingController extends Controller
 
         $arena->load(['paymentMethods', 'businessHours']);
 
-        $date = $request->query('date') ?: $this->primeiroDiaComHorario($court, $arena);
+        $date = $request->query('date') ?: CourtScheduleService::primeiroDiaComHorario($court, $arena);
 
         $weekday = Carbon::parse($date)->dayOfWeek;
         $aberto = $arena->businessHours->where('day_of_week', $weekday)->isNotEmpty();
-        $slots = $aberto ? $this->slotsDoDia($court, $arena, $date) : collect();
+        $slots = $aberto ? CourtScheduleService::slotsDoDia($court, $arena, $date) : collect();
 
         return view('client.bookings.create', [
             'arena' => $arena,
@@ -39,7 +40,7 @@ class BookingController extends Controller
             'date' => $date,
             'aberto' => $aberto,
             'slots' => $slots,
-            'diasAbertos' => $this->diasAbertos($arena),
+            'diasAbertos' => CourtScheduleService::diasAbertos($arena),
         ]);
     }
 
@@ -172,7 +173,7 @@ class BookingController extends Controller
         $date = $request->query('date', $booking->date->toDateString());
         $weekday = Carbon::parse($date)->dayOfWeek;
         $aberto = $arena->businessHours->where('day_of_week', $weekday)->isNotEmpty();
-        $slots = $aberto ? $this->slotsDoDia($court, $arena, $date, $booking) : collect();
+        $slots = $aberto ? CourtScheduleService::slotsDoDia($court, $arena, $date, $booking->id) : collect();
 
         return view('client.bookings.edit', [
             'booking' => $booking,
@@ -181,7 +182,7 @@ class BookingController extends Controller
             'date' => $date,
             'aberto' => $aberto,
             'slots' => $slots,
-            'diasAbertos' => $this->diasAbertos($arena),
+            'diasAbertos' => CourtScheduleService::diasAbertos($arena),
         ]);
     }
 
@@ -215,11 +216,11 @@ class BookingController extends Controller
         }
 
         $booking->load('court.arena.businessHours');
-        $slots = $this->slotsDoDia(
+        $slots = CourtScheduleService::slotsDoDia(
             $booking->court,
             $booking->court->arena,
             $validated['date'],
-            $booking
+            $booking->id
         );
 
         $disponivel = $slots->contains(fn ($slot) =>
@@ -377,125 +378,6 @@ class BookingController extends Controller
         if (! $arena->active || ! $court->active || $court->arena_id !== $arena->id) {
             abort(404);
         }
-    }
-
-    /**
-     * Dia padrão da tela: hoje, se a arena abrir hoje; senão o próximo dia
-     * (até 7 à frente) em que ela abre. Cai em hoje se não houver horários.
-     */
-    private function diaPadrao(Arena $arena): string
-    {
-        $diasAbertos = $arena->businessHours->pluck('day_of_week')->unique();
-
-        for ($i = 0; $i < 7; $i++) {
-            $d = now()->addDays($i);
-            if ($diasAbertos->contains($d->dayOfWeek)) {
-                return $d->toDateString();
-            }
-        }
-
-        return now()->toDateString();
-    }
-
-    /**
-     * Primeiro dia (a partir de hoje) em que a arena abre E a quadra ainda
-     * tem ao menos um horário livre. Assim a tela já abre num dia com vaga,
-     * pulando dias lotados/sem horário. Cai no diaPadrao se não achar.
-     */
-    private function primeiroDiaComHorario(Court $court, Arena $arena): string
-    {
-        for ($i = 0; $i < 60; $i++) {
-            $d = now()->addDays($i);
-
-            if ($arena->businessHours->where('day_of_week', $d->dayOfWeek)->isEmpty()) {
-                continue; // fechado nesse dia
-            }
-
-            $slots = $this->slotsDoDia($court, $arena, $d->toDateString());
-
-            if ($slots->contains(fn ($s) => ! $s['ocupado'])) {
-                return $d->toDateString();
-            }
-        }
-
-        return $this->diaPadrao($arena);
-    }
-
-    /**
-     * Dias de funcionamento da arena: [dia_da_semana => 'HH:MM–HH:MM, ...'].
-     */
-    private function diasAbertos(Arena $arena): array
-    {
-        return $arena->businessHours
-            ->sortBy([['day_of_week', 'asc'], ['opens_at', 'asc']])
-            ->groupBy('day_of_week')
-            ->map(fn ($horas) => $horas
-                ->map(fn ($h) => substr($h->opens_at, 0, 5) . '–' . substr($h->closes_at, 0, 5))
-                ->implode(', '))
-            ->toArray();
-    }
-
-    /**
-     * Grade de blocos de 1h da quadra numa data: TODOS os blocos dentro do
-     * horário de funcionamento, cada um com a flag 'ocupado' (pending/confirmed).
-     * Blocos de hoje que já passaram não entram (não dá para reservar o passado).
-     */
-    private function slotsDoDia(Court $court, Arena $arena, string $date, ?Booking $ignorar = null)
-    {
-        $dia = Carbon::parse($date);
-        $weekday = $dia->dayOfWeek;            // 0 = Domingo ... 6 = Sábado
-        $isHoje = $dia->isToday();
-        $agora = now()->format('H:i');
-
-        $intervalos = $arena->businessHours->where('day_of_week', $weekday);
-
-        $ocupadosQuery = Booking::where('court_id', $court->id)
-            ->where('date', $dia->toDateString())
-            ->whereIn('status', ['pending', 'confirmed']);
-
-        if ($ignorar) {
-            $ocupadosQuery->where($ignorar->getKeyName(), '!=', $ignorar->getKey());
-        }
-
-        $ocupados = $ocupadosQuery->get(['start_time', 'end_time']);
-
-        $slots = collect();
-
-        foreach ($intervalos as $intervalo) {
-            $inicio = Carbon::parse($intervalo->opens_at);
-            $fim = Carbon::parse($intervalo->closes_at);
-
-            // Blocos de 1h; o último é "cortado" no fechamento (ex.: 23:00–23:59).
-            while ($inicio->lessThan($fim)) {
-                $proximo = $inicio->copy()->addHour();
-                if ($proximo->greaterThan($fim)) {
-                    $proximo = $fim->copy();
-                }
-
-                $blocoInicio = $inicio->format('H:i');
-                $blocoFim = $proximo->format('H:i');
-
-                $inicio->addHour();
-
-                // Não mostra horários que já passaram (se for hoje).
-                if ($isHoje && $blocoInicio <= $agora) {
-                    continue;
-                }
-
-                $ocupado = $ocupados->first(function ($b) use ($blocoInicio, $blocoFim) {
-                    return substr($b->start_time, 0, 5) < $blocoFim
-                        && substr($b->end_time, 0, 5) > $blocoInicio;
-                }) !== null;
-
-                $slots->push([
-                    'start' => $blocoInicio,
-                    'end' => $blocoFim,
-                    'ocupado' => $ocupado,
-                ]);
-            }
-        }
-
-        return $slots;
     }
 
     private function autorizarClienteDaReserva(Booking $booking): void

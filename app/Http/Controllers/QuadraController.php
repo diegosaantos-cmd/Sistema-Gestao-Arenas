@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Owner;
 
@@ -140,19 +142,169 @@ class QuadraController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Formulário de edição de uma quadra (dono da arena dela).
      */
-    public function edit(string $id)
+    public function edit(Court $quadra)
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
+            abort(403);
+        }
+
+        $quadra->load('sports');
+        $arena = $quadra->arena;
+
+        return view('courts.edit', compact('arena', 'quadra'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Salva a edição da quadra (dados + esportes), com nome único na arena.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Court $quadra)
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
+            abort(403);
+        }
+
+        $request->merge([
+            'nome' => ArenaController::normalizarTexto($request->input('nome')),
+        ]);
+
+        $arenaId = $quadra->arena_id;
+        $courtId = $quadra->id;
+
+        $validated = $request->validate([
+            'nome' => ['required', 'string', 'max:80', function ($attribute, $value, $fail) use ($arenaId, $courtId) {
+                // Nome não pode ser equivalente ao de outra quadra da mesma arena.
+                $chave = ArenaController::chaveComparacao($value);
+                $existe = Court::where('arena_id', $arenaId)
+                    ->where('id', '!=', $courtId)
+                    ->whereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$chave])
+                    ->exists();
+                if ($existe) {
+                    $fail('Já existe uma quadra com o nome "'.$value.'" nesta arena.');
+                }
+            }],
+            'valor_hora' => ['required', 'numeric', 'min:0'],
+            'descricao' => ['nullable', 'string'],
+            'ativa' => ['nullable', 'boolean'],
+            'esportes' => ['required', 'array', 'min:1'],
+            'esportes.*' => [Rule::in(array_keys(Court::SPORTS))],
+        ], [
+            'nome.required' => 'Informe o nome da quadra.',
+            'valor_hora.required' => 'Informe o valor por hora da quadra.',
+            'esportes.required' => 'Selecione ao menos um esporte.',
+            'esportes.min' => 'Selecione ao menos um esporte.',
+        ]);
+
+        DB::transaction(function () use ($quadra, $validated) {
+            $quadra->update([
+                'name' => $validated['nome'],
+                'hourly_rate' => $validated['valor_hora'],
+                'description' => $validated['descricao'] ?? null,
+                'active' => ! empty($validated['ativa']),
+            ]);
+
+            // Sincroniza os esportes: apaga os atuais e recria os selecionados.
+            $quadra->sports()->delete();
+            foreach (array_unique($validated['esportes']) as $sport) {
+                $quadra->sports()->create(['sport' => $sport]);
+            }
+        });
+
+        return redirect()->route('quadras.index')
+            ->with('msg', 'Quadra atualizada com sucesso!');
+    }
+
+    /**
+     * Ativa/desativa a quadra. Reativar é direto; desativar só é imediato se
+     * não houver reservas futuras — se houver, mostra a tela de confirmação
+     * (mesma lógica da arena).
+     */
+    public function toggleActive(Court $quadra)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
+            abort(403);
+        }
+
+        // Reativar.
+        if (! $quadra->active) {
+            $quadra->update(['active' => true]);
+
+            return redirect()->route('quadras.index')->with('msg', 'Quadra reativada.');
+        }
+
+        // Desativar: verifica reservas que seriam canceladas.
+        $afetados = self::agendamentosAtivosDaQuadra($quadra);
+
+        if ($afetados->isEmpty()) {
+            $quadra->update(['active' => false]);
+
+            return redirect()->route('quadras.index')->with('msg', 'Quadra desativada.');
+        }
+
+        $arena = $quadra->arena;
+
+        return view('courts.deactivate-confirm', compact('quadra', 'arena', 'afetados'));
+    }
+
+    /**
+     * Confirma a desativação da quadra cancelando as reservas afetadas.
+     * O motivo é o mesmo para todas.
+     */
+    public function confirmDeactivate(Request $request, Court $quadra)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
+            abort(403);
+        }
+
+        $motivo = trim((string) $request->input('motivo'));
+
+        if ($motivo === '') {
+            return view('courts.deactivate-confirm', [
+                'quadra' => $quadra,
+                'arena' => $quadra->arena,
+                'afetados' => self::agendamentosAtivosDaQuadra($quadra),
+                'erroMotivo' => 'Informe o motivo do cancelamento.',
+                'motivo' => $motivo,
+            ]);
+        }
+
+        DB::transaction(function () use ($quadra, $motivo) {
+            foreach (self::agendamentosAtivosDaQuadra($quadra) as $booking) {
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $motivo,
+                ]);
+            }
+
+            $quadra->update(['active' => false]);
+        });
+
+        return redirect()->route('quadras.index')
+            ->with('msg', 'Quadra desativada e reservas afetadas canceladas.');
+    }
+
+    /**
+     * Reservas futuras (pendentes/confirmadas) desta quadra.
+     */
+    private static function agendamentosAtivosDaQuadra(Court $quadra)
+    {
+        return Booking::with('client.user')
+            ->where('court_id', $quadra->id)
+            ->whereDate('date', '>=', now()->toDateString())
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->orderBy('date')->orderBy('start_time')
+            ->get();
     }
 
     /**

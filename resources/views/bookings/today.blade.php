@@ -49,15 +49,13 @@
                                    class="btn btn-sm btn-primary">
                                     <i class="bi bi-info-circle me-1"></i> Detalhes
                                 </a>
-                                {{-- Sem ação por enquanto (lógica depois) --}}
-                                <button type="button"
-                                        class="btn btn-sm btn-warning"
-                                        data-booking-id="{{ $booking->id }}">
+                                <a href="{{ route('bookings.schedule.edit', $booking) }}"
+                                   class="btn btn-sm btn-warning">
                                     ✏️ Editar agendamento
-                                </button>
+                                </a>
                                 <button type="button"
                                         class="btn btn-sm btn-danger"
-                                        data-booking-id="{{ $booking->id }}">
+                                        data-bs-toggle="modal" data-bs-target="#cancelarHoje{{ $booking->id }}">
                                     🚫 Cancelar
                                 </button>
                             </td>
@@ -76,5 +74,38 @@
     </div>
 
 </div>
+
+{{-- Modais de cancelamento (um por reserva) --}}
+@foreach ($bookings as $booking)
+    <div class="modal fade" id="cancelarHoje{{ $booking->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('bookings.cancel', $booking) }}">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cancelar reserva</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">
+                            {{ $booking->client->user->name ?? '—' }} ·
+                            {{ $booking->court->name ?? '—' }} ·
+                            {{ $booking->date->format('d/m/Y') }}
+                            {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
+                        </p>
+                        <label class="form-label">Motivo do cancelamento</label>
+                        <textarea name="motivo" class="form-control" rows="3" required
+                                  placeholder="Ex.: Quadra indisponível neste horário."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                        <button type="submit" class="btn btn-danger">🚫 Sim, cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
 
 @endsection
