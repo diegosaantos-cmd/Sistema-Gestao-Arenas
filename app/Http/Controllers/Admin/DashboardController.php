@@ -19,8 +19,6 @@ class DashboardController extends Controller
     {
         $inicioMes = now()->startOfMonth();
         $fimMes = now()->endOfMonth();
-        $taxaPlataforma = 10;
-
         $faturamentoPorArena = DB::table('payments')
             ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
             ->join('courts', 'courts.id', '=', 'bookings.court_id')
@@ -35,15 +33,13 @@ class DashboardController extends Controller
             ->withCount(['courts', 'employees'])
             ->orderByDesc('created_at')
             ->get()
-            ->map(function ($arena) use ($faturamentoPorArena, $taxaPlataforma) {
+            ->map(function ($arena) use ($faturamentoPorArena) {
                 $arena->faturamento_mes = (float) ($faturamentoPorArena[$arena->id] ?? 0);
-                $arena->taxa_plataforma = round($arena->faturamento_mes * $taxaPlataforma / 100, 2);
 
                 return $arena;
             });
 
         $faturamentoBruto = $arenas->sum('faturamento_mes');
-        $lucroPlataforma = $arenas->sum('taxa_plataforma');
 
         $resumo = [
             'proprietarios' => Owner::count(),
@@ -57,7 +53,6 @@ class DashboardController extends Controller
                 $fimMes->toDateString(),
             ])->count(),
             'faturamento_bruto' => $faturamentoBruto,
-            'lucro_plataforma' => $lucroPlataforma,
         ];
 
         $proprietarios = Owner::with('user')
@@ -81,8 +76,7 @@ class DashboardController extends Controller
             'clientes',
             'proprietarios',
             'reservasRecentes',
-            'resumo',
-            'taxaPlataforma'
+            'resumo'
         ));
     }
 
@@ -114,6 +108,13 @@ class DashboardController extends Controller
         $owner->load('user');
 
         $arenas = $owner->arenas()
+            ->with([
+                'courts.sports',
+                'courts.arena',
+                'employees.user',
+                'employees.arena',
+                'employees.createdBy',
+            ])
             ->withCount(['courts', 'employees'])
             ->orderBy('name')
             ->get()
@@ -125,40 +126,155 @@ class DashboardController extends Controller
 
         $totais = [
             'arenas' => $arenas->count(),
-            'arenas_ativas' => $arenas->where('active', true)->count(),
             'quadras' => $arenas->sum('courts_count'),
             'funcionarios' => $arenas->sum('employees_count'),
             'faturamento_mes' => $arenas->sum('faturamento_mes'),
         ];
 
+        $faturamentoHistoricoEmpresa = DB::table('payments')
+            ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
+            ->join('courts', 'courts.id', '=', 'bookings.court_id')
+            ->join('arenas', 'arenas.id', '=', 'courts.arena_id')
+            ->where('payments.status', 'paid')
+            ->whereIn('courts.arena_id', $owner->arenas()->select('arenas.id'))
+            ->groupBy(
+                'courts.arena_id',
+                'arenas.name',
+                DB::raw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m')")
+            )
+            ->orderByRaw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') DESC")
+            ->orderBy('arenas.name')
+            ->selectRaw("
+                courts.arena_id,
+                arenas.name as arena_nome,
+                DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') as mes,
+                SUM(payments.amount) as total
+            ")
+            ->get();
+
+        $faturamentoAcumuladoEmpresa = (float) $faturamentoHistoricoEmpresa->sum('total');
+        $anosFaturamentoEmpresa = $faturamentoHistoricoEmpresa
+            ->map(fn ($registro) => (int) substr($registro->mes, 0, 4))
+            ->push((int) now()->year)
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        $anoFaturamentoEmpresa = (int) request('ano_faturamento', now()->year);
+        if (! $anosFaturamentoEmpresa->contains($anoFaturamentoEmpresa)) {
+            $anoFaturamentoEmpresa = (int) now()->year;
+        }
+
+        $faturamentoAnoEmpresa = $faturamentoHistoricoEmpresa
+            ->filter(fn ($registro) =>
+                (int) substr($registro->mes, 0, 4) === $anoFaturamentoEmpresa
+            )
+            ->values();
+
+        $idsQuadrasEmpresa = Court::withTrashed()
+            ->whereIn('arena_id', $owner->arenas()->select('arenas.id'))
+            ->select('id');
+
+        $buscaClienteEmpresa = trim((string) request('busca_cliente'));
+        $chaveBuscaClienteEmpresa = preg_replace('/\s+/u', '', mb_strtolower($buscaClienteEmpresa));
+
+        $clientesEmpresa = Client::with('user')
+            ->whereIn(
+                'id',
+                Booking::select('client_id')
+                    ->whereIn('court_id', clone $idsQuadrasEmpresa)
+                    ->distinct()
+            )
+            ->when($chaveBuscaClienteEmpresa !== '', function ($query) use ($chaveBuscaClienteEmpresa) {
+                $termo = '%' . $chaveBuscaClienteEmpresa . '%';
+
+                $query->whereHas('user', function ($user) use ($termo) {
+                    $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(COALESCE(phone, '')), ' ', '') LIKE ?", [$termo]);
+                });
+            })
+            ->select('clients.*')
+            ->selectSub(
+                Booking::selectRaw('COUNT(*)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadrasEmpresa),
+                'reservas_na_empresa'
+            )
+            ->selectSub(
+                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadrasEmpresa)
+                    ->where('status', '!=', 'cancelled'),
+                'valor_total_na_empresa'
+            )
+            ->orderByDesc('reservas_na_empresa')
+            ->orderBy(
+                User::select('name')->whereColumn('users.id', 'clients.user_id')
+            )
+            ->paginate(25, ['*'], 'clientes_page')
+            ->appends([
+                'clientes_modal' => 1,
+                'busca_cliente' => $buscaClienteEmpresa,
+            ]);
+
         $empresas = Owner::orderBy('company_name')->get(['id', 'company_name']);
 
-        return view('admin.owners.show', compact('owner', 'arenas', 'totais', 'empresas'));
+        return view('admin.owners.show', compact(
+            'owner',
+            'arenas',
+            'totais',
+            'empresas',
+            'clientesEmpresa',
+            'faturamentoAcumuladoEmpresa',
+            'anosFaturamentoEmpresa',
+            'anoFaturamentoEmpresa',
+            'faturamentoAnoEmpresa'
+        ));
     }
 
-    public function ownerProfile(Owner $owner)
+    public function ownerClients(Owner $owner)
     {
-        $owner->load([
-            'user',
-            'deactivatedBy',
-            'arenas' => fn ($query) => $query
-                ->with('businessHours')
-                ->withCount('employees')
-                ->orderBy('name'),
-        ])->loadCount('arenas');
-        $totalQuadras = Court::whereIn(
-            'arena_id',
-            $owner->arenas()->select('arenas.id')
-        )->count();
-        $totalFuncionarios = $owner->arenas->sum('employees_count');
-        $empresas = Owner::orderBy('company_name')->get(['id', 'company_name']);
+        $idsQuadras = Court::withTrashed()
+            ->whereIn('arena_id', $owner->arenas()->select('arenas.id'))
+            ->select('id');
+        $busca = trim((string) request('busca_cliente'));
+        $chave = preg_replace('/\s+/u', '', mb_strtolower($busca));
 
-        return view('admin.owners.profile', compact(
-            'owner',
-            'totalQuadras',
-            'totalFuncionarios',
-            'empresas'
-        ));
+        $clientes = Client::with('user')
+            ->whereIn('id', Booking::select('client_id')
+                ->whereIn('court_id', clone $idsQuadras)->distinct())
+            ->when($chave !== '', function ($query) use ($chave) {
+                $termo = '%' . $chave . '%';
+                $query->whereHas('user', function ($user) use ($termo) {
+                    $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(COALESCE(phone, '')), ' ', '') LIKE ?", [$termo]);
+                });
+            })
+            ->select('clients.*')
+            ->selectSub(
+                Booking::selectRaw('COUNT(*)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras),
+                'reservas_total'
+            )
+            ->selectSub(
+                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras)
+                    ->where('status', '!=', 'cancelled'),
+                'valor_total'
+            )
+            ->orderByDesc('reservas_total')
+            ->orderBy(User::select('name')->whereColumn('users.id', 'clients.user_id'))
+            ->simplePaginate(25)
+            ->appends(['busca_cliente' => $busca]);
+
+        return response()->json([
+            'html' => view('admin.clients._rows', compact('clientes'))->render(),
+            'next_url' => $clientes->nextPageUrl(),
+        ]);
     }
 
     public function deactivateOwner(Owner $owner)
@@ -236,28 +352,320 @@ class DashboardController extends Controller
             ->with('msg', 'Empresa excluída com sucesso.');
     }
 
-    public function ownerArenas(Owner $owner)
+    public function deactivateArenaCourt(Arena $arena, Court $court)
     {
-        $owner->load('user');
+        abort_unless($court->arena_id === $arena->id, 404);
 
-        $arenas = $owner->arenas()
-            ->withCount(['courts', 'employees'])
-            ->orderBy('name')
-            ->get();
-        $empresas = Owner::orderBy('company_name')->get(['id', 'company_name']);
+        DB::transaction(function () use ($court) {
+            Booking::where('court_id', $court->id)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => 'Quadra desativada pelo administrador geral.',
+                ]);
 
-        return view('admin.owners.arenas', compact('owner', 'arenas', 'empresas'));
+            $court->update(['active' => false]);
+        });
+
+        return back()->with('msg', 'Quadra desativada com sucesso.');
     }
 
-    public function arenaCourts(Arena $arena)
+    public function activateArenaCourt(Arena $arena, Court $court)
     {
-        $arena->load(['owner.user', 'paymentMethods', 'businessHours']);
+        abort_unless($court->arena_id === $arena->id, 404);
 
-        $quadras = $arena->courts()
-            ->with('sports')
-            ->orderBy('name')
+        if (! $arena->active) {
+            return back()->with('msg', 'Ative a arena antes de ativar esta quadra.');
+        }
+
+        $court->update(['active' => true]);
+
+        return back()->with('msg', 'Quadra ativada com sucesso.');
+    }
+
+    public function destroyArenaCourt(Arena $arena, Court $court)
+    {
+        abort_unless($court->arena_id === $arena->id, 404);
+
+        DB::transaction(function () use ($court) {
+            Booking::where('court_id', $court->id)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => 'Quadra excluída pelo administrador geral.',
+                ]);
+
+            $court->update(['active' => false]);
+            $court->delete();
+        });
+
+        return back()->with('msg', 'Quadra excluída e histórico preservado.');
+    }
+
+    public function arenaDetails(Arena $arena)
+    {
+        $arena->load([
+            'owner.user',
+            'paymentMethods',
+            'employees.user',
+            'employees.createdBy',
+            'courts.sports',
+            'businessHours' => fn ($query) => $query
+                ->orderBy('day_of_week')
+                ->orderBy('opens_at'),
+        ])->loadCount(['courts', 'employees']);
+
+        $faturamentoMensalCompleto = DB::table('payments')
+            ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
+            ->join('courts', 'courts.id', '=', 'bookings.court_id')
+            ->where('courts.arena_id', $arena->id)
+            ->where('payments.status', 'paid')
+            ->groupByRaw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m')")
+            ->orderByRaw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') DESC")
+            ->selectRaw("
+                DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') as mes,
+                SUM(payments.amount) as total
+            ")
             ->get();
 
-        return view('admin.arenas.courts', compact('arena', 'quadras'));
+        $faturamentoTotal = (float) $faturamentoMensalCompleto->sum('total');
+        $faturamentoMesAtual = (float) optional(
+            $faturamentoMensalCompleto->firstWhere('mes', now()->format('Y-m'))
+        )->total;
+
+        $anosFaturamento = $faturamentoMensalCompleto
+            ->map(fn ($registro) => (int) substr($registro->mes, 0, 4))
+            ->push((int) now()->year)
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        $anoFaturamento = (int) request('ano_faturamento', now()->year);
+        if (! $anosFaturamento->contains($anoFaturamento)) {
+            $anoFaturamento = (int) now()->year;
+        }
+
+        $faturamentoMensal = $faturamentoMensalCompleto
+            ->filter(fn ($registro) => (int) substr($registro->mes, 0, 4) === $anoFaturamento)
+            ->values();
+
+        $quadrasAtivas = $arena->courts()->where('active', true)->count();
+        $funcionariosAtivos = $arena->employees()->where('active', true)->count();
+        $idsQuadras = $arena->courts()->withTrashed()->select('id');
+        $reservasTotal = Booking::whereIn('court_id', clone $idsQuadras)->count();
+        $reservasMes = Booking::whereIn('court_id', clone $idsQuadras)
+            ->whereBetween('date', [
+                now()->startOfMonth()->toDateString(),
+                now()->endOfMonth()->toDateString(),
+            ])
+            ->count();
+
+        $consultaReservas = Booking::with([
+            'courtWithTrashed',
+            'client.user',
+            'cancelledBy',
+            'payments.paymentMethod',
+        ])
+            ->whereIn('court_id', clone $idsQuadras)
+            ->orderByDesc('date')
+            ->orderByDesc('start_time');
+
+        $reservasMesLista = (clone $consultaReservas)
+            ->whereBetween('date', [
+                now()->startOfMonth()->toDateString(),
+                now()->endOfMonth()->toDateString(),
+            ])
+            ->paginate(25, ['*'], 'mes_page')
+            ->appends(['reservas_modal' => 1, 'aba_reservas' => 'mes']);
+
+        $reservasCanceladasLista = (clone $consultaReservas)
+            ->where('status', 'cancelled')
+            ->paginate(25, ['*'], 'canceladas_page')
+            ->appends(['reservas_modal' => 1, 'aba_reservas' => 'canceladas']);
+
+        $historicoReservasLista = (clone $consultaReservas)
+            ->paginate(25, ['*'], 'historico_page')
+            ->appends(['reservas_modal' => 1, 'aba_reservas' => 'historico']);
+
+        $buscaCliente = trim((string) request('busca_cliente'));
+        $chaveBuscaCliente = preg_replace('/\s+/u', '', mb_strtolower($buscaCliente));
+
+        $clientesArena = Client::with('user')
+            ->whereIn(
+                'id',
+                Booking::select('client_id')
+                    ->whereIn('court_id', clone $idsQuadras)
+                    ->distinct()
+            )
+            ->when($chaveBuscaCliente !== '', function ($query) use ($chaveBuscaCliente) {
+                $termo = '%' . $chaveBuscaCliente . '%';
+
+                $query->whereHas('user', function ($user) use ($termo) {
+                    $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(COALESCE(phone, '')), ' ', '') LIKE ?", [$termo]);
+                });
+            })
+            ->select('clients.*')
+            ->selectSub(
+                Booking::selectRaw('COUNT(*)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras),
+                'reservas_na_arena'
+            )
+            ->selectSub(
+                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras)
+                    ->where('status', '!=', 'cancelled'),
+                'valor_total_na_arena'
+            )
+            ->orderByDesc('reservas_na_arena')
+            ->orderBy(
+                User::select('name')->whereColumn('users.id', 'clients.user_id')
+            )
+            ->paginate(25, ['*'], 'clientes_page')
+            ->appends([
+                'clientes_modal' => 1,
+                'busca_cliente' => $buscaCliente,
+            ]);
+
+        return view('admin.arenas.show', compact(
+            'arena',
+            'faturamentoMensal',
+            'anosFaturamento',
+            'anoFaturamento',
+            'faturamentoTotal',
+            'faturamentoMesAtual',
+            'quadrasAtivas',
+            'funcionariosAtivos',
+            'reservasTotal',
+            'reservasMes',
+            'reservasMesLista',
+            'reservasCanceladasLista',
+            'historicoReservasLista',
+            'clientesArena'
+        ));
+    }
+
+    public function arenaClients(Arena $arena)
+    {
+        $idsQuadras = $arena->courts()->withTrashed()->select('id');
+        $busca = trim((string) request('busca_cliente'));
+        $chave = preg_replace('/\s+/u', '', mb_strtolower($busca));
+
+        $clientes = Client::with('user')
+            ->whereIn('id', Booking::select('client_id')
+                ->whereIn('court_id', clone $idsQuadras)->distinct())
+            ->when($chave !== '', function ($query) use ($chave) {
+                $termo = '%' . $chave . '%';
+                $query->whereHas('user', function ($user) use ($termo) {
+                    $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(COALESCE(phone, '')), ' ', '') LIKE ?", [$termo]);
+                });
+            })
+            ->select('clients.*')
+            ->selectSub(
+                Booking::selectRaw('COUNT(*)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras),
+                'reservas_total'
+            )
+            ->selectSub(
+                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras)
+                    ->where('status', '!=', 'cancelled'),
+                'valor_total'
+            )
+            ->orderByDesc('reservas_total')
+            ->orderBy(User::select('name')->whereColumn('users.id', 'clients.user_id'))
+            ->simplePaginate(25)
+            ->appends(['busca_cliente' => $busca]);
+
+        return response()->json([
+            'html' => view('admin.clients._rows', compact('clientes'))->render(),
+            'next_url' => $clientes->nextPageUrl(),
+        ]);
+    }
+
+    public function destroyArenaEmployee(Arena $arena, Employee $employee)
+    {
+        abort_unless($employee->arena_id === $arena->id, 404);
+
+        DB::transaction(function () use ($employee) {
+            $user = $employee->user;
+            $employee->delete();
+            $user?->delete();
+        });
+
+        return back()->with('msg', 'Funcionário excluído com sucesso.');
+    }
+
+    public function deactivateArena(Arena $arena)
+    {
+        DB::transaction(function () use ($arena) {
+            $courtIds = $arena->courts()->pluck('id');
+
+            Booking::whereIn('court_id', $courtIds)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => 'Arena desativada pelo administrador geral.',
+                ]);
+
+            $arena->courts()->update(['active' => false]);
+            $arena->update([
+                'active' => false,
+                'deactivated_by_admin' => true,
+            ]);
+        });
+
+        return back()->with('msg', 'Arena desativada e reservas ativas canceladas.');
+    }
+
+    public function activateArena(Arena $arena)
+    {
+        DB::transaction(function () use ($arena) {
+            $arena->update([
+                'active' => true,
+                'deactivated_by_admin' => false,
+            ]);
+            $arena->courts()->update(['active' => true]);
+        });
+
+        return back()->with('msg', 'Arena e suas quadras ativadas com sucesso.');
+    }
+
+    public function destroyArena(Arena $arena)
+    {
+        $owner = $arena->owner;
+
+        DB::transaction(function () use ($arena) {
+            $courtIds = $arena->courts()->pluck('id');
+
+            Booking::whereIn('court_id', $courtIds)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => 'Arena excluída pelo administrador geral.',
+                ]);
+
+            $arena->courts()->update(['active' => false]);
+            $arena->update(['active' => false]);
+            $arena->delete();
+        });
+
+        return redirect()->route('admin.owners.show', [$owner, 'arenas_modal' => 1])
+            ->with('msg', 'Arena excluída com sucesso. O histórico foi preservado.');
     }
 }

@@ -5,110 +5,525 @@
 @section('content')
 
 <div class="dashboard-container container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <a href="{{ route('admin.owners.index') }}" class="btn btn-dark btn-sm">
             ← Voltar às empresas
         </a>
-        @include('admin.owners._company-switcher')
-    </div>
-
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <h1 class="dashboard-title mb-1">{{ $owner->company_name }}</h1>
-            <p class="dashboard-subtitle mb-0">Informações completas e desempenho das arenas.</p>
+        <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+            @include('admin.owners._company-switcher')
+            @if ($owner->active)
+                <button type="button" class="btn btn-warning btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#modalDesativarEmpresa">
+                    <i class="bi bi-power me-1"></i> Desativar
+                </button>
+            @else
+                <form method="POST" action="{{ route('admin.owners.activate', $owner) }}">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-check-circle me-1"></i> Ativar
+                    </button>
+                </form>
+            @endif
+            <button type="button" class="btn btn-danger btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#modalExcluirEmpresa">
+                <i class="bi bi-trash me-1"></i> Excluir
+            </button>
         </div>
-        <span class="badge fs-6 {{ $owner->user?->active ? 'bg-success' : 'bg-danger' }}">
-            {{ $owner->user?->active ? 'Conta ativa' : 'Conta bloqueada' }}
-        </span>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg">
-            <a href="{{ route('admin.owners.profile', $owner) }}"
-               class="dashboard-card h-100 text-decoration-none text-body">
+    <div class="mb-4">
+        <h1 class="dashboard-title mb-1">Empresa {{ $owner->company_name }}</h1>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            @if ($owner->active)
+                <span class="badge bg-success">Empresa ativa</span>
+            @elseif ($owner->deactivation_source === 'admin')
+                <span class="badge bg-danger">Desativada pelo administrador</span>
+            @else
+                <span class="badge bg-warning text-dark">Desativada pela própria empresa</span>
+            @endif
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-6 col-lg-4">
+            <button type="button" class="dashboard-card h-100 w-100 border-0 text-start"
+                    data-bs-toggle="modal" data-bs-target="#modalPerfilEmpresa">
                 <div>
-                    <h5>Perfil da empresa</h5>
-                    <h2><i class="bi bi-building-gear"></i></h2>
+                    <h5 class="fw-bold text-dark">Perfil da empresa</h5>
+                    <small class="text-muted">Dados completos</small>
                 </div>
-                <i class="bi bi-chevron-right fs-3 text-primary"></i>
-            </a>
+                <i class="bi bi-building-gear dashboard-icon text-primary"></i>
+            </button>
         </div>
 
-        @php
-            $cards = [
-                ['Arenas', $totais['arenas'], 'bi-buildings', 'primary'],
-                ['Arenas ativas', $totais['arenas_ativas'], 'bi-check-circle', 'success'],
-                ['Quadras', $totais['quadras'], 'bi-grid-3x3-gap', 'info'],
-                ['Funcionários', $totais['funcionarios'], 'bi-person-badge', 'secondary'],
-            ];
-        @endphp
-
-        @foreach ($cards as [$titulo, $valor, $icone, $cor])
-            <div class="col-6 col-lg">
-                <div class="dashboard-card h-100">
-                    <div><h5>{{ $titulo }}</h5><h2>{{ $valor }}</h2></div>
-                    <i class="bi {{ $icone }} dashboard-icon text-{{ $cor }}"></i>
+        <div class="col-6 col-lg-4">
+            <button type="button" class="dashboard-card h-100 w-100 border-0 text-start"
+                    data-bs-toggle="modal" data-bs-target="#modalArenasEmpresa">
+                <div>
+                    <h5 class="fw-bold text-dark">Arenas</h5>
+                    <h2>{{ $totais['arenas'] }}</h2>
+                    <small class="text-muted">Todas as arenas</small>
                 </div>
-            </div>
-        @endforeach
-    </div>
-
-    <div class="dashboard-box mb-4 border border-success">
-        <div class="text-muted">Faturamento bruto de todas as arenas no mês</div>
-        <div class="display-6 fw-bold text-success">
-            R$ {{ number_format($totais['faturamento_mes'], 2, ',', '.') }}
-        </div>
-        <small class="text-muted">Competência: {{ now()->translatedFormat('F/Y') }}</small>
-    </div>
-
-    <div class="dashboard-box">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="section-title mb-0">Desempenho por arena</h2>
-            <a href="{{ route('admin.owners.arenas', $owner) }}" class="btn btn-primary btn-sm">
-                Ver arenas em cards
-            </a>
+                <i class="bi bi-buildings dashboard-icon text-primary"></i>
+            </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Arena</th>
-                        <th>Status</th>
-                        <th>Quadras</th>
-                        <th>Funcionários</th>
-                        <th>Faturamento no mês</th>
-                        <th class="text-end">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($arenas as $arena)
-                        <tr>
-                            <td>
-                                <strong>{{ $arena->name }}</strong>
-                                <div class="small text-muted">{{ $arena->address_bairro }}</div>
-                            </td>
-                            <td>
-                                <span class="badge {{ $arena->active ? 'bg-success' : 'bg-warning text-dark' }}">
-                                    {{ $arena->active ? 'Ativa' : 'Desativada' }}
-                                </span>
-                            </td>
-                            <td>{{ $arena->courts_count }}</td>
-                            <td>{{ $arena->employees_count }}</td>
-                            <td class="fw-semibold">R$ {{ number_format($arena->faturamento_mes, 2, ',', '.') }}</td>
-                            <td class="text-end">
-                                <a href="{{ route('admin.arenas.courts', $arena) }}" class="btn btn-outline-primary btn-sm">
-                                    Ver quadras
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">Esta empresa não possui arenas.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div class="col-6 col-lg-4">
+            <button type="button" class="dashboard-card h-100 w-100 border-0 text-start"
+                    data-bs-toggle="modal" data-bs-target="#modalClientesEmpresa">
+                <div>
+                    <h5 class="fw-bold text-dark">Clientes</h5>
+                    <h2>{{ $clientesEmpresa->total() }}</h2>
+                    <small class="text-muted">Com reservas nas arenas</small>
+                </div>
+                <i class="bi bi-people dashboard-icon text-primary"></i>
+            </button>
+        </div>
+
+        <div class="col-6 col-lg-4">
+            <button type="button" class="dashboard-card h-100 w-100 border-0 text-start"
+                    data-bs-toggle="modal" data-bs-target="#modalQuadrasEmpresa">
+                <div>
+                    <h5 class="fw-bold text-dark">Quadras</h5>
+                    <h2>{{ $totais['quadras'] }}</h2>
+                    <small class="text-muted">Em todas as arenas</small>
+                </div>
+                <i class="bi bi-grid-3x3-gap dashboard-icon text-info"></i>
+            </button>
+        </div>
+
+        <div class="col-6 col-lg-4">
+            <button type="button" class="dashboard-card h-100 w-100 border-0 text-start"
+                    data-bs-toggle="modal" data-bs-target="#modalFuncionariosEmpresa">
+                <div>
+                    <h5 class="fw-bold text-dark">Funcionários</h5>
+                    <h2>{{ $totais['funcionarios'] }}</h2>
+                    <small class="text-muted">Em todas as arenas</small>
+                </div>
+                <i class="bi bi-person-badge dashboard-icon text-secondary"></i>
+            </button>
+        </div>
+
+        <div class="col-6 col-lg-4">
+            <button type="button" class="dashboard-card h-100 w-100 border-0 text-start"
+                    data-bs-toggle="modal" data-bs-target="#modalFaturamentoEmpresa">
+                <div>
+                    <h5 class="fw-bold text-dark">Faturamento da empresa</h5>
+                    <h2 class="fs-4">R$ {{ number_format($totais['faturamento_mes'], 2, ',', '.') }}</h2>
+                    <small class="text-muted">{{ now()->translatedFormat('F/Y') }}</small>
+                </div>
+                <i class="bi bi-cash-coin dashboard-icon text-success"></i>
+            </button>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalPerfilEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Perfil da empresa</h5>
+                    <small class="text-muted">{{ $owner->company_name }}</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-4">
+                    <div class="col-md-6"><span class="text-muted">Nome da empresa</span><br><strong>{{ $owner->company_name }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Proprietário</span><br><strong>{{ $owner->user?->name ?? '—' }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">CPF/CNPJ</span><br><strong>{{ $owner->tax_id }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Cadastro</span><br><strong>{{ optional($owner->created_at)->format('d/m/Y') ?? '—' }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">E-mail</span><br><strong>{{ $owner->user?->email ?? '—' }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Telefone</span><br><strong>{{ $owner->user?->phone ?: '—' }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Tipo da conta</span><br><strong>Proprietário</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Quantidade de arenas</span><br><strong>{{ $totais['arenas'] }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Total de quadras</span><br><strong>{{ $totais['quadras'] }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Total de funcionários</span><br><strong>{{ $totais['funcionarios'] }}</strong></div>
+                    <div class="col-md-6">
+                        <span class="text-muted">Política de Privacidade e Termos</span><br>
+                        @if ($owner->user?->terms_accepted_at)
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Aceitos</span>
+                            <div class="small text-muted mt-1">{{ $owner->user->terms_accepted_at->format('d/m/Y H:i') }}</div>
+                        @else
+                            <span class="badge bg-warning text-dark">Aceite não registrado</span>
+                        @endif
+                    </div>
+                    @if (! $owner->active)
+                        <div class="col-md-6">
+                            <span class="text-muted">Desativada por</span><br>
+                            <strong>{{ $owner->deactivation_source === 'admin' ? 'Administrador do sistema' : 'Própria empresa' }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted">Data da desativação</span><br>
+                            <strong>{{ optional($owner->deactivated_at)->format('d/m/Y H:i') ?? '—' }}</strong>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalArenasEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title">Arenas da empresa</h5><small class="text-muted">{{ $owner->company_name }}</small></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    @forelse ($arenas as $arena)
+                        <div class="col-6 col-lg-6">
+                            <div class="border rounded h-100 p-3 d-flex flex-column">
+                                <div class="d-flex justify-content-between gap-2 mb-2">
+                                    <h6 class="fw-bold mb-0">{{ $arena->name }}</h6>
+                                    <span class="badge {{ $arena->active ? 'bg-success' : 'bg-warning text-dark' }}">{{ $arena->active ? 'Ativa' : 'Desativada' }}</span>
+                                </div>
+                                <p class="small text-muted">{{ $arena->description ?: 'Sem descrição.' }}</p>
+                                <div class="small mb-3">{{ $arena->address_rua }}, {{ $arena->address_numero }} — {{ $arena->address_bairro }}</div>
+                                <a href="{{ route('admin.arenas.show', $arena) }}" class="btn btn-primary btn-sm mt-auto">Ver detalhes</a>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-12 text-center text-muted py-4">Esta empresa não possui arenas.</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalClientesEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title">Clientes da empresa</h5><small class="text-muted">{{ $owner->company_name }}</small></div>
+                <div class="d-flex align-items-center justify-content-end gap-2 ms-auto">
+                    <div class="collapse collapse-horizontal {{ request()->filled('busca_cliente') ? 'show' : '' }}"
+                         id="buscaClientesEmpresa">
+                        <form method="GET"
+                              action="{{ route('admin.owners.show', $owner) }}"
+                              data-client-search
+                              data-endpoint="{{ route('admin.owners.clients', $owner) }}"
+                              data-target="clientesEmpresaBody">
+                            <input type="hidden" name="clientes_modal" value="1">
+                            <input type="search"
+                                   name="busca_cliente"
+                                   value="{{ request('busca_cliente') }}"
+                                   class="form-control form-control-sm"
+                                   style="width: min(300px, 48vw);"
+                                   placeholder="Nome, e-mail ou telefone"
+                                   aria-label="Buscar cliente">
+                        </form>
+                    </div>
+                    <button type="button" class="btn btn-link text-dark p-1"
+                            data-bs-toggle="collapse" data-bs-target="#buscaClientesEmpresa"
+                            aria-label="Abrir pesquisa"
+                            aria-expanded="{{ request()->filled('busca_cliente') ? 'true' : 'false' }}">
+                        <i class="bi bi-search fs-5"></i>
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive border rounded" style="max-height: 65vh; overflow-y: auto;">
+                    <table class="table table-sm table-hover align-middle mb-0 small"
+                           style="table-layout: fixed; width: 100%;">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="ps-3">Cliente</th>
+                                <th>E-mail</th>
+                                <th>Telefone</th>
+                                <th>Nascimento</th>
+                                <th>Cadastro</th>
+                                <th class="text-end">Reservas</th>
+                                <th class="text-end pe-3">Total gasto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientesEmpresaBody">
+                            @forelse ($clientesEmpresa as $cliente)
+                                <tr>
+                                    <td class="ps-3 fw-bold">{{ $cliente->user?->name ?? '—' }}</td>
+                                    <td class="text-break">{{ $cliente->user?->email ?? '—' }}</td>
+                                    <td class="text-break">{{ $cliente->user?->phone ?: '—' }}</td>
+                                    <td>
+                                        {{ $cliente->date_of_birth
+                                            ? \Carbon\Carbon::parse($cliente->date_of_birth)->format('d/m/Y')
+                                            : '—' }}
+                                    </td>
+                                    <td>{{ $cliente->user?->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                    <td class="text-end fw-bold">{{ $cliente->reservas_na_empresa }}</td>
+                                    <td class="text-end pe-3 fw-bold text-success">
+                                        R$ {{ number_format($cliente->valor_total_na_empresa, 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="text-center text-muted py-4">Nenhum cliente encontrado.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                    <div class="text-center py-3 {{ $clientesEmpresa->hasMorePages() ? '' : 'd-none' }}"
+                         data-infinite-clients
+                         data-target="clientesEmpresaBody"
+                         data-next-url="{{ $clientesEmpresa->hasMorePages()
+                             ? route('admin.owners.clients', [
+                                 $owner,
+                                 'page' => 2,
+                                 'busca_cliente' => request('busca_cliente'),
+                             ])
+                             : '' }}">
+                        <span class="spinner-border spinner-border-sm text-primary d-none"
+                              data-client-spinner></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalQuadrasEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title">Quadras da empresa</h5><small class="text-muted">{{ $owner->company_name }}</small></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive border rounded">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light sticky-top"><tr><th class="ps-3">Quadra</th><th>Arena</th><th>Esportes</th><th>Valor/hora</th><th class="pe-3">Situação</th></tr></thead>
+                        <tbody>
+                            @forelse (
+                                $arenas->flatMap->courts->sortBy(
+                                    fn ($quadra) => mb_strtolower(
+                                        ($quadra->arena?->name ?? '') . '|' . $quadra->name
+                                    )
+                                ) as $quadra
+                            )
+                                <tr>
+                                    <td class="ps-3 fw-bold">{{ $quadra->name }}</td>
+                                    <td>{{ $quadra->arena?->name ?? '—' }}</td>
+                                    <td>{{ $quadra->sports->map(fn ($sport) => \App\Models\Court::SPORTS[$sport->sport] ?? $sport->sport)->implode(', ') ?: '—' }}</td>
+                                    <td class="text-nowrap">R$ {{ number_format($quadra->hourly_rate, 2, ',', '.') }}</td>
+                                    <td class="pe-3"><span class="badge {{ $quadra->active ? 'bg-success' : 'bg-warning text-dark' }}">{{ $quadra->active ? 'Ativa' : 'Desativada' }}</span></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma quadra cadastrada.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalFuncionariosEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"
+         style="max-width: 420px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title">Funcionários da empresa</h5><small class="text-muted">{{ $owner->company_name }}</small></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    @forelse ($arenas->flatMap->employees->sortBy(fn ($employee) => $employee->user?->name) as $employee)
+                        <div class="col-12">
+                        <div class="border rounded p-3 h-100 overflow-hidden">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div>
+                                    <h6 class="fw-bold mb-1">{{ $employee->user?->name ?? 'Funcionário sem usuário' }}</h6>
+                                    <div class="small">
+                                        <strong>{{ $employee->position }}</strong>
+                                        <span class="text-muted mx-1">·</span>
+                                        {{ $employee->arena?->name ?? 'Arena não informada' }}
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#detalhesFuncionarioEmpresa{{ $employee->id }}"
+                                        aria-expanded="false">
+                                    <i class="bi bi-eye me-1"></i> Ver detalhes
+                                </button>
+                            </div>
+
+                            <div class="collapse mt-3 w-100" id="detalhesFuncionarioEmpresa{{ $employee->id }}">
+                                <div class="border-top pt-3">
+                                    <div class="row g-3">
+                                        @if ($employee->user?->email)
+                                            <div class="col-12">
+                                                <span class="small text-muted">E-mail</span><br>
+                                                <strong class="text-break">{{ $employee->user->email }}</strong>
+                                            </div>
+                                        @endif
+                                        @if ($employee->user?->phone)
+                                            <div class="col-md-6"><span class="small text-muted">Telefone</span><br><strong>{{ $employee->user->phone }}</strong></div>
+                                        @endif
+                                        <div class="col-md-6"><span class="small text-muted">Cargo</span><br><strong>{{ $employee->position }}</strong></div>
+                                        <div class="col-md-6"><span class="small text-muted">Arena</span><br><strong>{{ $employee->arena?->name ?? '—' }}</strong></div>
+                                        <div class="col-md-6">
+                                            <span class="small text-muted">Nível de acesso</span><br>
+                                            <strong>{{ $employee->access_level === 'managerial' ? 'Gerencial' : 'Básico' }}</strong>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <span class="small text-muted">Situação</span><br>
+                                            <span class="badge {{ $employee->active ? 'bg-success' : 'bg-secondary' }}">
+                                                {{ $employee->active ? 'Ativo' : 'Inativo' }}
+                                            </span>
+                                        </div>
+                                        @if ($employee->created_at)
+                                            <div class="col-md-6"><span class="small text-muted">Cadastrado em</span><br><strong>{{ $employee->created_at->format('d/m/Y H:i') }}</strong></div>
+                                        @endif
+                                        @if ($employee->updated_at)
+                                            <div class="col-md-6"><span class="small text-muted">Última atualização</span><br><strong>{{ $employee->updated_at->format('d/m/Y H:i') }}</strong></div>
+                                        @endif
+                                        @if ($employee->createdBy?->name)
+                                            <div class="col-md-6"><span class="small text-muted">Cadastrado por</span><br><strong>{{ $employee->createdBy->name }}</strong></div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    @empty
+                        <div class="col-12 text-center text-muted py-4">Nenhum funcionário cadastrado.</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalFaturamentoEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title">Faturamento da empresa</h5><small class="text-muted">{{ $owner->company_name }}</small></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="text-muted">Faturamento no mês</span>
+                            <div class="fs-3 fw-bold text-success">
+                                R$ {{ number_format($totais['faturamento_mes'], 2, ',', '.') }}
+                            </div>
+                            <small class="text-muted">{{ now()->translatedFormat('F/Y') }}</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="text-muted">Faturamento acumulado</span>
+                            <div class="fs-3 fw-bold text-success">
+                                R$ {{ number_format($faturamentoAcumuladoEmpresa, 2, ',', '.') }}
+                            </div>
+                            <small class="text-muted">Desde o início dos registros no sistema</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h6 class="fw-bold mb-0">Faturamento mensal por arena</h6>
+                    <form method="GET" action="{{ route('admin.owners.show', $owner) }}">
+                        <input type="hidden" name="faturamento_modal" value="1">
+                        <select name="ano_faturamento"
+                                class="form-select form-select-sm"
+                                onchange="this.form.submit()"
+                                aria-label="Selecionar ano">
+                            @foreach ($anosFaturamentoEmpresa as $ano)
+                                <option value="{{ $ano }}" @selected($anoFaturamentoEmpresa === $ano)>
+                                    {{ $ano }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+
+                <div class="table-responsive border rounded">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr><th class="ps-3">Mês</th><th>Arena</th><th class="text-end pe-3">Faturamento</th></tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($faturamentoAnoEmpresa as $registro)
+                                <tr>
+                                    <td class="ps-3 text-nowrap">
+                                        {{ \Carbon\Carbon::createFromFormat('Y-m', $registro->mes)->translatedFormat('F/Y') }}
+                                    </td>
+                                    <td class="fw-bold">{{ $registro->arena_nome }}</td>
+                                    <td class="text-end pe-3 text-success fw-bold">
+                                        R$ {{ number_format($registro->total, 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="3" class="text-center text-muted py-4">Nenhum pagamento confirmado neste ano.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDesativarEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.owners.deactivate', $owner) }}">
+                @csrf
+                @method('PATCH')
+                <div class="modal-header"><h5 class="modal-title">Desativar empresa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">Deseja realmente desativar <strong>{{ $owner->company_name }}</strong>? O proprietário perderá o acesso e todas as arenas e quadras serão desativadas.</div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-warning">Sim, desativar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalExcluirEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.owners.destroy', $owner) }}">
+                @csrf
+                @method('DELETE')
+                <div class="modal-header"><h5 class="modal-title text-danger">Excluir empresa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><div class="alert alert-danger">Deseja realmente excluir <strong>{{ $owner->company_name }}</strong>?</div>A empresa e suas arenas deixarão de aparecer, mantendo o histórico.</div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Sim, excluir</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (request()->boolean('arenas_modal'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalArenasEmpresa')).show();
+        });
+    </script>
+@endif
+
+@include('admin.clients._infinite-script')
+
+@if (request()->boolean('clientes_modal'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalClientesEmpresa')).show();
+        });
+    </script>
+@endif
+
+@if (request()->boolean('faturamento_modal'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFaturamentoEmpresa')).show();
+        });
+    </script>
+@endif
 
 @endsection

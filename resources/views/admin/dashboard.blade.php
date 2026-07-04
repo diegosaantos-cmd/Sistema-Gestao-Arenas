@@ -12,7 +12,7 @@
     </div>
 
     <div class="row g-4">
-        <div class="col-md-6 col-xl-3">
+        <div class="col-md-6 col-xl-4">
             <a href="{{ route('admin.owners.index') }}"
                class="dashboard-card h-100 text-decoration-none text-body">
                 <div>
@@ -24,7 +24,7 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-xl-3">
+        <div class="col-md-6 col-xl-4">
             <a href="{{ route('admin.owners.index') }}"
                class="dashboard-card h-100 text-decoration-none text-body">
                 <div>
@@ -36,7 +36,7 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-xl-3">
+        <div class="col-md-6 col-xl-4">
             <div class="dashboard-card h-100">
                 <div>
                     <h5>Clientes</h5>
@@ -47,16 +47,6 @@
             </div>
         </div>
 
-        <div class="col-md-6 col-xl-3">
-            <div class="dashboard-card h-100">
-                <div>
-                    <h5>Financeiro</h5>
-                    <h2 class="fs-3">R$ {{ number_format($resumo['lucro_plataforma'], 2, ',', '.') }}</h2>
-                    <small class="text-muted">Taxa simulada de {{ $taxaPlataforma }}%</small>
-                </div>
-                <i class="bi bi-cash-coin dashboard-icon text-success"></i>
-            </div>
-        </div>
     </div>
 
     <div class="dashboard-box mt-4">
