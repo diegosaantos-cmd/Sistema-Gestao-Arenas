@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'employees';
 
     // employees tem created_at e updated_at -> o Eloquent gerencia os dois.

@@ -42,18 +42,52 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    {{-- Editar sem ação por enquanto (lógica depois) --}}
-                    <button type="button" class="btn btn-sm btn-warning">✏️ Editar</button>
+                    {{-- Editar perfil: sem ação por enquanto (lógica depois) --}}
+                    <button type="button" class="btn btn-sm btn-warning">✏️ Editar perfil</button>
 
                     <form action="{{ route('employees.toggle', $employee) }}" method="POST" class="d-inline">
                         @csrf
                         @method('PATCH')
                         <button type="submit" class="btn btn-sm {{ $employee->active ? 'btn-secondary' : 'btn-success' }}">
-                            {{ $employee->active ? '🚫 Desativar' : '✅ Ativar' }}
+                            {{ $employee->active ? '🚫 Desativar perfil' : '✅ Ativar perfil' }}
                         </button>
                     </form>
+
+                    <button type="button" class="btn btn-sm btn-danger"
+                            data-bs-toggle="modal" data-bs-target="#excluirFuncionario{{ $employee->id }}">
+                        🗑️ Excluir perfil
+                    </button>
                 </div>
 
+            </div>
+        </div>
+
+        {{-- Modal de confirmação de exclusão --}}
+        <div class="modal fade" id="excluirFuncionario{{ $employee->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST" action="{{ route('employees.destroy', $employee) }}">
+                        @csrf
+                        @method('DELETE')
+                        <div class="modal-header">
+                            <h5 class="modal-title text-danger">Excluir perfil</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-danger">
+                                Deseja realmente excluir o perfil de
+                                <strong>{{ $employee->user->name }}</strong>?
+                            </div>
+                            O funcionário deixa de aparecer e perde o acesso ao sistema.
+                            O <strong>histórico de agendamentos</strong> que ele registrou
+                            <strong>é preservado</strong>.
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-danger">🗑️ Sim, excluir</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     @empty

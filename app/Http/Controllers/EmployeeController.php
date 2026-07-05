@@ -154,8 +154,25 @@ class EmployeeController extends Controller
         //
     }
 
-    public function destroy(string $id)
+    /**
+     * Exclui (soft delete) o perfil do funcionário, preservando o histórico de
+     * agendamentos. Mesmo método da exclusão de arena: o registro não é apagado,
+     * só marcado como excluído. O login também é desativado.
+     */
+    public function destroy(Employee $employee)
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
+            abort(403);
+        }
+
+        DB::transaction(function () use ($employee) {
+            $employee->user?->delete(); // soft delete do usuário (login)
+            $employee->delete();        // soft delete do vínculo de funcionário
+        });
+
+        return redirect()->route('employees.index')
+            ->with('msg', 'Funcionário excluído. O histórico de agendamentos foi preservado.');
     }
 }
