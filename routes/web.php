@@ -60,18 +60,32 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('admin.owners.index');
     Route::get('/admin/proprietarios/{owner}', [AdminDashboardController::class, 'ownerDetails'])
         ->name('admin.owners.show');
-    Route::get('/admin/proprietarios/{owner}/perfil', [AdminDashboardController::class, 'ownerProfile'])
-        ->name('admin.owners.profile');
+    Route::get('/admin/proprietarios/{owner}/clientes', [AdminDashboardController::class, 'ownerClients'])
+        ->name('admin.owners.clients');
     Route::patch('/admin/proprietarios/{owner}/desativar', [AdminDashboardController::class, 'deactivateOwner'])
         ->name('admin.owners.deactivate');
     Route::patch('/admin/proprietarios/{owner}/ativar', [AdminDashboardController::class, 'activateOwner'])
         ->name('admin.owners.activate');
     Route::delete('/admin/proprietarios/{owner}', [AdminDashboardController::class, 'destroyOwner'])
         ->name('admin.owners.destroy');
-    Route::get('/admin/proprietarios/{owner}/arenas', [AdminDashboardController::class, 'ownerArenas'])
-        ->name('admin.owners.arenas');
-    Route::get('/admin/arenas/{arena}/quadras', [AdminDashboardController::class, 'arenaCourts'])
-        ->name('admin.arenas.courts');
+    Route::get('/admin/arenas/{arena}', [AdminDashboardController::class, 'arenaDetails'])
+        ->name('admin.arenas.show');
+    Route::get('/admin/arenas/{arena}/clientes', [AdminDashboardController::class, 'arenaClients'])
+        ->name('admin.arenas.clients');
+    Route::patch('/admin/arenas/{arena}/desativar', [AdminDashboardController::class, 'deactivateArena'])
+        ->name('admin.arenas.deactivate');
+    Route::patch('/admin/arenas/{arena}/ativar', [AdminDashboardController::class, 'activateArena'])
+        ->name('admin.arenas.activate');
+    Route::delete('/admin/arenas/{arena}', [AdminDashboardController::class, 'destroyArena'])
+        ->name('admin.arenas.destroy');
+    Route::delete('/admin/arenas/{arena}/funcionarios/{employee}', [AdminDashboardController::class, 'destroyArenaEmployee'])
+        ->name('admin.arenas.employees.destroy');
+    Route::patch('/admin/arenas/{arena}/quadras/{court}/desativar', [AdminDashboardController::class, 'deactivateArenaCourt'])
+        ->name('admin.arenas.courts.deactivate');
+    Route::patch('/admin/arenas/{arena}/quadras/{court}/ativar', [AdminDashboardController::class, 'activateArenaCourt'])
+        ->name('admin.arenas.courts.activate');
+    Route::delete('/admin/arenas/{arena}/quadras/{court}', [AdminDashboardController::class, 'destroyArenaCourt'])
+        ->name('admin.arenas.courts.destroy');
 });
 
 Route::middleware('auth')->group(function () {

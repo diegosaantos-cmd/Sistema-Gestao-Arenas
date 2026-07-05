@@ -253,6 +253,11 @@ class ArenaController extends Controller
 
         // Reativar.
         if (! $arena->active) {
+            if ($arena->deactivated_by_admin) {
+                return redirect()->route('arenas.show', $arena->id)
+                    ->with('msg', 'Esta arena foi desativada pelo administrador do sistema e você não pode ativá-la.');
+            }
+
             $arena->update(['active' => true]);
 
             return redirect()->route('arenas.show', $arena->id)
@@ -264,7 +269,10 @@ class ArenaController extends Controller
 
         if ($afetados->isEmpty()) {
             self::fecharCaixaAbertoDaArena($arena);
-            $arena->update(['active' => false]);
+            $arena->update([
+                'active' => false,
+                'deactivated_by_admin' => false,
+            ]);
 
             return redirect()->route('arenas.show', $arena->id)
                 ->with('msg', 'Arena desativada.');
@@ -308,7 +316,10 @@ class ArenaController extends Controller
             }
 
             self::fecharCaixaAbertoDaArena($arena);
-            $arena->update(['active' => false]);
+            $arena->update([
+                'active' => false,
+                'deactivated_by_admin' => false,
+            ]);
         });
 
         return redirect()->route('arenas.show', $arena->id)

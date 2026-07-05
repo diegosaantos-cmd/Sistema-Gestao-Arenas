@@ -80,7 +80,8 @@ class BookingController extends Controller
         $proximas = $client
             ? Booking::where('client_id', $client->id)
                 ->whereDate('date', today())
-                ->where('status', '!=', 'cancelled')
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->where('end_time', '>', now()->format('H:i:s'))
                 ->with('court.arena')
                 ->orderBy('start_time')
                 ->get()

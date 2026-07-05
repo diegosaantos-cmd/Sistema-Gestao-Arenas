@@ -16,10 +16,12 @@ class Arena extends Model
         'phone',
         'contact_email',
         'active',
+        'deactivated_by_admin',
     ];
 
     protected $casts = [
         'active' => 'boolean',
+        'deactivated_by_admin' => 'boolean',
     ];
 
     public function scopePesquisar($query, ?string $busca)

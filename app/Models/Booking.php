@@ -25,6 +25,11 @@ class Booking extends Model
         return $this->belongsTo(Court::class);
     }
 
+    public function courtWithTrashed()
+    {
+        return $this->belongsTo(Court::class, 'court_id')->withTrashed();
+    }
+
     public function client()
     {
         return $this->belongsTo(Client::class);
@@ -33,6 +38,11 @@ class Booking extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     /**
