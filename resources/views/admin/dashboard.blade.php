@@ -12,20 +12,20 @@
     </div>
 
     <div class="row g-4">
-        <div class="col-md-6 col-xl-4">
+        <div class="col-6 col-lg-3">
             <a href="{{ route('admin.owners.index') }}"
                class="dashboard-card h-100 text-decoration-none text-body">
                 <div>
-                    <h5>Empresas / Proprietários</h5>
+                    <h5>Empresas</h5>
                     <h2>{{ $resumo['proprietarios'] }}</h2>
-                    <small class="text-muted">Ver empresas e suas arenas</small>
+                    <small class="text-muted">Empresas e proprietários</small>
                 </div>
                 <i class="bi bi-buildings dashboard-icon text-primary"></i>
             </a>
         </div>
 
-        <div class="col-md-6 col-xl-4">
-            <a href="{{ route('admin.owners.index') }}"
+        <div class="col-6 col-lg-3">
+            <a href="{{ route('admin.system.arenas') }}"
                class="dashboard-card h-100 text-decoration-none text-body">
                 <div>
                     <h5>Arenas</h5>
@@ -36,48 +36,682 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-xl-4">
-            <div class="dashboard-card h-100">
+        <div class="col-6 col-lg-3">
+            <a href="{{ route('admin.system.courts') }}"
+               class="dashboard-card h-100 text-decoration-none text-body">
+                <div>
+                    <h5>Quadras</h5>
+                    <h2>{{ $resumo['quadras'] }}</h2>
+                    <small class="text-muted">Em todas as arenas</small>
+                </div>
+                <i class="bi bi-grid-3x3-gap dashboard-icon text-info"></i>
+            </a>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <a href="{{ route('admin.system.clients') }}"
+               class="dashboard-card h-100 text-decoration-none text-body">
                 <div>
                     <h5>Clientes</h5>
                     <h2>{{ $resumo['clientes'] }}</h2>
-                    <small class="text-muted">Gestão de usuários</small>
+                    <small class="text-muted">Clientes do sistema</small>
                 </div>
                 <i class="bi bi-people dashboard-icon text-warning"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1 align-items-start">
+        <div class="col-lg-8">
+            <div class="row g-4">
+                <div class="col-6">
+                    <a href="{{ route('admin.system.employees') }}"
+                       class="dashboard-card h-100 text-decoration-none text-body">
+                        <div>
+                            <h5>Funcionários</h5>
+                            <h2>{{ $resumo['funcionarios'] }}</h2>
+                            <small class="text-muted">Equipe do sistema</small>
+                        </div>
+                        <i class="bi bi-person-badge dashboard-icon text-secondary"></i>
+                    </a>
+                </div>
+
+                <div class="col-6">
+                    <a href="{{ route('admin.system.administrators') }}"
+                       class="dashboard-card h-100 text-decoration-none text-body">
+                        <div>
+                            <h5>Administradores do sistema</h5>
+                            <h2>{{ $resumo['administradores'] }}</h2>
+                            <small class="text-muted">Controle administrativo</small>
+                        </div>
+                        <i class="bi bi-shield-lock dashboard-icon text-danger"></i>
+                    </a>
+                </div>
             </div>
         </div>
 
-    </div>
-
-    <div class="dashboard-box mt-4">
-        <h2 class="section-title mb-3">Resumo rápido</h2>
-        <div class="row g-3 text-center">
-            <div class="col-6 col-md-3">
-                <div class="border rounded p-3">
-                    <div class="fs-3 fw-bold">{{ $resumo['quadras'] }}</div>
-                    <div class="text-muted">Quadras</div>
-                </div>
+        <div class="col-lg-4">
+            <div class="dashboard-box quick-actions-box">
+                <h2 class="section-title">Ações rápidas</h2>
+                <div class="row g-3 mt-2">
+            <div class="col-6 quick-action-cell">
+                <button type="button" class="btn w-100 quick-action-btn"
+                        data-bs-toggle="modal" data-bs-target="#adminProfileModal">
+                    <i class="bi bi-person-circle me-1"></i>
+                    Perfil
+                </button>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="border rounded p-3">
-                    <div class="fs-3 fw-bold">{{ $resumo['funcionarios'] }}</div>
-                    <div class="text-muted">Funcionários</div>
-                </div>
+            <div class="col-6 quick-action-cell">
+                <button type="button" class="btn w-100 quick-action-btn"
+                        data-bs-toggle="modal" data-bs-target="#newAdminModal">
+                    <i class="bi bi-person-plus me-1"></i>
+                    Novo admin
+                </button>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="border rounded p-3">
-                    <div class="fs-3 fw-bold">{{ $resumo['reservas_mes'] }}</div>
-                    <div class="text-muted">Reservas no mês</div>
-                </div>
+            <div class="col-6 quick-action-cell">
+                <button type="button" class="btn w-100 quick-action-btn"
+                        data-quick-search="empresa" data-search-title="Pesquisar empresas">
+                    <i class="bi bi-search me-1"></i>
+                    Empresas
+                </button>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="border rounded p-3">
-                    <div class="fs-5 fw-bold">R$ {{ number_format($resumo['faturamento_bruto'], 2, ',', '.') }}</div>
-                    <div class="text-muted">Faturamento bruto</div>
+            <div class="col-6 quick-action-cell">
+                <button type="button" class="btn w-100 quick-action-btn"
+                        data-quick-search="arena" data-search-title="Pesquisar arenas">
+                    <i class="bi bi-search me-1"></i>
+                    Arenas
+                </button>
+            </div>
+            <div class="col-6 quick-action-cell">
+                <button type="button" class="btn w-100 quick-action-btn"
+                        data-quick-search="quadra" data-search-title="Pesquisar quadras">
+                    <i class="bi bi-search me-1"></i>
+                    Quadras
+                </button>
+            </div>
+            <div class="col-6 quick-action-cell">
+                <button type="button" class="btn w-100 quick-action-btn"
+                        data-quick-search="usuario" data-search-title="Pesquisar usuários">
+                    <i class="bi bi-search me-1"></i>
+                    Usuários
+                </button>
+            </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="adminProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Perfil do administrador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <span class="small fw-bold text-dark">Nome</span><br>
+                        <span>{{ auth()->user()->name }}</span>
+                    </div>
+                    <div class="col-12">
+                        <span class="small fw-bold text-dark">E-mail</span><br>
+                        <span class="text-break">{{ auth()->user()->email }}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="small fw-bold text-dark">Telefone</span><br>
+                        <span>{{ auth()->user()->phone ?: '—' }}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="small fw-bold text-dark">CPF</span><br>
+                        <span>{{ auth()->user()->systemAdmin?->cpf ?: '—' }}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="small fw-bold text-dark">Tipo da conta</span><br>
+                        <span>Administrador</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="small fw-bold text-dark">Situação</span><br>
+                        <span class="badge {{ auth()->user()->active ? 'bg-success' : 'bg-danger' }}">
+                            {{ auth()->user()->active ? 'Ativo' : 'Bloqueado' }}
+                        </span>
+                    </div>
+                    <div class="col-6">
+                        <span class="small fw-bold text-dark">Cadastro</span><br>
+                        @if (auth()->user()->created_at)
+                            <span>{{ auth()->user()->created_at->format('d/m/Y') }}</span><br>
+                            <span class="small text-muted">{{ auth()->user()->created_at->format('H:i') }}</span>
+                        @else
+                            <span>—</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-warning btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#adminPasswordModal">
+                    Trocar senha
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#deleteAdminModal">
+                    Excluir conta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adminPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.profile.password') }}">
+                @csrf
+                @method('PUT')
+                <div class="modal-header">
+                    <h5 class="modal-title">Trocar senha</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="adminCurrentPassword">Senha atual</label>
+                        <input type="password" class="form-control" id="adminCurrentPassword"
+                               name="current_password" required autocomplete="current-password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="adminNewPassword">Nova senha</label>
+                        <input type="password" class="form-control" id="adminNewPassword"
+                               name="password" minlength="8" required autocomplete="new-password">
+                    </div>
+                    <div>
+                        <label class="form-label" for="adminNewPasswordConfirmation">Confirmar nova senha</label>
+                        <input type="password" class="form-control" id="adminNewPasswordConfirmation"
+                               name="password_confirmation" minlength="8" required autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-warning">Alterar senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteAdminModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.profile.destroy') }}"
+                  onsubmit="return confirm('Esta exclusão é definitiva. Deseja realmente excluir sua conta de administrador?')">
+                @csrf
+                @method('DELETE')
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Excluir conta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        Sua conta de administrador será excluída, todas as sessões serão encerradas
+                        e você perderá imediatamente o acesso ao painel.
+                    </div>
+                    <label class="form-label" for="deleteAdminPassword">Digite sua senha para confirmar</label>
+                    <input type="password" class="form-control" id="deleteAdminPassword"
+                           name="delete_password" required autocomplete="current-password">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-danger">Excluir definitivamente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="newAdminModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ route('admin.administrators.store') }}" method="POST" data-new-admin-form>
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Novo administrador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" data-admin-errors></div>
+                    <div class="mb-3">
+                        <label class="form-label" for="adminName">Nome</label>
+                        <input class="form-control" id="adminName" name="name" required maxlength="255">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="adminEmail">E-mail</label>
+                        <input type="email" class="form-control" id="adminEmail" name="email"
+                               placeholder="admin@email.com" autocomplete="email" data-mask-email
+                               required maxlength="255">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="adminPhone">Telefone</label>
+                        <input class="form-control" id="adminPhone" name="phone"
+                               inputmode="numeric" autocomplete="tel" maxlength="15"
+                               placeholder="(00) 00000-0000" data-mask-phone required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="adminCpf">CPF</label>
+                        <input class="form-control" id="adminCpf" name="cpf"
+                               inputmode="numeric" minlength="14" maxlength="14"
+                               pattern="\d{3}\.\d{3}\.\d{3}-\d{2}"
+                               placeholder="000.000.000-00" data-mask-cpf required>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="adminPassword">Senha</label>
+                            <input type="password" class="form-control" id="adminPassword"
+                                   name="password" minlength="8" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="adminPasswordConfirmation">Confirmar senha</label>
+                            <input type="password" class="form-control" id="adminPasswordConfirmation"
+                                   name="password_confirmation" minlength="8" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" data-save-admin>Cadastrar administrador</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickSearchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-quick-search-title>Pesquisar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group arena-search-box shadow-sm mb-3">
+                    <input type="search" class="form-control"
+                           placeholder="Digite para pesquisar..."
+                           autocomplete="off"
+                           data-quick-search-input>
+                    <span class="input-group-text bg-white border-0">
+                        <i class="bi bi-search text-secondary"></i>
+                    </span>
+                </div>
+                <div class="text-center text-muted py-4" data-quick-search-results>
+                    Digite um nome para começar.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed start-50 translate-middle-x px-3 w-100"
+     style="top: 82px; z-index: 1090; max-width: 680px;"
+     data-dashboard-feedback></div>
+
+<style>
+    .quick-actions-box {
+        width: 100%;
+        padding: 30px;
+    }
+
+    .quick-action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 62px;
+        color: #021b35;
+        background: #fff;
+        border: 1px solid #021b35;
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: .3s;
+    }
+
+    .quick-action-btn:hover,
+    .quick-action-btn:focus {
+        color: #fff;
+        background: #021b35;
+        border-color: #021b35;
+        transform: translateY(-2px);
+    }
+
+    .quick-action-cell {
+        display: flex;
+    }
+
+    .quick-search-results {
+        max-height: 55vh;
+        overflow-y: auto;
+        padding-right: .25rem;
+    }
+
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const csrf = @json(csrf_token());
+        const searchEndpoint = @json(route('admin.quick-search'));
+        const searchModalElement = document.getElementById('quickSearchModal');
+        const searchModal = bootstrap.Modal.getOrCreateInstance(searchModalElement);
+        const searchTitle = searchModalElement.querySelector('[data-quick-search-title]');
+        const searchInput = searchModalElement.querySelector('[data-quick-search-input]');
+        const searchResults = searchModalElement.querySelector('[data-quick-search-results]');
+        const feedback = document.querySelector('[data-dashboard-feedback]');
+        const adminForm = document.querySelector('[data-new-admin-form]');
+        const adminErrors = adminForm.querySelector('[data-admin-errors]');
+        const adminButton = adminForm.querySelector('[data-save-admin]');
+        let searchType = null;
+        let searchTimer = null;
+        let searchRequest = null;
+
+        function escapeHtml(value) {
+            const element = document.createElement('div');
+            element.textContent = value ?? '';
+            return element.innerHTML;
+        }
+
+        function showFeedback(message, type = 'success') {
+            feedback.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show shadow" role="alert">
+                    ${escapeHtml(message)}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                </div>
+            `;
+            window.setTimeout(() => feedback.replaceChildren(), 4500);
+        }
+
+        function onlyNumbers(value) {
+            return String(value || '').replace(/\D/g, '');
+        }
+
+        function maskCpf(value) {
+            const digits = onlyNumbers(value).slice(0, 11);
+            return digits
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        }
+
+        function maskPhone(value) {
+            const digits = onlyNumbers(value).slice(0, 11);
+
+            if (digits.length <= 10) {
+                return digits
+                    .replace(/(\d{2})(\d)/, '($1) $2')
+                    .replace(/(\d{4})(\d)/, '$1-$2');
+            }
+
+            return digits
+                .replace(/(\d{2})(\d)/, '($1) $2')
+                .replace(/(\d{5})(\d)/, '$1-$2');
+        }
+
+        function normalizeEmail(value) {
+            return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+        }
+
+        document.querySelectorAll('[data-mask-cpf]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                input.value = maskCpf(input.value);
+            });
+        });
+
+        document.querySelectorAll('[data-mask-phone]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                input.value = maskPhone(input.value);
+            });
+        });
+
+        document.querySelectorAll('[data-mask-email]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                input.value = normalizeEmail(input.value);
+            });
+            input.addEventListener('blur', function () {
+                input.value = normalizeEmail(input.value);
+            });
+        });
+
+        function actionForm(url, method, label, style, message) {
+            if (!url) {
+                return '';
+            }
+
+            return `
+                <form action="${escapeHtml(url)}" method="POST"
+                      onsubmit="return confirm('${escapeHtml(message)}')">
+                    <input type="hidden" name="_token" value="${escapeHtml(csrf)}">
+                    <input type="hidden" name="_method" value="${method}">
+                    <button class="btn btn-${style} btn-sm">${escapeHtml(label)}</button>
+                </form>
+            `;
+        }
+
+        function renderArena(item) {
+            const toggle = item.ativo
+                ? actionForm(item.desativar_url, 'PATCH', 'Desativar', 'outline-warning',
+                    'Deseja desativar esta arena? As reservas futuras serão canceladas e ela deixará de aparecer para os clientes.')
+                : actionForm(item.ativar_url, 'PATCH', 'Ativar', 'outline-success',
+                    'Deseja ativar esta arena?');
+
+            return `
+                <div class="border rounded p-3 text-start">
+                    <div class="d-flex flex-wrap justify-content-between gap-3">
+                        <div>
+                            <strong>${escapeHtml(item.nome)}</strong>
+                            <div class="small text-muted">Empresa: ${escapeHtml(item.empresa)}</div>
+                            <span class="badge ${item.ativo ? 'bg-success' : 'bg-secondary'} mt-1">
+                                ${item.ativo ? 'Ativa' : 'Desativada'}
+                            </span>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-start gap-1">
+                            <a class="btn btn-outline-primary btn-sm" href="${escapeHtml(item.ver_url)}">Ver</a>
+                            ${toggle}
+                            ${actionForm(item.excluir_url, 'DELETE', 'Excluir', 'outline-danger',
+                                'Deseja excluir esta arena? As reservas futuras serão canceladas e o histórico será preservado.')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCompany(item) {
+            const toggle = item.ativo
+                ? actionForm(item.desativar_url, 'PATCH', 'Desativar', 'outline-warning',
+                    'Deseja desativar esta empresa? O proprietário perderá o acesso e suas arenas serão desativadas.')
+                : actionForm(item.ativar_url, 'PATCH', 'Ativar', 'outline-success',
+                    'Deseja ativar esta empresa e liberar novamente o acesso do proprietário?');
+
+            return `
+                <div class="border rounded p-3 text-start">
+                    <div class="d-flex flex-wrap justify-content-between gap-3">
+                        <div>
+                            <strong>${escapeHtml(item.nome)}</strong>
+                            <div class="small text-muted">Proprietário: ${escapeHtml(item.proprietario)}</div>
+                            <div class="small text-muted">CPF/CNPJ: ${escapeHtml(item.documento)}</div>
+                            <span class="badge ${item.ativo ? 'bg-success' : 'bg-secondary'} mt-1">
+                                ${item.ativo ? 'Ativa' : 'Desativada'}
+                            </span>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-start gap-1">
+                            <a class="btn btn-outline-primary btn-sm" href="${escapeHtml(item.ver_url)}">Ver</a>
+                            ${toggle}
+                            ${actionForm(item.excluir_url, 'DELETE', 'Excluir', 'outline-danger',
+                                'Deseja excluir esta empresa? O acesso será removido e suas arenas serão desativadas.')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCourt(item) {
+            const toggle = item.ativo
+                ? actionForm(item.desativar_url, 'PATCH', 'Desativar', 'outline-warning',
+                    'Deseja desativar esta quadra? As reservas futuras serão canceladas.')
+                : actionForm(item.ativar_url, 'PATCH', 'Ativar', 'outline-success',
+                    'Deseja ativar esta quadra?');
+
+            return `
+                <div class="border rounded p-3 text-start">
+                    <div class="d-flex flex-wrap justify-content-between gap-3">
+                        <div>
+                            <strong>${escapeHtml(item.nome)}</strong>
+                            <div class="small text-muted">Arena: ${escapeHtml(item.arena)}</div>
+                            <div class="small text-muted">Empresa: ${escapeHtml(item.empresa)}</div>
+                            <span class="badge ${item.ativo ? 'bg-success' : 'bg-secondary'} mt-1">
+                                ${item.ativo ? 'Ativa' : 'Desativada'}
+                            </span>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-start gap-1">
+                            <a class="btn btn-outline-primary btn-sm" href="${escapeHtml(item.ver_url)}">Ver</a>
+                            ${toggle}
+                            ${actionForm(item.excluir_url, 'DELETE', 'Excluir', 'outline-danger',
+                                'Deseja excluir esta quadra? As reservas futuras serão canceladas e o histórico será preservado.')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUser(item) {
+            const context = item.tipo === 'Funcionário'
+                ? `<div class="small text-muted">Arena: ${escapeHtml(item.arena || '—')} · Empresa: ${escapeHtml(item.empresa || '—')}</div>`
+                : '';
+            const toggle = !item.pode_alterar ? '' : item.ativo
+                ? actionForm(item.bloquear_url, 'PATCH', 'Bloquear', 'outline-warning',
+                    'Deseja bloquear este usuário? Ele perderá imediatamente o acesso ao sistema.')
+                : actionForm(item.desbloquear_url, 'PATCH', 'Desbloquear', 'outline-success',
+                    'Deseja desbloquear este usuário?');
+            const destroy = item.pode_alterar
+                ? actionForm(item.excluir_url, 'DELETE', 'Excluir', 'outline-danger',
+                    'Deseja excluir este usuário? O acesso será removido e o histórico será preservado.')
+                : '';
+
+            return `
+                <div class="border rounded p-3 text-start">
+                    <div class="d-flex flex-wrap justify-content-between gap-3">
+                        <div>
+                            <strong>${escapeHtml(item.nome)}</strong>
+                            <div class="small text-muted">${escapeHtml(item.tipo)} · ${escapeHtml(item.email)}</div>
+                            ${context}
+                            <span class="badge ${item.ativo ? 'bg-success' : 'bg-danger'} mt-1">
+                                ${item.ativo ? 'Ativo' : 'Bloqueado'}
+                            </span>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-start gap-1">
+                            <a class="btn btn-outline-primary btn-sm" href="${escapeHtml(item.ver_url)}">Ver</a>
+                            ${toggle}
+                            ${destroy}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function performSearch() {
+            const term = searchInput.value.trim();
+
+            if (!term) {
+                searchRequest?.abort();
+                searchResults.className = 'text-center text-muted py-4';
+                searchResults.textContent = 'Digite um nome para começar.';
+                return;
+            }
+
+            searchRequest?.abort();
+            searchRequest = new AbortController();
+            searchResults.className = 'text-center py-4';
+            searchResults.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>';
+
+            try {
+                const url = new URL(searchEndpoint, window.location.origin);
+                url.searchParams.set('tipo', searchType);
+                url.searchParams.set('busca', term);
+                const response = await fetch(url, {
+                    headers: {'Accept': 'application/json'},
+                    signal: searchRequest.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Não foi possível realizar a pesquisa.');
+                }
+
+                const data = await response.json();
+                if (!data.resultados.length) {
+                    searchResults.className = 'text-center text-muted py-4';
+                    searchResults.textContent = 'Nenhum resultado encontrado.';
+                    return;
+                }
+
+                searchResults.className = 'd-grid gap-2 quick-search-results';
+                searchResults.innerHTML = data.resultados.map(function (item) {
+                    if (searchType === 'empresa') return renderCompany(item);
+                    if (searchType === 'arena') return renderArena(item);
+                    if (searchType === 'quadra') return renderCourt(item);
+                    return renderUser(item);
+                }).join('');
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    searchResults.className = 'text-center text-danger py-4';
+                    searchResults.textContent = error.message;
+                }
+            }
+        }
+
+        document.querySelectorAll('[data-quick-search]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                searchType = button.dataset.quickSearch;
+                searchTitle.textContent = button.dataset.searchTitle;
+                searchInput.value = '';
+                searchResults.className = 'text-center text-muted py-4';
+                searchResults.textContent = 'Digite um nome para começar.';
+                searchModal.show();
+                searchModalElement.addEventListener('shown.bs.modal', () => searchInput.focus(), {once: true});
+            });
+        });
+
+        searchInput.addEventListener('input', function () {
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(performSearch, 180);
+        });
+
+        adminForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            adminErrors.classList.add('d-none');
+            adminButton.disabled = true;
+
+            try {
+                const formData = new FormData(adminForm);
+                formData.set('email', normalizeEmail(formData.get('email')));
+                formData.set('cpf', onlyNumbers(formData.get('cpf')));
+
+                const response = await fetch(adminForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const errors = Object.values(data.errors || {}).flat();
+                    throw new Error(errors.join('<br>') || 'Não foi possível cadastrar o administrador.');
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('newAdminModal')).hide();
+                adminForm.reset();
+                showFeedback(data.message);
+            } catch (error) {
+                adminErrors.innerHTML = error.message;
+                adminErrors.classList.remove('d-none');
+            } finally {
+                adminButton.disabled = false;
+            }
+        });
+    });
+</script>
 @endsection

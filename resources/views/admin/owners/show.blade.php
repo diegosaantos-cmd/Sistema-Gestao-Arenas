@@ -230,7 +230,7 @@
             </div>
             <div class="modal-body">
                 <div class="table-responsive border rounded" style="max-height: 65vh; overflow-y: auto;">
-                    <table class="table table-sm table-hover align-middle mb-0 small"
+                    <table class="table table-sm table-hover align-middle mb-0 small admin-sticky-table"
                            style="table-layout: fixed; width: 100%;">
                         <thead class="table-light sticky-top">
                             <tr>
@@ -292,8 +292,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="table-responsive border rounded">
-                    <table class="table table-hover align-middle mb-0">
+                <div class="table-responsive border rounded" style="max-height: 65vh; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0 admin-sticky-table">
                         <thead class="table-light sticky-top"><tr><th class="ps-3">Quadra</th><th>Arena</th><th>Esportes</th><th>Valor/hora</th><th class="pe-3">Situação</th></tr></thead>
                         <tbody>
                             @forelse (
@@ -385,6 +385,15 @@
                                         @if ($employee->createdBy?->name)
                                             <div class="col-md-6"><span class="small text-muted">Cadastrado por</span><br><strong>{{ $employee->createdBy->name }}</strong></div>
                                         @endif
+                                        @if ($employee->arena)
+                                            <div class="col-12 text-end">
+                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalExcluirFuncionarioEmpresa{{ $employee->id }}">
+                                                    <i class="bi bi-trash me-1"></i> Excluir
+                                                </button>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -398,6 +407,34 @@
         </div>
     </div>
 </div>
+
+@foreach ($arenas->flatMap->employees as $employee)
+    @if ($employee->arena)
+        <div class="modal fade" id="modalExcluirFuncionarioEmpresa{{ $employee->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST" action="{{ route('admin.arenas.employees.destroy', [$employee->arena, $employee]) }}">
+                        @csrf
+                        @method('DELETE')
+                        <div class="modal-header">
+                            <h5 class="modal-title text-danger">Excluir funcionário</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            Deseja realmente excluir
+                            <strong>{{ $employee->user?->name ?? 'este funcionário' }}</strong>
+                            da Arena {{ $employee->arena->name }}?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-danger">Sim, excluir</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+@endforeach
 
 <div class="modal fade" id="modalFaturamentoEmpresa" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -445,8 +482,8 @@
                     </form>
                 </div>
 
-                <div class="table-responsive border rounded">
-                    <table class="table align-middle mb-0">
+                <div class="table-responsive border rounded" style="max-height: 55vh; overflow-y: auto;">
+                    <table class="table align-middle mb-0 admin-sticky-table">
                         <thead class="table-light sticky-top">
                             <tr><th class="ps-3">Mês</th><th>Arena</th><th class="text-end pe-3">Faturamento</th></tr>
                         </thead>

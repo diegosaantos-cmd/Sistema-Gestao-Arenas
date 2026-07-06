@@ -9,9 +9,14 @@ use App\Models\Client;
 use App\Models\Court;
 use App\Models\Employee;
 use App\Models\Owner;
+use App\Models\SystemAdmin;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rules\Password;
 
 class DashboardController extends Controller
 {
@@ -28,19 +33,6 @@ class DashboardController extends Controller
             ->selectRaw('courts.arena_id, COALESCE(SUM(payments.amount), 0) as total')
             ->pluck('total', 'courts.arena_id');
 
-        $arenas = Arena::withTrashed()
-            ->with('owner.user')
-            ->withCount(['courts', 'employees'])
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(function ($arena) use ($faturamentoPorArena) {
-                $arena->faturamento_mes = (float) ($faturamentoPorArena[$arena->id] ?? 0);
-
-                return $arena;
-            });
-
-        $faturamentoBruto = $arenas->sum('faturamento_mes');
-
         $resumo = [
             'proprietarios' => Owner::count(),
             'arenas' => Arena::count(),
@@ -48,42 +40,431 @@ class DashboardController extends Controller
             'quadras' => Court::count(),
             'clientes' => Client::count(),
             'funcionarios' => Employee::count(),
+            'administradores' => User::where('type', 'admin')->count(),
             'reservas_mes' => Booking::whereBetween('date', [
                 $inicioMes->toDateString(),
                 $fimMes->toDateString(),
             ])->count(),
-            'faturamento_bruto' => $faturamentoBruto,
+            'faturamento_bruto' => (float) $faturamentoPorArena->sum(),
         ];
 
-        $proprietarios = Owner::with('user')
-            ->withCount('arenas')
-            ->latest('created_at')
-            ->limit(8)
-            ->get();
-
-        $clientes = User::where('type', 'client')
-            ->latest('created_at')
-            ->limit(8)
-            ->get();
-
-        $reservasRecentes = Booking::with(['court.arena', 'client.user'])
-            ->latest('created_at')
-            ->limit(6)
-            ->get();
-
         return view('admin.dashboard', compact(
-            'arenas',
-            'clientes',
-            'proprietarios',
-            'reservasRecentes',
             'resumo'
         ));
+    }
+
+    public function storeAdmin(Request $request)
+    {
+        $request->merge([
+            'email' => mb_strtolower(trim((string) $request->input('email'))),
+            'cpf' => preg_replace('/\D/', '', (string) $request->input('cpf')),
+            'phone' => trim((string) $request->input('phone')),
+        ]);
+
+        $dados = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:30'],
+            'cpf' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/', 'unique:system_admins,cpf'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        DB::transaction(function () use ($dados) {
+            $usuario = User::create([
+                'name' => $dados['name'],
+                'email' => mb_strtolower($dados['email']),
+                'phone' => $dados['phone'],
+                'password_hash' => $dados['password'],
+                'terms_accepted_at' => now(),
+                'active' => true,
+                'type' => 'admin',
+            ]);
+
+            SystemAdmin::create([
+                'user_id' => $usuario->id,
+                'cpf' => $dados['cpf'],
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Novo administrador cadastrado com sucesso.',
+        ], 201);
+    }
+
+    public function systemAdmins()
+    {
+        $administradores = User::with('systemAdmin')
+            ->where('type', 'admin')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.system.administrators', compact('administradores'));
+    }
+
+    public function updateAdminPassword(Request $request)
+    {
+        $dados = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $admin = $request->user();
+        if (! Hash::check($dados['current_password'], $admin->password_hash)) {
+            return back()->with('msg', 'A senha atual está incorreta.');
+        }
+
+        $admin->update(['password_hash' => $dados['password']]);
+
+        return redirect()->route('admin.dashboard')
+            ->with('msg', 'Senha alterada com sucesso.');
+    }
+
+    public function destroyAdminAccount(Request $request)
+    {
+        $dados = $request->validate([
+            'delete_password' => ['required', 'string'],
+        ]);
+
+        $admin = $request->user();
+        if (! Hash::check($dados['delete_password'], $admin->password_hash)) {
+            return back()->with('msg', 'A senha informada está incorreta.');
+        }
+
+        DB::transaction(function () use ($admin) {
+            $admin->update(['active' => false]);
+            $admin->systemAdmin?->delete();
+
+            if (Schema::hasTable('sessions')) {
+                DB::table('sessions')->where('user_id', $admin->id)->delete();
+            }
+
+            if (Schema::hasTable('personal_access_tokens')) {
+                $admin->tokens()->delete();
+            }
+
+            $admin->delete();
+        });
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/')->with('msg', 'Conta de administrador excluída com sucesso.');
+    }
+
+    public function quickSearch(Request $request)
+    {
+        $dados = $request->validate([
+            'tipo' => ['required', 'in:empresa,arena,quadra,usuario'],
+            'busca' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $busca = trim((string) ($dados['busca'] ?? ''));
+        if ($busca === '') {
+            return response()->json(['resultados' => []]);
+        }
+
+        $chave = preg_replace('/\s+/u', '', mb_strtolower($busca));
+        $termo = '%' . $chave . '%';
+
+        if ($dados['tipo'] === 'empresa') {
+            $resultados = Owner::with('user')
+                ->where(function ($query) use ($termo) {
+                    $query->whereRaw("REPLACE(LOWER(company_name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(tax_id), ' ', '') LIKE ?", [$termo])
+                        ->orWhereHas('user', function ($user) use ($termo) {
+                            $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                                ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo]);
+                        });
+                })
+                ->orderBy('company_name')
+                ->limit(15)
+                ->get()
+                ->map(fn ($empresa) => [
+                    'id' => $empresa->id,
+                    'nome' => $empresa->company_name,
+                    'proprietario' => $empresa->user?->name ?? '—',
+                    'documento' => $empresa->tax_id,
+                    'ativo' => (bool) $empresa->active,
+                    'ver_url' => route('admin.owners.show', $empresa),
+                    'ativar_url' => route('admin.owners.activate', $empresa),
+                    'desativar_url' => route('admin.owners.deactivate', $empresa),
+                    'excluir_url' => route('admin.owners.destroy', $empresa),
+                ]);
+        } elseif ($dados['tipo'] === 'arena') {
+            $resultados = Arena::with('owner.user')
+                ->where(function ($query) use ($termo) {
+                    $query->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereHas('owner', function ($owner) use ($termo) {
+                            $owner->whereRaw("REPLACE(LOWER(company_name), ' ', '') LIKE ?", [$termo])
+                                ->orWhereHas('user', fn ($user) => $user
+                                    ->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo]));
+                        });
+                })
+                ->orderBy('name')
+                ->limit(15)
+                ->get()
+                ->map(fn ($arena) => [
+                    'id' => $arena->id,
+                    'nome' => $arena->name,
+                    'empresa' => $arena->owner?->company_name ?? '—',
+                    'ativo' => (bool) $arena->active,
+                    'ver_url' => route('admin.arenas.show', [
+                        'arena' => $arena,
+                        'origem' => 'arenas_sistema',
+                    ]),
+                    'ativar_url' => route('admin.arenas.activate', $arena),
+                    'desativar_url' => route('admin.arenas.deactivate', $arena),
+                    'excluir_url' => route('admin.arenas.destroy', $arena),
+                ]);
+        } elseif ($dados['tipo'] === 'quadra') {
+            $resultados = Court::with('arena.owner')
+                ->where(function ($query) use ($termo) {
+                    $query->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereHas('arena', function ($arena) use ($termo) {
+                            $arena->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                                ->orWhereHas('owner', fn ($owner) => $owner
+                                    ->whereRaw("REPLACE(LOWER(company_name), ' ', '') LIKE ?", [$termo]));
+                        });
+                })
+                ->orderBy('name')
+                ->limit(15)
+                ->get()
+                ->map(fn ($quadra) => [
+                    'id' => $quadra->id,
+                    'nome' => $quadra->name,
+                    'arena' => $quadra->arena?->name ?? '—',
+                    'empresa' => $quadra->arena?->owner?->company_name ?? '—',
+                    'ativo' => (bool) $quadra->active,
+                    'ver_url' => $quadra->arena
+                        ? route('admin.arenas.show', [
+                            'arena' => $quadra->arena,
+                            'origem' => 'quadras_sistema',
+                            'quadras_modal' => 1,
+                        ])
+                        : route('admin.system.courts'),
+                    'ativar_url' => $quadra->arena
+                        ? route('admin.arenas.courts.activate', [$quadra->arena, $quadra])
+                        : null,
+                    'desativar_url' => $quadra->arena
+                        ? route('admin.arenas.courts.deactivate', [$quadra->arena, $quadra])
+                        : null,
+                    'excluir_url' => $quadra->arena
+                        ? route('admin.arenas.courts.destroy', [$quadra->arena, $quadra])
+                        : null,
+                ]);
+        } else {
+            $resultados = User::with(['owner', 'employee.arena.owner'])
+                ->where(function ($query) use ($termo) {
+                    $query->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo]);
+                })
+                ->orderBy('name')
+                ->limit(15)
+                ->get()
+                ->map(function ($usuario) {
+                    $tipo = match ($usuario->type) {
+                        'admin' => 'Administrador',
+                        'owner' => 'Proprietário',
+                        'employee' => 'Funcionário',
+                        default => 'Cliente',
+                    };
+
+                    $verUrl = match ($usuario->type) {
+                        'owner' => $usuario->owner
+                            ? route('admin.owners.show', $usuario->owner)
+                            : route('admin.owners.index'),
+                        'employee' => $usuario->employee?->arena
+                            ? route('admin.arenas.show', $usuario->employee->arena)
+                            : route('admin.system.employees'),
+                        'client' => route('admin.system.clients', ['busca_cliente' => $usuario->email]),
+                        default => route('admin.dashboard'),
+                    };
+
+                    return [
+                        'id' => $usuario->id,
+                        'nome' => $usuario->name,
+                        'email' => $usuario->email,
+                        'tipo' => $tipo,
+                        'arena' => $usuario->employee?->arena?->name,
+                        'empresa' => $usuario->employee?->arena?->owner?->company_name,
+                        'ativo' => (bool) $usuario->active,
+                        'pode_alterar' => ! $usuario->is(auth()->user()),
+                        'ver_url' => $verUrl,
+                        'bloquear_url' => route('admin.users.block', $usuario),
+                        'desbloquear_url' => route('admin.users.unblock', $usuario),
+                        'excluir_url' => route('admin.users.destroy', $usuario),
+                    ];
+                });
+        }
+
+        return response()->json(['resultados' => $resultados->values()]);
+    }
+
+    public function systemArenas()
+    {
+        $arenas = Arena::with([
+            'owner.user',
+            'paymentMethods',
+            'businessHours' => fn ($query) => $query->orderBy('day_of_week')->orderBy('opens_at'),
+        ])
+            ->withCount(['courts', 'employees'])
+            ->orderBy(
+                Owner::select('company_name')
+                    ->whereColumn('owners.id', 'arenas.owner_id')
+            )
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.system.arenas', compact('arenas'));
+    }
+
+    public function systemCourts()
+    {
+        $quadras = Court::with(['arena.owner.user', 'sports'])
+            ->get()
+            ->sortBy(fn ($quadra) => mb_strtolower(implode('|', [
+                $quadra->arena?->owner?->company_name ?? '',
+                $quadra->arena?->name ?? '',
+                $quadra->name,
+            ])))
+            ->values();
+
+        return view('admin.system.courts', compact('quadras'));
+    }
+
+    public function systemEmployees()
+    {
+        $funcionarios = Employee::with([
+            'user',
+            'arena.owner.user',
+            'createdBy',
+        ])
+            ->get()
+            ->sortBy(fn ($funcionario) => mb_strtolower(implode('|', [
+                $funcionario->arena?->owner?->company_name ?? '',
+                $funcionario->arena?->name ?? '',
+                $funcionario->user?->name ?? '',
+            ])))
+            ->values();
+
+        return view('admin.system.employees', compact('funcionarios'));
+    }
+
+    public function systemClients()
+    {
+        $usuarios = $this->systemClientsQuery()
+            ->simplePaginate(25)
+            ->appends(['busca_cliente' => request('busca_cliente')]);
+
+        return view('admin.system.users', compact('usuarios'));
+    }
+
+    public function systemClientsData()
+    {
+        $usuarios = $this->systemClientsQuery()
+            ->simplePaginate(25)
+            ->appends(['busca_cliente' => request('busca_cliente')]);
+
+        return response()->json([
+            'html' => view('admin.system._client-rows', compact('usuarios'))->render(),
+            'next_url' => $usuarios->nextPageUrl(),
+        ]);
+    }
+
+    private function systemClientsQuery()
+    {
+        $busca = trim((string) request('busca_cliente'));
+        $chave = preg_replace('/\s+/u', '', mb_strtolower($busca));
+
+        return User::with('client')
+            ->where('type', 'client')
+            ->when($chave !== '', function ($query) use ($chave) {
+                $termo = '%' . $chave . '%';
+
+                $query->where(function ($filtro) use ($termo) {
+                    $filtro->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(COALESCE(phone, '')), ' ', '') LIKE ?", [$termo]);
+                });
+            })
+            ->orderBy('name');
+    }
+
+    public function blockUser(User $user)
+    {
+        if ($user->is(auth()->user())) {
+            return back()->with('msg', 'Você não pode bloquear o próprio usuário administrador.');
+        }
+
+        DB::transaction(function () use ($user) {
+            $user->update(['active' => false]);
+
+            if (Schema::hasTable('sessions')) {
+                DB::table('sessions')->where('user_id', $user->id)->delete();
+            }
+
+            if (Schema::hasTable('personal_access_tokens')) {
+                $user->tokens()->delete();
+            }
+        });
+
+        return back()->with('msg', 'Usuário bloqueado e sessões encerradas com sucesso.');
+    }
+
+    public function unblockUser(User $user)
+    {
+        $user->update(['active' => true]);
+
+        return back()->with('msg', 'Usuário desbloqueado com sucesso.');
+    }
+
+    public function destroyUser(User $user)
+    {
+        if ($user->is(auth()->user())) {
+            return back()->with('msg', 'Você não pode excluir o próprio usuário administrador.');
+        }
+
+        DB::transaction(function () use ($user) {
+            $user->update(['active' => false]);
+            $employee = $user->employee;
+            $employee?->update(['active' => false]);
+            $user->systemAdmin?->delete();
+
+            if (Schema::hasTable('sessions')) {
+                DB::table('sessions')->where('user_id', $user->id)->delete();
+            }
+
+            if (Schema::hasTable('personal_access_tokens')) {
+                $user->tokens()->delete();
+            }
+
+            $employee?->delete();
+            $user->delete();
+        });
+
+        return back()->with('msg', 'Usuário excluído com sucesso. O histórico foi preservado.');
     }
 
     public function owners()
     {
         $proprietarios = Owner::with(['user', 'deactivatedBy'])
-            ->withCount('arenas')
+            ->withCount([
+                'arenas',
+                'arenas as arenas_ativas_count' => fn ($query) => $query->where('active', true),
+            ])
+            ->selectSub(
+                Court::selectRaw('COUNT(*)')
+                    ->join('arenas', 'arenas.id', '=', 'courts.arena_id')
+                    ->whereColumn('arenas.owner_id', 'owners.id'),
+                'quadras_count'
+            )
+            ->selectSub(
+                Employee::selectRaw('COUNT(*)')
+                    ->join('arenas', 'arenas.id', '=', 'employees.arena_id')
+                    ->whereColumn('arenas.owner_id', 'owners.id'),
+                'funcionarios_count'
+            )
             ->orderBy('company_name')
             ->get();
 
@@ -377,6 +758,12 @@ class DashboardController extends Controller
         abort_unless($court->arena_id === $arena->id, 404);
 
         if (! $arena->active) {
+            if (request()->ajax()) {
+                return response()->json([
+                    'message' => 'Ative a arena antes de ativar esta quadra.',
+                ], 422);
+            }
+
             return back()->with('msg', 'Ative a arena antes de ativar esta quadra.');
         }
 
@@ -474,22 +861,46 @@ class DashboardController extends Controller
             ->orderByDesc('date')
             ->orderByDesc('start_time');
 
+        $buscaReserva = trim((string) request('busca_reserva'));
+        $chaveBuscaReserva = preg_replace('/\s+/u', '', mb_strtolower($buscaReserva));
+        $dataReserva = null;
+
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $buscaReserva, $partesData)
+            && checkdate((int) $partesData[2], (int) $partesData[1], (int) $partesData[3])) {
+            $dataReserva = sprintf('%04d-%02d-%02d', $partesData[3], $partesData[2], $partesData[1]);
+        }
+
+        $consultaReservas
+            ->when($chaveBuscaReserva !== '' && ! $dataReserva, function ($query) use ($chaveBuscaReserva) {
+                $termo = '%' . $chaveBuscaReserva . '%';
+
+                $query->whereHas('client.user', function ($user) use ($termo) {
+                    $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo]);
+                });
+            })
+            ->when($dataReserva, fn ($query) => $query->whereDate('date', $dataReserva));
+
+        $filtrosReservas = [
+            'reservas_modal' => 1,
+            'busca_reserva' => $buscaReserva,
+        ];
+
         $reservasMesLista = (clone $consultaReservas)
             ->whereBetween('date', [
                 now()->startOfMonth()->toDateString(),
                 now()->endOfMonth()->toDateString(),
             ])
             ->paginate(25, ['*'], 'mes_page')
-            ->appends(['reservas_modal' => 1, 'aba_reservas' => 'mes']);
+            ->appends($filtrosReservas + ['aba_reservas' => 'mes']);
 
         $reservasCanceladasLista = (clone $consultaReservas)
             ->where('status', 'cancelled')
             ->paginate(25, ['*'], 'canceladas_page')
-            ->appends(['reservas_modal' => 1, 'aba_reservas' => 'canceladas']);
+            ->appends($filtrosReservas + ['aba_reservas' => 'canceladas']);
 
         $historicoReservasLista = (clone $consultaReservas)
             ->paginate(25, ['*'], 'historico_page')
-            ->appends(['reservas_modal' => 1, 'aba_reservas' => 'historico']);
+            ->appends($filtrosReservas + ['aba_reservas' => 'historico']);
 
         $buscaCliente = trim((string) request('busca_cliente'));
         $chaveBuscaCliente = preg_replace('/\s+/u', '', mb_strtolower($buscaCliente));

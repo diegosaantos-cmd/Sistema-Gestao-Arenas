@@ -19,6 +19,8 @@
 
         document.querySelectorAll('[data-infinite-clients]').forEach(function (loader) {
             const scrollContainer = loader.closest('.table-responsive');
+            const useViewport = loader.dataset.mobileViewport === 'true'
+                && window.matchMedia('(max-width: 767.98px)').matches;
             const target = document.getElementById(loader.dataset.target);
             const spinner = loader.querySelector('[data-client-spinner]');
             let loading = false;
@@ -55,7 +57,7 @@
                     spinner?.classList.add('d-none');
                 }
             }, {
-                root: scrollContainer,
+                root: useViewport ? null : scrollContainer,
                 rootMargin: '800px 0px',
                 threshold: 0
             });

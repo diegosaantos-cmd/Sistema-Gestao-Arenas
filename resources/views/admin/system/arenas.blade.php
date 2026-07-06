@@ -1,23 +1,23 @@
 @extends('layouts.main')
 
-@section('title', 'Empresas e Proprietários')
+@section('title', 'Arenas do Sistema')
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
     <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
 
     <div class="mb-4">
-        <h1 class="dashboard-title mb-1">Empresas / Proprietários</h1>
-        <p class="dashboard-subtitle mb-0">Consulte e administre todas as empresas cadastradas.</p>
+        <h1 class="dashboard-title mb-1">Arenas do sistema</h1>
+        <p class="dashboard-subtitle mb-0">Todas as arenas cadastradas e suas empresas.</p>
     </div>
 
     <div class="row mb-4">
         <div class="col-12 col-md-6">
             <div class="input-group arena-search-box shadow-sm">
                 <input type="search" class="form-control"
-                       placeholder="Empresa, proprietário, CPF/CNPJ, e-mail ou telefone"
-                       aria-label="Pesquisar empresa"
-                       data-owner-search-input>
+                       placeholder="Nome da arena, empresa ou proprietário"
+                       aria-label="Pesquisar arena"
+                       data-arena-search-input>
                 <span class="input-group-text bg-white border-0">
                     <i class="bi bi-search text-secondary"></i>
                 </span>
@@ -25,138 +25,162 @@
         </div>
     </div>
 
+    @php
+        $diasSemana = [
+            0 => 'Domingo',
+            1 => 'Segunda-feira',
+            2 => 'Terça-feira',
+            3 => 'Quarta-feira',
+            4 => 'Quinta-feira',
+            5 => 'Sexta-feira',
+            6 => 'Sábado',
+        ];
+    @endphp
+
     <div class="row g-4">
-        @forelse ($proprietarios as $proprietario)
-            <div class="col-6 col-lg-3 owner-card-shell"
-                 data-owner-card
-                 data-owner-search="{{ $proprietario->company_name }} {{ $proprietario->user?->name }} {{ $proprietario->tax_id }} {{ $proprietario->user?->email }} {{ $proprietario->user?->phone }}">
-                <div class="dashboard-box p-3 d-flex flex-column owner-system-card">
-                    <span class="badge bg-danger text-white align-self-start mb-2 px-2 py-0 fw-normal">Empresa</span>
+        @forelse ($arenas as $arena)
+            <div class="col-6 col-lg-3 arena-card-shell"
+                 data-arena-card
+                 data-arena-search="{{ $arena->name }} {{ $arena->owner?->company_name }} {{ $arena->owner?->user?->name }}">
+                <div class="dashboard-box p-3 d-flex flex-column arena-system-card">
+                    <span class="badge bg-danger text-white align-self-start mb-2 px-2 py-0 fw-normal">Arena</span>
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                             <div>
-                                <h2 class="h5 fw-bold mb-1">{{ $proprietario->company_name }}</h2>
-                                <span class="badge fw-normal {{ $proprietario->active ? 'bg-success' : 'bg-warning text-dark' }}"
-                                      data-owner-status>
-                                    {{ $proprietario->active ? 'Ativa' : 'Desativada' }}
+                                <h2 class="h5 fw-bold mb-1">{{ $arena->name }}</h2>
+                                <span class="badge fw-normal {{ $arena->active ? 'bg-success' : 'bg-warning text-dark' }}"
+                                      data-arena-status>
+                                    {{ $arena->active ? 'Ativa' : 'Desativada' }}
                                 </span>
                             </div>
                             <button type="button"
-                                    class="btn btn-sm border-0 p-0 fs-4 lh-1 owner-corner-toggle"
-                                    data-owner-details-toggle="ownerDetails-{{ $proprietario->getKey() }}"
-                                    aria-controls="ownerDetails-{{ $proprietario->getKey() }}"
+                                    class="btn btn-sm border-0 p-0 fs-4 lh-1 arena-corner-toggle"
+                                    data-arena-details-toggle="arenaDetalhes-{{ $arena->getKey() }}"
+                                    aria-controls="arenaDetalhes-{{ $arena->getKey() }}"
                                     aria-expanded="false"
                                     aria-label="Mostrar detalhes">
                                 <span aria-hidden="true">⌃</span>
                             </button>
                         </div>
 
-                        <div>
-                            <span class="small text-dark fw-bold">Proprietário</span><br>
-                            <span>{{ $proprietario->user?->name ?? '—' }}</span>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <span class="small text-dark fw-bold">Empresa</span><br>
+                                <span>{{ $arena->owner?->company_name ?? '—' }}</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="small text-dark fw-bold">Proprietário</span><br>
+                                <span>{{ $arena->owner?->user?->name ?? '—' }}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="collapse mb-3" id="ownerDetails-{{ $proprietario->getKey() }}">
+                    <div class="collapse mb-3" id="arenaDetalhes-{{ $arena->getKey() }}">
                         <div class="border-top pt-3">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <span class="small text-dark fw-bold">CPF/CNPJ</span><br>
-                                    <span>{{ $proprietario->tax_id }}</span>
+                                    <span class="small text-dark fw-bold">Descrição</span><br>
+                                    <span>{{ $arena->description ?: 'Sem descrição' }}</span>
                                 </div>
-                                <div class="col-12">
+                                <div class="col-sm-6">
                                     <span class="small text-dark fw-bold">E-mail</span><br>
-                                    <span class="text-break">{{ $proprietario->user?->email ?? '—' }}</span>
+                                    <span class="text-break">{{ $arena->contact_email ?: '—' }}</span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="small text-dark fw-bold">Telefone</span><br>
+                                    <span class="text-break">{{ $arena->phone ?: '—' }}</span>
                                 </div>
                                 <div class="col-12">
-                                    <span class="small text-dark fw-bold">Telefone</span><br>
-                                    <span class="text-break">{{ $proprietario->user?->phone ?: '—' }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Arenas</span><br>
-                                    <span>{{ $proprietario->arenas_count }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Arenas ativas</span><br>
-                                    <span>{{ $proprietario->arenas_ativas_count }}</span>
+                                    <span class="small text-dark fw-bold">Endereço</span><br>
+                                    <span>
+                                        {{ $arena->address_rua }}, {{ $arena->address_numero }}
+                                        — {{ $arena->address_bairro }}
+                                    </span>
                                 </div>
                                 <div class="col-6">
                                     <span class="small text-dark fw-bold">Quadras</span><br>
-                                    <span>{{ $proprietario->quadras_count }}</span>
+                                    <span>{{ $arena->courts_count }}</span>
                                 </div>
                                 <div class="col-6">
                                     <span class="small text-dark fw-bold">Funcionários</span><br>
-                                    <span>{{ $proprietario->funcionarios_count }}</span>
+                                    <span>{{ $arena->employees_count }}</span>
                                 </div>
                                 <div class="col-6">
                                     <span class="small text-dark fw-bold">Cadastro</span><br>
-                                    <span>{{ optional($proprietario->created_at)->format('d/m/Y') ?? '—' }}</span>
+                                    <span>{{ optional($arena->created_at)->format('d/m/Y') ?? '—' }}</span>
                                 </div>
                                 <div class="col-6">
-                                    <span class="small text-dark fw-bold">Última atualização</span><br>
-                                    <span>{{ optional($proprietario->updated_at)->format('d/m/Y H:i') ?? '—' }}</span>
+                                    <span class="small text-dark fw-bold">Situação</span><br>
+                                    <span class="badge fw-normal {{ $arena->active ? 'bg-success' : 'bg-warning text-dark' }}"
+                                          data-arena-status>
+                                        {{ $arena->active ? 'Ativa' : 'Desativada' }}
+                                    </span>
+                                </div>
+                                <div class="col-12">
+                                    <span class="small text-dark fw-bold">Formas de pagamento</span><br>
+                                    <span>{{ $arena->paymentMethods->pluck('label')->join(', ') ?: 'Não informadas' }}</span>
+                                </div>
+                                <div class="col-12">
+                                    <span class="small text-dark fw-bold">Dias e horários de funcionamento</span>
+                                    <div class="row g-2 mt-1">
+                                        @forelse ($arena->businessHours as $horario)
+                                            <div class="col-12 col-sm-6">
+                                                <strong class="d-inline d-sm-block">
+                                                    {{ $diasSemana[$horario->day_of_week] ?? 'Dia' }}<span class="d-sm-none">:</span>
+                                                </strong>
+                                                <span>{{ substr($horario->opens_at, 0, 5) }}–{{ substr($horario->closes_at, 0, 5) }}</span>
+                                            </div>
+                                        @empty
+                                            <div class="col-12 text-muted">Horários não informados.</div>
+                                        @endforelse
+                                    </div>
                                 </div>
                                 <div class="col-12">
                                     <span class="small text-dark fw-bold">Política de Privacidade e Termos</span><br>
-                                    @if ($proprietario->user?->terms_accepted_at)
-                                        <span>Aceitos</span>
-                                        <div class="small text-muted">
-                                            {{ $proprietario->user->terms_accepted_at->format('d/m/Y H:i') }}
-                                        </div>
+                                    @if ($arena->owner?->user?->terms_accepted_at)
+                                        <span class="badge bg-success fw-normal">Aceitos</span>
+                                        <span class="small text-muted ms-1">
+                                            {{ $arena->owner->user->terms_accepted_at->format('d/m/Y H:i') }}
+                                        </span>
                                     @else
                                         <span class="text-muted">Aceite não registrado</span>
                                     @endif
                                 </div>
-                                @if (! $proprietario->active)
-                                    <div class="col-12">
-                                        <span class="small text-dark fw-bold">Desativada por</span><br>
-                                        <span>
-                                            {{ $proprietario->deactivation_source === 'admin'
-                                                ? 'Administrador do sistema'
-                                                : 'Própria empresa' }}
-                                        </span>
-                                        @if ($proprietario->deactivated_at)
-                                            <div class="small text-muted">
-                                                {{ $proprietario->deactivated_at->format('d/m/Y H:i') }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
                             </div>
 
                             <div class="d-flex gap-2 mt-3">
-                                <a href="{{ route('admin.owners.show', $proprietario) }}"
+                                <a href="{{ route('admin.arenas.show', [$arena, 'origem' => 'arenas_sistema']) }}"
                                    class="btn btn-outline-primary btn-sm flex-fill">
-                                    Ver empresa
+                                    Ver arena
                                 </a>
 
-                                @if ($proprietario->active)
-                                    <form method="POST" action="{{ route('admin.owners.deactivate', $proprietario) }}"
+                                @if ($arena->active)
+                                    <form method="POST" action="{{ route('admin.arenas.deactivate', $arena) }}"
                                           class="flex-fill"
-                                          data-owner-toggle-form
+                                          data-arena-toggle-form
                                           data-active="1"
-                                          data-activate-url="{{ route('admin.owners.activate', $proprietario) }}"
-                                          data-deactivate-url="{{ route('admin.owners.deactivate', $proprietario) }}">
+                                          data-activate-url="{{ route('admin.arenas.activate', $arena) }}"
+                                          data-deactivate-url="{{ route('admin.arenas.deactivate', $arena) }}">
                                         @csrf
                                         @method('PATCH')
                                         <button class="btn btn-outline-warning btn-sm w-100">Desativar</button>
                                     </form>
                                 @else
-                                    <form method="POST" action="{{ route('admin.owners.activate', $proprietario) }}"
+                                    <form method="POST" action="{{ route('admin.arenas.activate', $arena) }}"
                                           class="flex-fill"
-                                          data-owner-toggle-form
+                                          data-arena-toggle-form
                                           data-active="0"
-                                          data-activate-url="{{ route('admin.owners.activate', $proprietario) }}"
-                                          data-deactivate-url="{{ route('admin.owners.deactivate', $proprietario) }}">
+                                          data-activate-url="{{ route('admin.arenas.activate', $arena) }}"
+                                          data-deactivate-url="{{ route('admin.arenas.deactivate', $arena) }}">
                                         @csrf
                                         @method('PATCH')
                                         <button class="btn btn-outline-success btn-sm w-100">Ativar</button>
                                     </form>
                                 @endif
 
-                                <form method="POST" action="{{ route('admin.owners.destroy', $proprietario) }}"
+                                <form method="POST" action="{{ route('admin.arenas.destroy', $arena) }}"
                                       class="flex-fill"
-                                      data-owner-delete-form>
+                                      data-arena-delete-form>
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-outline-danger btn-sm w-100">Excluir</button>
@@ -166,8 +190,8 @@
                     </div>
 
                     <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-auto"
-                            data-owner-details-toggle="ownerDetails-{{ $proprietario->getKey() }}"
-                            aria-controls="ownerDetails-{{ $proprietario->getKey() }}"
+                            data-arena-details-toggle="arenaDetalhes-{{ $arena->getKey() }}"
+                            aria-controls="arenaDetalhes-{{ $arena->getKey() }}"
                             aria-expanded="false">
                         Ver detalhes
                     </button>
@@ -175,29 +199,31 @@
             </div>
         @empty
             <div class="col-12">
-                <div class="dashboard-box text-center text-muted">Nenhuma empresa cadastrada.</div>
+                <div class="dashboard-box text-center text-muted">Nenhuma arena cadastrada.</div>
             </div>
         @endforelse
 
-        <div class="col-12 d-none" data-owner-no-results>
-            <div class="dashboard-box text-center text-muted">Nenhuma empresa encontrada.</div>
+        <div class="col-12 d-none" data-arena-no-results>
+            <div class="dashboard-box text-center text-muted">
+                Nenhuma arena encontrada.
+            </div>
         </div>
     </div>
 </div>
 
-<div class="owner-details-backdrop" data-owner-details-backdrop aria-hidden="true"></div>
+<div class="arena-details-backdrop" data-arena-details-backdrop aria-hidden="true"></div>
 
-<div class="modal fade" id="ownerActionConfirmModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="arenaActionConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" data-owner-confirm-title>Confirmar ação</h5>
+                <h5 class="modal-title" data-confirm-title>Confirmar ação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <div class="modal-body" data-owner-confirm-message></div>
+            <div class="modal-body" data-confirm-message></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn" data-owner-confirm-action>Confirmar</button>
+                <button type="button" class="btn" data-confirm-action>Confirmar</button>
             </div>
         </div>
     </div>
@@ -205,24 +231,24 @@
 
 <div class="position-fixed start-50 translate-middle-x px-3 w-100"
      style="top: 82px; z-index: 1060; max-width: 680px;"
-     data-owner-feedback></div>
+     data-arena-feedback></div>
 
 <style>
-    .owner-corner-toggle {
+    .arena-corner-toggle {
         color: #021b35;
         min-width: 1.5rem;
     }
 
-    .owner-card-shell.is-open {
+    .arena-card-shell.is-open {
         position: relative;
         z-index: 1015;
     }
 
-    .owner-card-shell.is-open .owner-system-card {
+    .arena-card-shell.is-open .arena-system-card {
         box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .35);
     }
 
-    .owner-details-backdrop {
+    .arena-details-backdrop {
         display: none;
         position: fixed;
         z-index: 1010;
@@ -230,24 +256,25 @@
         background: rgba(2, 27, 53, .68);
     }
 
-    .owner-details-backdrop.is-visible {
+    .arena-details-backdrop.is-visible {
         display: block;
     }
+
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const backdrop = document.querySelector('[data-owner-details-backdrop]');
-        const toggles = document.querySelectorAll('[data-owner-details-toggle]');
-        const feedback = document.querySelector('[data-owner-feedback]');
-        const searchInput = document.querySelector('[data-owner-search-input]');
-        const ownerCards = document.querySelectorAll('[data-owner-card]');
-        const noResults = document.querySelector('[data-owner-no-results]');
-        const confirmModalElement = document.getElementById('ownerActionConfirmModal');
+        const backdrop = document.querySelector('[data-arena-details-backdrop]');
+        const toggles = document.querySelectorAll('[data-arena-details-toggle]');
+        const feedback = document.querySelector('[data-arena-feedback]');
+        const confirmModalElement = document.getElementById('arenaActionConfirmModal');
         const confirmModal = bootstrap.Modal.getOrCreateInstance(confirmModalElement);
-        const confirmTitle = confirmModalElement.querySelector('[data-owner-confirm-title]');
-        const confirmMessage = confirmModalElement.querySelector('[data-owner-confirm-message]');
-        const confirmButton = confirmModalElement.querySelector('[data-owner-confirm-action]');
+        const confirmTitle = confirmModalElement.querySelector('[data-confirm-title]');
+        const confirmMessage = confirmModalElement.querySelector('[data-confirm-message]');
+        const confirmButton = confirmModalElement.querySelector('[data-confirm-action]');
+        const searchInput = document.querySelector('[data-arena-search-input]');
+        const arenaCards = document.querySelectorAll('[data-arena-card]');
+        const noResults = document.querySelector('[data-arena-no-results]');
         let activeDetails = null;
         let activeShell = null;
 
@@ -318,10 +345,10 @@
         }
 
         function updateButtons(detailsId, opened) {
-            document.querySelectorAll(`[data-owner-details-toggle="${detailsId}"]`).forEach(function (button) {
+            document.querySelectorAll(`[data-arena-details-toggle="${detailsId}"]`).forEach(function (button) {
                 button.setAttribute('aria-expanded', opened ? 'true' : 'false');
 
-                if (button.classList.contains('owner-corner-toggle')) {
+                if (button.classList.contains('arena-corner-toggle')) {
                     button.querySelector('span').textContent = opened ? '⌄' : '⌃';
                     button.setAttribute('aria-label', opened ? 'Fechar detalhes' : 'Mostrar detalhes');
                 } else {
@@ -331,7 +358,9 @@
         }
 
         function clearActive(details, shell) {
-            shell?.classList.remove('is-open');
+            if (shell) {
+                shell.classList.remove('is-open');
+            }
 
             if (details) {
                 updateButtons(details.id, false);
@@ -339,12 +368,15 @@
 
             backdrop.classList.remove('is-visible');
             backdrop.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('arena-details-open');
         }
 
         function closeActive() {
-            if (activeDetails) {
-                bootstrap.Collapse.getOrCreateInstance(activeDetails, { toggle: false }).hide();
+            if (!activeDetails) {
+                return;
             }
+
+            bootstrap.Collapse.getOrCreateInstance(activeDetails, { toggle: false }).hide();
         }
 
         function openDetails(details, shell) {
@@ -363,19 +395,20 @@
             shell.classList.add('is-open');
             backdrop.classList.add('is-visible');
             backdrop.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('arena-details-open');
             updateButtons(details.id, true);
             bootstrap.Collapse.getOrCreateInstance(details, { toggle: false }).show();
         }
 
         toggles.forEach(function (button) {
             button.addEventListener('click', function () {
-                const details = document.getElementById(button.dataset.ownerDetailsToggle);
+                const details = document.getElementById(button.dataset.arenaDetailsToggle);
 
                 if (!details) {
                     return;
                 }
 
-                const shell = button.closest('.owner-card-shell');
+                const shell = button.closest('.arena-card-shell');
 
                 if (activeDetails === details) {
                     closeActive();
@@ -385,9 +418,9 @@
             });
         });
 
-        document.querySelectorAll('.owner-card-shell .collapse').forEach(function (details) {
+        document.querySelectorAll('.arena-card-shell .collapse').forEach(function (details) {
             details.addEventListener('hidden.bs.collapse', function () {
-                const shell = details.closest('.owner-card-shell');
+                const shell = details.closest('.arena-card-shell');
 
                 if (activeDetails === details) {
                     clearActive(details, shell);
@@ -400,28 +433,29 @@
             });
         });
 
-        document.querySelectorAll('[data-owner-toggle-form]').forEach(function (form) {
+        document.querySelectorAll('[data-arena-toggle-form]').forEach(function (form) {
             form.addEventListener('submit', async function (event) {
                 event.preventDefault();
 
                 const currentlyActive = form.dataset.active === '1';
                 const confirmed = await askConfirmation(currentlyActive ? {
-                    title: 'Desativar empresa',
+                    title: 'Desativar arena',
                     message: `
-                        <p>Tem certeza que deseja desativar esta empresa?</p>
+                        <p>Tem certeza que deseja desativar esta arena?</p>
                         <div class="alert alert-warning mb-0">
-                            O proprietário perderá o acesso, todas as arenas e quadras serão desativadas
-                            e a empresa não poderá se reativar sem autorização do administrador.
+                            A arena deixará de aparecer para os clientes, todas as quadras serão desativadas,
+                            as reservas pendentes ou confirmadas serão canceladas e o proprietário não poderá
+                            reativá-la enquanto o bloqueio do administrador estiver ativo.
                         </div>
                     `,
                     buttonText: 'Sim, desativar',
                     buttonClass: 'btn-warning',
                 } : {
-                    title: 'Ativar empresa',
+                    title: 'Ativar arena',
                     message: `
-                        <p>Tem certeza que deseja ativar esta empresa?</p>
+                        <p>Tem certeza que deseja ativar esta arena?</p>
                         <div class="alert alert-success mb-0">
-                            O acesso do proprietário, as arenas e as quadras da empresa serão reativados.
+                            A arena e suas quadras serão reativadas e voltarão a ficar disponíveis para os clientes.
                         </div>
                     `,
                     buttonText: 'Sim, ativar',
@@ -439,17 +473,20 @@
                     await sendForm(form);
 
                     const nowActive = !currentlyActive;
-                    const shell = form.closest('.owner-card-shell');
-                    const status = shell.querySelector('[data-owner-status]');
+                    const shell = form.closest('.arena-card-shell');
 
-                    status.textContent = nowActive ? 'Ativa' : 'Desativada';
-                    status.className = `badge fw-normal ${nowActive ? 'bg-success' : 'bg-warning text-dark'}`;
-                    status.setAttribute('data-owner-status', '');
+                    shell.querySelectorAll('[data-arena-status]').forEach(function (status) {
+                        status.textContent = nowActive ? 'Ativa' : 'Desativada';
+                        status.className = `badge fw-normal ${nowActive ? 'bg-success' : 'bg-warning text-dark'}`;
+                        status.setAttribute('data-arena-status', '');
+                    });
+
                     form.dataset.active = nowActive ? '1' : '0';
                     form.action = nowActive ? form.dataset.deactivateUrl : form.dataset.activateUrl;
                     button.textContent = nowActive ? 'Desativar' : 'Ativar';
                     button.className = `btn btn-sm w-100 ${nowActive ? 'btn-outline-warning' : 'btn-outline-success'}`;
-                    showFeedback(`Empresa ${nowActive ? 'ativada' : 'desativada'} com sucesso.`);
+
+                    showFeedback(`Arena ${nowActive ? 'ativada' : 'desativada'} com sucesso.`);
                 } catch (error) {
                     showFeedback(error.message, 'danger');
                 } finally {
@@ -458,17 +495,18 @@
             });
         });
 
-        document.querySelectorAll('[data-owner-delete-form]').forEach(function (form) {
+        document.querySelectorAll('[data-arena-delete-form]').forEach(function (form) {
             form.addEventListener('submit', async function (event) {
                 event.preventDefault();
 
                 const confirmed = await askConfirmation({
-                    title: 'Excluir empresa',
+                    title: 'Excluir arena',
                     message: `
-                        <p>Tem certeza que deseja excluir esta empresa?</p>
+                        <p>Tem certeza que deseja excluir esta arena?</p>
                         <div class="alert alert-danger mb-0">
-                            O proprietário perderá o acesso, as arenas e quadras serão desativadas e a empresa
-                            será removida das áreas públicas. Os históricos permanecerão preservados.
+                            A arena será removida das áreas do proprietário e dos clientes, suas quadras serão
+                            desativadas e as reservas pendentes ou confirmadas serão canceladas.
+                            O histórico de reservas permanecerá preservado no sistema.
                         </div>
                     `,
                     buttonText: 'Sim, excluir',
@@ -485,7 +523,7 @@
                 try {
                     await sendForm(form);
 
-                    const shell = form.closest('.owner-card-shell');
+                    const shell = form.closest('.arena-card-shell');
                     const details = shell.querySelector('.collapse');
 
                     if (activeShell === shell) {
@@ -495,7 +533,7 @@
                     }
 
                     shell.remove();
-                    showFeedback('Empresa excluída com sucesso.');
+                    showFeedback('Arena excluída com sucesso.');
                 } catch (error) {
                     button.disabled = false;
                     showFeedback(error.message, 'danger');
@@ -509,8 +547,8 @@
 
             closeActive();
 
-            ownerCards.forEach(function (card) {
-                const matches = normalizeSearch(card.dataset.ownerSearch).includes(term);
+            arenaCards.forEach(function (card) {
+                const matches = normalizeSearch(card.dataset.arenaSearch).includes(term);
                 card.classList.toggle('d-none', !matches);
 
                 if (matches) {

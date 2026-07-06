@@ -56,6 +56,32 @@ Route::middleware([
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin', [AdminDashboardController::class, 'index'])
         ->name('admin.dashboard');
+    Route::post('/admin/administradores', [AdminDashboardController::class, 'storeAdmin'])
+        ->name('admin.administrators.store');
+    Route::get('/admin/administradores', [AdminDashboardController::class, 'systemAdmins'])
+        ->name('admin.system.administrators');
+    Route::put('/admin/perfil/senha', [AdminDashboardController::class, 'updateAdminPassword'])
+        ->name('admin.profile.password');
+    Route::delete('/admin/perfil', [AdminDashboardController::class, 'destroyAdminAccount'])
+        ->name('admin.profile.destroy');
+    Route::get('/admin/pesquisa-rapida', [AdminDashboardController::class, 'quickSearch'])
+        ->name('admin.quick-search');
+    Route::get('/admin/arenas', [AdminDashboardController::class, 'systemArenas'])
+        ->name('admin.system.arenas');
+    Route::get('/admin/quadras', [AdminDashboardController::class, 'systemCourts'])
+        ->name('admin.system.courts');
+    Route::get('/admin/funcionarios', [AdminDashboardController::class, 'systemEmployees'])
+        ->name('admin.system.employees');
+    Route::get('/admin/clientes', [AdminDashboardController::class, 'systemClients'])
+        ->name('admin.system.clients');
+    Route::get('/admin/clientes/carregar', [AdminDashboardController::class, 'systemClientsData'])
+        ->name('admin.system.clients.data');
+    Route::patch('/admin/usuarios/{user}/bloquear', [AdminDashboardController::class, 'blockUser'])
+        ->name('admin.users.block');
+    Route::patch('/admin/usuarios/{user}/desbloquear', [AdminDashboardController::class, 'unblockUser'])
+        ->name('admin.users.unblock');
+    Route::delete('/admin/usuarios/{user}', [AdminDashboardController::class, 'destroyUser'])
+        ->name('admin.users.destroy');
     Route::get('/admin/proprietarios', [AdminDashboardController::class, 'owners'])
         ->name('admin.owners.index');
     Route::get('/admin/proprietarios/{owner}', [AdminDashboardController::class, 'ownerDetails'])

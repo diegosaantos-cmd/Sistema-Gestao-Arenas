@@ -6,7 +6,12 @@
 
 <div class="dashboard-container container-fluid py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <a href="{{ route('admin.owners.show', [$arena->owner, 'arenas_modal' => 1]) }}" class="btn btn-dark btn-sm">
+        <a href="{{ match (request('origem')) {
+                'arenas_sistema' => route('admin.system.arenas'),
+                'quadras_sistema' => route('admin.system.courts'),
+                default => route('admin.owners.show', [$arena->owner, 'arenas_modal' => 1]),
+            } }}"
+           class="btn btn-dark btn-sm">
             ← Voltar às arenas
         </a>
         <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
@@ -182,8 +187,8 @@
                         </select>
                     </form>
                 </div>
-                <div class="table-responsive border rounded">
-                    <table class="table align-middle mb-0">
+                <div class="table-responsive border rounded" style="max-height: 55vh; overflow-y: auto;">
+                    <table class="table align-middle mb-0 admin-sticky-table">
                         <thead class="table-light sticky-top">
                             <tr>
                                 <th class="ps-3">Mês</th>
@@ -254,7 +259,7 @@
             </div>
             <div class="modal-body">
                 <div class="table-responsive border rounded" style="max-height: 65vh; overflow-y: auto;">
-                    <table class="table table-sm table-hover align-middle mb-0 small"
+                    <table class="table table-sm table-hover align-middle mb-0 small admin-sticky-table"
                            style="table-layout: fixed; width: 100%;">
                         <thead class="table-light sticky-top">
                             <tr>
@@ -403,7 +408,36 @@
                     <h5 class="modal-title">Reservas da arena</h5>
                     <small class="text-muted">{{ $arena->name }}</small>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="d-flex align-items-center justify-content-end gap-2 ms-auto">
+                    <div class="collapse collapse-horizontal {{ request()->filled('busca_reserva') ? 'show' : '' }}"
+                         id="buscaReservasArena">
+                        <form method="GET"
+                              action="{{ route('admin.arenas.show', $arena) }}"
+                              class="d-flex align-items-center gap-2">
+                            <input type="hidden" name="reservas_modal" value="1">
+                            <input type="hidden" name="aba_reservas" value="{{ $abaAtivaReservas }}">
+                            @if (request()->filled('origem'))
+                                <input type="hidden" name="origem" value="{{ request('origem') }}">
+                            @endif
+                            <input type="search"
+                                   name="busca_reserva"
+                                   value="{{ request('busca_reserva') }}"
+                                   class="form-control form-control-sm"
+                                   style="width: min(300px, 48vw);"
+                                   placeholder="Nome do cliente ou data (dd/mm/aaaa)"
+                                   aria-label="Pesquisar pelo nome do cliente ou pela data">
+                        </form>
+                    </div>
+                    <button type="button"
+                            class="btn btn-link text-dark p-1"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#buscaReservasArena"
+                            aria-label="Abrir pesquisa"
+                            aria-expanded="{{ request()->filled('busca_reserva') ? 'true' : 'false' }}">
+                        <i class="bi bi-search fs-5"></i>
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
             </div>
             <div class="modal-body overflow-y-auto" style="max-height: 72vh;">
                 <ul class="nav nav-tabs mb-3" role="tablist">
@@ -466,88 +500,102 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="d-flex flex-column gap-3">
+                <div class="row g-3">
                     @forelse ($arena->courts->sortBy('name') as $quadra)
-                        <div class="border rounded p-3">
-                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                                <h6 class="fw-bold mb-0">{{ $quadra->name }}</h6>
-                                <span class="badge {{ $quadra->active ? 'bg-success' : 'bg-warning text-dark' }}">
-                                    {{ $quadra->active ? 'Ativa' : 'Desativada' }}
-                                </span>
-                            </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3 h-100 d-flex flex-column" data-arena-court-card>
+                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                                    <h6 class="fw-bold mb-0">{{ $quadra->name }}</h6>
+                                    <span class="badge {{ $quadra->active ? 'bg-success' : 'bg-warning text-dark' }}">
+                                        {{ $quadra->active ? 'Ativa' : 'Desativada' }}
+                                    </span>
+                                </div>
 
-                            @if ($quadra->description)
-                                <div class="mb-2">
-                                    <span class="small fw-bold">Descrição</span><br>
-                                    <span class="small text-muted">{{ $quadra->description }}</span>
-                                </div>
-                            @endif
+                                <div class="collapse mb-3" id="detalhesQuadraArena{{ $quadra->id }}">
+                                    <div class="border-top pt-3">
+                                        <div class="row g-3">
+                                            @if ($quadra->description)
+                                                <div class="col-12">
+                                                    <span class="small fw-bold text-dark">Descrição</span><br>
+                                                    <span class="small">{{ $quadra->description }}</span>
+                                                </div>
+                                            @endif
+                                            <div class="col-6">
+                                                <span class="small fw-bold text-dark">Código</span><br>
+                                                <span>#{{ $quadra->id }}</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <span class="small fw-bold text-dark">Arena</span><br>
+                                                <span>{{ $arena->name }}</span>
+                                            </div>
+                                            @if ($quadra->created_at)
+                                                <div class="col-6">
+                                                    <span class="small fw-bold text-dark">Cadastrada em</span><br>
+                                                    <span>{{ $quadra->created_at->format('d/m/Y H:i') }}</span>
+                                                </div>
+                                            @endif
+                                            @if ($quadra->updated_at)
+                                                <div class="col-6">
+                                                    <span class="small fw-bold text-dark">Última atualização</span><br>
+                                                    <span>{{ $quadra->updated_at->format('d/m/Y H:i') }}</span>
+                                                </div>
+                                            @endif
+                                            @if ($quadra->sports->isNotEmpty())
+                                                <div class="col-12">
+                                                    <span class="small fw-bold text-dark">Esportes</span><br>
+                                                    <span class="small">
+                                                        {{ $quadra->sports
+                                                            ->map(fn ($sport) => \App\Models\Court::SPORTS[$sport->sport] ?? $sport->sport)
+                                                            ->implode(', ') }}
+                                                    </span>
+                                                </div>
+                                            @endif
+                                            <div class="col-12">
+                                                <span class="small fw-bold text-dark">Valor por hora</span><br>
+                                                <span class="text-success">
+                                                    R$ {{ number_format($quadra->hourly_rate, 2, ',', '.') }}
+                                                </span>
+                                            </div>
+                                        </div>
 
-                            <div class="row g-3">
-                                <div class="col-6 col-md-3">
-                                    <span class="small text-muted">Código</span><br>
-                                    <strong>#{{ $quadra->id }}</strong>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <span class="small text-muted">Arena</span><br>
-                                    <strong>{{ $arena->name }}</strong>
-                                </div>
-                                @if ($quadra->created_at)
-                                    <div class="col-6 col-md-3">
-                                        <span class="small text-muted">Cadastrada em</span><br>
-                                        <strong>{{ $quadra->created_at->format('d/m/Y H:i') }}</strong>
+                                        <div class="d-flex gap-2 mt-3">
+                                            @if ($quadra->active)
+                                                <button type="button" class="btn btn-warning btn-sm flex-fill"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalDesativarQuadra{{ $quadra->id }}">
+                                                    Desativar
+                                                </button>
+                                            @else
+                                                <form method="POST"
+                                                      action="{{ route('admin.arenas.courts.activate', [$arena, $quadra]) }}"
+                                                      class="flex-fill">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="btn btn-success btn-sm w-100">
+                                                        Ativar
+                                                    </button>
+                                                </form>
+                                            @endif
+                                            <button type="button" class="btn btn-danger btn-sm flex-fill"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalExcluirQuadra{{ $quadra->id }}">
+                                                Excluir
+                                            </button>
+                                        </div>
                                     </div>
-                                @endif
-                                @if ($quadra->updated_at)
-                                    <div class="col-6 col-md-3">
-                                        <span class="small text-muted">Última atualização</span><br>
-                                        <strong>{{ $quadra->updated_at->format('d/m/Y H:i') }}</strong>
-                                    </div>
-                                @endif
-                                @if ($quadra->sports->isNotEmpty())
-                                    <div class="col-md-8">
-                                        <span class="small fw-bold">Esportes</span><br>
-                                        <span class="small">
-                                            {{ $quadra->sports
-                                                ->map(fn ($sport) => \App\Models\Court::SPORTS[$sport->sport] ?? $sport->sport)
-                                                ->implode(', ') }}
-                                        </span>
-                                    </div>
-                                @endif
-                                <div class="col-md-4">
-                                    <span class="small text-muted">Valor por hora</span><br>
-                                    <strong class="text-success">
-                                        R$ {{ number_format($quadra->hourly_rate, 2, ',', '.') }}
-                                    </strong>
                                 </div>
-                            </div>
 
-                            <div class="d-flex flex-wrap justify-content-between gap-2 mt-3">
-                                @if ($quadra->active)
-                                    <button type="button" class="btn btn-warning btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalDesativarQuadra{{ $quadra->id }}">
-                                        <i class="bi bi-power me-1"></i> Desativar
-                                    </button>
-                                @else
-                                    <form method="POST"
-                                          action="{{ route('admin.arenas.courts.activate', [$arena, $quadra]) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn btn-success btn-sm">
-                                            <i class="bi bi-check-circle me-1"></i> Ativar
-                                        </button>
-                                    </form>
-                                @endif
-                                <button type="button" class="btn btn-danger btn-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalExcluirQuadra{{ $quadra->id }}">
-                                    <i class="bi bi-trash me-1"></i> Excluir
+                                <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-auto court-details-toggle"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#detalhesQuadraArena{{ $quadra->id }}"
+                                        aria-controls="detalhesQuadraArena{{ $quadra->id }}"
+                                        aria-expanded="false">
+                                    Ver detalhes
                                 </button>
                             </div>
                         </div>
                     @empty
-                        <div class="text-center text-muted py-4">
+                        <div class="col-12 text-center text-muted py-4">
                             Nenhuma quadra cadastrada nesta arena.
                         </div>
                     @endforelse
@@ -556,6 +604,57 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let activeCourtDetails = null;
+
+        document.querySelectorAll('#modalQuadrasArena .collapse').forEach(function (details) {
+            const button = document.querySelector(
+                `.court-details-toggle[data-bs-target="#${details.id}"]`
+            );
+
+            if (!button) {
+                return;
+            }
+
+            details.addEventListener('shown.bs.collapse', function () {
+                if (activeCourtDetails && activeCourtDetails !== details) {
+                    bootstrap.Collapse.getOrCreateInstance(
+                        activeCourtDetails,
+                        { toggle: false }
+                    ).hide();
+                }
+
+                activeCourtDetails = details;
+                button.textContent = 'Fechar detalhes';
+            });
+
+            details.addEventListener('hidden.bs.collapse', function () {
+                button.textContent = 'Ver detalhes';
+
+                if (activeCourtDetails === details) {
+                    activeCourtDetails = null;
+                }
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!activeCourtDetails) {
+                return;
+            }
+
+            const activeCard = activeCourtDetails.closest('[data-arena-court-card]');
+
+            if (activeCard && !activeCard.contains(event.target)) {
+                bootstrap.Collapse.getOrCreateInstance(
+                    activeCourtDetails,
+                    { toggle: false }
+                ).hide();
+            }
+        });
+    });
+</script>
 
 @foreach ($arena->courts as $quadra)
     <div class="modal fade" id="modalDesativarQuadra{{ $quadra->id }}" tabindex="-1" aria-hidden="true">
@@ -618,70 +717,136 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="d-flex flex-column gap-3">
+                <div class="row g-3">
                     @forelse ($arena->employees->sortBy(fn ($employee) => $employee->user?->name) as $employee)
-                        <div class="border rounded p-3">
-                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                        <div class="col-6">
+                        <div class="border rounded p-3 h-100 d-flex flex-column" data-arena-employee-card>
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                 <div>
                                     <h6 class="fw-bold mb-1">{{ $employee->user?->name ?? 'Funcionário sem usuário' }}</h6>
-                                    <span class="badge {{ $employee->active ? 'bg-success' : 'bg-secondary' }}">
-                                        {{ $employee->active ? 'Ativo' : 'Inativo' }}
-                                    </span>
+                                    <div class="small">
+                                        <strong>{{ $employee->position }}</strong>
+                                        <span class="text-muted mx-1">·</span>
+                                        {{ $arena->name }}
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-outline-danger btn-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalExcluirFuncionario{{ $employee->id }}">
-                                    <i class="bi bi-trash me-1"></i> Excluir
-                                </button>
+                                <span class="badge {{ $employee->active ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ $employee->active ? 'Ativo' : 'Inativo' }}
+                                </span>
                             </div>
 
-                            <div class="row g-3 mt-1">
-                                @if ($employee->user?->email)
-                                    <div class="col-md-6">
-                                        <span class="small text-muted">E-mail</span><br>
-                                        <strong>{{ $employee->user->email }}</strong>
+                            <div class="collapse my-3 w-100" id="detalhesFuncionarioArena{{ $employee->id }}">
+                                <div class="border-top pt-3">
+                                    <div class="row g-3">
+                                        @if ($employee->user?->email)
+                                            <div class="col-12">
+                                                <span class="small text-dark fw-bold">E-mail</span><br>
+                                                <span class="text-break">{{ $employee->user->email }}</span>
+                                            </div>
+                                        @endif
+                                        @if ($employee->user?->phone)
+                                            <div class="col-6"><span class="small text-dark fw-bold">Telefone</span><br><span>{{ $employee->user->phone }}</span></div>
+                                        @endif
+                                        <div class="col-6"><span class="small text-dark fw-bold">Cargo</span><br><span>{{ $employee->position }}</span></div>
+                                        <div class="col-6"><span class="small text-dark fw-bold">Arena</span><br><span>{{ $arena->name }}</span></div>
+                                        <div class="col-6">
+                                            <span class="small text-dark fw-bold">Nível de acesso</span><br>
+                                            <span>{{ $employee->access_level === 'managerial' ? 'Gerencial' : 'Básico' }}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="small text-dark fw-bold">Situação</span><br>
+                                            <span class="badge fw-normal {{ $employee->active ? 'bg-success' : 'bg-secondary' }}">
+                                                {{ $employee->active ? 'Ativo' : 'Inativo' }}
+                                            </span>
+                                        </div>
+                                        @if ($employee->created_at)
+                                            <div class="col-6"><span class="small text-dark fw-bold">Cadastrado em</span><br><span>{{ $employee->created_at->format('d/m/Y H:i') }}</span></div>
+                                        @endif
+                                        @if ($employee->updated_at)
+                                            <div class="col-6"><span class="small text-dark fw-bold">Última atualização</span><br><span>{{ $employee->updated_at->format('d/m/Y H:i') }}</span></div>
+                                        @endif
+                                        @if ($employee->createdBy?->name)
+                                            <div class="col-6"><span class="small text-dark fw-bold">Cadastrado por</span><br><span>{{ $employee->createdBy->name }}</span></div>
+                                        @endif
+                                        <div class="col-12">
+                                            <button type="button" class="btn btn-outline-danger btn-sm w-100"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalExcluirFuncionario{{ $employee->id }}">
+                                                Excluir
+                                            </button>
+                                        </div>
                                     </div>
-                                @endif
-                                @if ($employee->user?->phone)
-                                    <div class="col-md-6">
-                                        <span class="small text-muted">Telefone</span><br>
-                                        <strong>{{ $employee->user->phone }}</strong>
-                                    </div>
-                                @endif
-                                @if ($employee->position)
-                                    <div class="col-md-6">
-                                        <span class="small text-muted">Cargo</span><br>
-                                        <strong>{{ $employee->position }}</strong>
-                                    </div>
-                                @endif
-                                @if ($employee->access_level)
-                                    <div class="col-md-6">
-                                        <span class="small text-muted">Nível de acesso</span><br>
-                                        <strong>{{ $employee->access_level === 'managerial' ? 'Gerencial' : 'Básico' }}</strong>
-                                    </div>
-                                @endif
-                                @if ($employee->created_at)
-                                    <div class="col-md-6">
-                                        <span class="small text-muted">Cadastrado em</span><br>
-                                        <strong>{{ $employee->created_at->format('d/m/Y H:i') }}</strong>
-                                    </div>
-                                @endif
-                                @if ($employee->createdBy?->name)
-                                    <div class="col-md-6">
-                                        <span class="small text-muted">Cadastrado por</span><br>
-                                        <strong>{{ $employee->createdBy->name }}</strong>
-                                    </div>
-                                @endif
+                                </div>
                             </div>
+
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-auto employee-details-toggle"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#detalhesFuncionarioArena{{ $employee->id }}"
+                                    aria-controls="detalhesFuncionarioArena{{ $employee->id }}"
+                                    aria-expanded="false">
+                                Ver detalhes
+                            </button>
+                        </div>
                         </div>
                     @empty
-                        <div class="text-center text-muted py-4">Nenhum funcionário cadastrado nesta arena.</div>
+                        <div class="col-12 text-center text-muted py-4">Nenhum funcionário cadastrado nesta arena.</div>
                     @endforelse
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let activeEmployeeDetails = null;
+
+        document.querySelectorAll('#modalFuncionariosArena .collapse').forEach(function (details) {
+            const button = document.querySelector(
+                `.employee-details-toggle[data-bs-target="#${details.id}"]`
+            );
+
+            if (!button) {
+                return;
+            }
+
+            details.addEventListener('shown.bs.collapse', function () {
+                if (activeEmployeeDetails && activeEmployeeDetails !== details) {
+                    bootstrap.Collapse.getOrCreateInstance(
+                        activeEmployeeDetails,
+                        { toggle: false }
+                    ).hide();
+                }
+
+                activeEmployeeDetails = details;
+                button.textContent = 'Fechar detalhes';
+            });
+
+            details.addEventListener('hidden.bs.collapse', function () {
+                button.textContent = 'Ver detalhes';
+
+                if (activeEmployeeDetails === details) {
+                    activeEmployeeDetails = null;
+                }
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!activeEmployeeDetails) {
+                return;
+            }
+
+            const activeCard = activeEmployeeDetails.closest('[data-arena-employee-card]');
+
+            if (activeCard && !activeCard.contains(event.target)) {
+                bootstrap.Collapse.getOrCreateInstance(
+                    activeEmployeeDetails,
+                    { toggle: false }
+                ).hide();
+            }
+        });
+    });
+</script>
 
 @foreach ($arena->employees as $employee)
     <div class="modal fade" id="modalExcluirFuncionario{{ $employee->id }}" tabindex="-1" aria-hidden="true">

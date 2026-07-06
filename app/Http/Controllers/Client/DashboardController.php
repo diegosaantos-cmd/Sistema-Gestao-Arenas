@@ -13,6 +13,10 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        if ($user->type === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
         if ($user->type === 'owner') {
             return redirect()->route('owners.dashboard');
         }

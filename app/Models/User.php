@@ -35,6 +35,22 @@ class User extends Authenticatable
     {
         return $this->hasOne(Owner::class);
     }
+
+    public function client()
+    {
+        return $this->hasOne(Client::class);
+    }
+
+    public function employee()
+    {
+        return $this->hasOne(Employee::class);
+    }
+
+    public function systemAdmin()
+    {
+        return $this->hasOne(SystemAdmin::class);
+    }
+
     use TwoFactorAuthenticatable;
 
     /**
