@@ -16,6 +16,7 @@ class CashRegisterEntry extends Model
         'type',
         'amount',
         'description',
+        'created_by',
     ];
 
     protected $casts = [
@@ -31,5 +32,10 @@ class CashRegisterEntry extends Model
     public function booking()
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

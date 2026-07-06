@@ -17,7 +17,7 @@ class PaymentService
      * fechado, o pagamento fica "a lançar" (cash_register_entry_id = null) até
      * o dono adicionar quando abrir o caixa. Retorna o Payment criado.
      */
-    public static function registrar(Booking $booking, PaymentMethod $metodo, float $valor, string $origin): Payment
+    public static function registrar(Booking $booking, PaymentMethod $metodo, float $valor, string $origin, ?int $createdBy = null): Payment
     {
         $arena = $booking->court?->arena;
 
@@ -25,7 +25,7 @@ class PaymentService
             ? CashRegister::where('arena_id', $arena->id)->where('status', 'open')->first()
             : null;
 
-        return DB::transaction(function () use ($booking, $metodo, $valor, $origin, $caixa) {
+        return DB::transaction(function () use ($booking, $metodo, $valor, $origin, $caixa, $createdBy) {
             $entryId = null;
 
             if ($caixa) {
@@ -35,6 +35,7 @@ class PaymentService
                     'type' => 'income',
                     'amount' => $valor,
                     'description' => 'Pagamento reserva #' . $booking->id . ' — ' . $metodo->label,
+                    'created_by' => $createdBy,
                 ]);
                 $entryId = $entry->id;
             }
@@ -55,9 +56,9 @@ class PaymentService
      * Lança no caixa (aberto) um pagamento que ficou pendente (feito com o
      * caixa fechado). Cria a entrada e vincula ao pagamento.
      */
-    public static function lancarNoCaixa(Payment $pagamento, CashRegister $caixa): void
+    public static function lancarNoCaixa(Payment $pagamento, CashRegister $caixa, ?int $createdBy = null): void
     {
-        DB::transaction(function () use ($pagamento, $caixa) {
+        DB::transaction(function () use ($pagamento, $caixa, $createdBy) {
             $entry = CashRegisterEntry::create([
                 'cash_register_id' => $caixa->id,
                 'booking_id' => $pagamento->booking_id,
@@ -65,6 +66,7 @@ class PaymentService
                 'amount' => $pagamento->amount,
                 'description' => 'Pagamento reserva #' . $pagamento->booking_id
                     . ' — ' . ($pagamento->paymentMethod->label ?? 'Pagamento'),
+                'created_by' => $createdBy,
             ]);
 
             $pagamento->update(['cash_register_entry_id' => $entry->id]);

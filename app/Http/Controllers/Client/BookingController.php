@@ -341,7 +341,7 @@ class BookingController extends Controller
 
         // PIX/cartão: pagamento simulado -> registra (a integração com o caixa
         // é interna; o cliente só precisa saber que foi pago).
-        PaymentService::registrar($booking, $metodo, (float) $booking->total_amount, 'online');
+        PaymentService::registrar($booking, $metodo, (float) $booking->total_amount, 'online', auth()->id());
 
         return redirect()->route('client.bookings.index')
             ->with('status', 'Pagamento confirmado! Sua reserva está paga. ✅');
@@ -355,17 +355,13 @@ class BookingController extends Controller
         $this->guard($arena, $court);
 
         $arena->load('paymentMethods');
-        $tipos = $arena->paymentMethods->pluck('type')->all();
-
         $validated = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
             'horarios' => ['required', 'array', 'min:1'],
             'horarios.*' => ['required', 'regex:/^\d{2}:\d{2}-\d{2}:\d{2}$/'],
-            'payment_method' => ['required', Rule::in($tipos)],
         ], [
             'horarios.required' => 'Selecione ao menos um horário.',
             'horarios.min' => 'Selecione ao menos um horário.',
-            'payment_method.in' => 'Forma de pagamento inválida.',
         ]);
 
         // O responsável é o próprio cliente logado: usamos os dados do cadastro.
@@ -376,9 +372,8 @@ class BookingController extends Controller
             ['date_of_birth' => null]
         );
 
-        $metodo = $arena->paymentMethods->firstWhere('type', $validated['payment_method']);
-        $pagamento = $metodo?->label ?? $validated['payment_method'];
-
+        // A forma de pagamento NÃO é escolhida aqui — o cliente escolhe ao pagar,
+        // depois de a reserva ser confirmada.
         foreach ($validated['horarios'] as $horario) {
             [$startTime, $endTime] = explode('-', $horario);
 
@@ -403,11 +398,9 @@ class BookingController extends Controller
                 'start_time' => $startTime,
                 'end_time' => $endTime,
                 'total_amount' => $court->hourly_rate,
-                'payment_method_id' => $metodo?->id,
                 'status' => 'pending',
                 'notes' => 'Responsável: ' . $user->name
-                    . ' | Telefone: ' . ($user->phone ?: '—')
-                    . ' | Pagamento: ' . $pagamento,
+                    . ' | Telefone: ' . ($user->phone ?: '—'),
             ]);
         }
 

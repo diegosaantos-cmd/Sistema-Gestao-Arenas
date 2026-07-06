@@ -76,8 +76,8 @@
                 <div data-forma="cash" class="border rounded p-3 mb-3 bg-light">
                     <div class="fw-bold mb-1">Dinheiro</div>
                     <div class="small text-muted mb-0">
-                        Você paga <strong>na arena</strong> ao usar o horário. Confirmar aqui só deixa
-                        esta forma marcada (a arena registra o recebimento no caixa).
+                        Você paga <strong>diretamente na arena</strong> ao usar o horário —
+                        não precisa confirmar nada aqui. É só voltar.
                     </div>
                 </div>
 
@@ -104,7 +104,8 @@
             blocks.forEach(function (b) {
                 b.style.display = (b.getAttribute('data-forma') === v) ? '' : 'none';
             });
-            btn.textContent = (v === 'cash') ? 'Usar dinheiro (pagar na arena)' : 'Confirmar pagamento';
+            // Dinheiro: paga na arena -> não mostra o botão de confirmar.
+            btn.style.display = (v === 'cash') ? 'none' : '';
         }
         sel.addEventListener('change', sync);
         sync();

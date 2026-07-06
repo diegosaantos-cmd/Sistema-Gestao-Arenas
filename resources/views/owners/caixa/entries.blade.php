@@ -56,6 +56,7 @@
                             <th>Tipo</th>
                             <th>Descrição</th>
                             <th class="text-end">Valor</th>
+                            <th class="text-end">Detalhes</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,10 +74,15 @@
                                 <td class="text-end fw-semibold {{ $entry->type === 'income' ? 'text-success' : 'text-danger' }}">
                                     {{ $entry->type === 'income' ? '+' : '−' }} R$ {{ number_format($entry->amount, 2, ',', '.') }}
                                 </td>
+                                <td class="text-end">
+                                    <a href="{{ route('caixa.entry.show', ['entry' => $entry, 'voltar' => request()->fullUrl()]) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-info-circle"></i>
+                                    </a>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted">
+                                <td colspan="5" class="text-center text-muted">
                                     Nenhum lançamento ainda.
                                 </td>
                             </tr>

@@ -128,17 +128,18 @@
                                     <label class="form-label text-muted mb-0">Telefone</label>
                                     <div class="fw-semibold">{{ $u->phone ?: '—' }}</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Forma de pagamento</label>
-                                    <select name="payment_method" class="form-select" required>
-                                        <option value="">Selecione...</option>
-                                        @foreach ($arena->paymentMethods as $pm)
-                                            <option value="{{ $pm->type }}"
-                                                {{ old('payment_method') === $pm->type ? 'selected' : '' }}>
-                                                {{ $pm->label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                <div class="col-12">
+                                    <label class="form-label text-muted mb-1">Formas de pagamento aceitas</label>
+                                    <div>
+                                        @forelse ($arena->paymentMethods as $pm)
+                                            <span class="badge bg-light text-dark border me-1 mb-1">{{ $pm->label }}</span>
+                                        @empty
+                                            <span class="text-muted">—</span>
+                                        @endforelse
+                                    </div>
+                                    <small class="text-muted">
+                                        Você escolhe como pagar <strong>depois que a reserva for confirmada</strong>.
+                                    </small>
                                 </div>
                             </div>
 

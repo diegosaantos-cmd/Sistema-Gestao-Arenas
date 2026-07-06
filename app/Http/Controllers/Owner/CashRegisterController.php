@@ -152,7 +152,7 @@ class CashRegisterController extends Controller
             return back()->withErrors(['pay' => 'Este pagamento já foi lançado no caixa.']);
         }
 
-        PaymentService::lancarNoCaixa($payment, $caixa);
+        PaymentService::lancarNoCaixa($payment, $caixa, auth()->id());
 
         return redirect()->route('caixa.pending-payments')->with('status', 'Pagamento lançado no caixa.');
     }
@@ -208,7 +208,12 @@ class CashRegisterController extends Controller
 
         $mesSelecionado = request('mes');
 
-        $query = (clone $base)->with('user')->orderByDesc('id');
+        $query = (clone $base)
+            ->with('user')
+            ->withCount('entries as lancamentos_count')
+            ->withSum(['entries as entradas_sum' => fn ($q) => $q->where('type', 'income')], 'amount')
+            ->withSum(['entries as saidas_sum' => fn ($q) => $q->where('type', 'expense')], 'amount')
+            ->orderByDesc('id');
 
         if ($mesSelecionado && $mesesRaw->contains($mesSelecionado)) {
             [$ano, $mes] = explode('-', $mesSelecionado);
@@ -456,6 +461,7 @@ class CashRegisterController extends Controller
             'type' => $validated['type'],
             'amount' => $validated['amount'],
             'description' => $validated['description'],
+            'created_by' => auth()->id(),
         ]);
 
         return redirect()->route('caixa.entries')->with('status', 'Lançamento registrado.');
@@ -496,21 +502,23 @@ class CashRegisterController extends Controller
         $valor = $booking->total_amount;
 
         DB::transaction(function () use ($booking, $metodo, $valor, $caixa) {
+            $entry = CashRegisterEntry::create([
+                'cash_register_id' => $caixa->id,
+                'booking_id' => $booking->id,
+                'type' => 'income',
+                'amount' => $valor,
+                'description' => 'Pagamento reserva #' . $booking->id . ' — ' . $metodo->label,
+                'created_by' => auth()->id(),
+            ]);
+
             Payment::create([
                 'booking_id' => $booking->id,
                 'payment_method_id' => $metodo->id,
                 'amount' => $valor,
                 'status' => 'paid',
                 'origin' => 'local',
+                'cash_register_entry_id' => $entry->id,
                 'paid_at' => now(),
-            ]);
-
-            CashRegisterEntry::create([
-                'cash_register_id' => $caixa->id,
-                'booking_id' => $booking->id,
-                'type' => 'income',
-                'amount' => $valor,
-                'description' => 'Pagamento reserva #' . $booking->id . ' — ' . $metodo->label,
             ]);
         });
 
@@ -553,21 +561,23 @@ class CashRegisterController extends Controller
         $valor = (float) $booking->cancellation_fee_amount;
 
         DB::transaction(function () use ($booking, $metodo, $valor, $caixa) {
+            $entry = CashRegisterEntry::create([
+                'cash_register_id' => $caixa->id,
+                'booking_id' => $booking->id,
+                'type' => 'income',
+                'amount' => $valor,
+                'description' => 'Taxa de cancelamento reserva #' . $booking->id . ' — ' . $metodo->label,
+                'created_by' => auth()->id(),
+            ]);
+
             Payment::create([
                 'booking_id' => $booking->id,
                 'payment_method_id' => $metodo->id,
                 'amount' => $valor,
                 'status' => 'paid',
                 'origin' => 'local',
+                'cash_register_entry_id' => $entry->id,
                 'paid_at' => now(),
-            ]);
-
-            CashRegisterEntry::create([
-                'cash_register_id' => $caixa->id,
-                'booking_id' => $booking->id,
-                'type' => 'income',
-                'amount' => $valor,
-                'description' => 'Taxa de cancelamento reserva #' . $booking->id . ' — ' . $metodo->label,
             ]);
         });
 
@@ -616,6 +626,39 @@ class CashRegisterController extends Controller
         $numeros = $this->numerosDaArena($arena);
 
         return view('owners.caixa.show', compact('arena', 'caixa', 'numeros'));
+    }
+
+    /**
+     * Detalhes completos de um lançamento do caixa (transparência): tipo, valor,
+     * quem fez, quando, o caixa, e — se for pagamento de reserva — os dados da
+     * reserva e de como foi pago.
+     */
+    public function showEntry(CashRegisterEntry $entry)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        $entry->load([
+            'cashRegister.arena',
+            'cashRegister.user',
+            'createdBy',
+            'booking.court',
+            'booking.client.user',
+            'booking.payments.paymentMethod',
+        ]);
+
+        $arenaId = $entry->cashRegister?->arena_id;
+        if (! $owner || ! $arenaId || ! $owner->arenas()->whereKey($arenaId)->exists()) {
+            abort(403);
+        }
+
+        // Pagamento vinculado a esta entrada (quando é lançamento de reserva).
+        $pagamento = $entry->booking
+            ? $entry->booking->payments->firstWhere('cash_register_entry_id', $entry->id)
+            : null;
+
+        $numeros = $this->numerosDaArena($entry->cashRegister->arena);
+
+        return view('owners.caixa.entry-details', compact('entry', 'pagamento', 'numeros'));
     }
 
     /**
