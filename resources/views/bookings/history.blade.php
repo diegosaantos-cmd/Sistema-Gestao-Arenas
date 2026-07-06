@@ -87,6 +87,11 @@
                             <td>
                                 @php $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary']; @endphp
                                 <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
+                                @if ($booking->status === 'cancelled')
+                                    <div class="small mt-1 {{ (float) $booking->cancellation_fee_amount > 0 ? 'text-danger' : 'text-muted' }}">
+                                        {{ $booking->taxaCancelamentoDescricao() }}
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 @include('partials.payment-badge', ['booking' => $booking])

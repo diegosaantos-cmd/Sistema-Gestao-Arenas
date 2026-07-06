@@ -119,6 +119,7 @@ class ArenaController extends Controller
             'description' => $validated['descricao'] ?? null,
             'phone' => $validated['telefone'] ?? null,
             'contact_email' => $validated['email_contato'] ?? null,
+            ...self::dadosTaxaCancelamento($request),
         ]);
 
         $this->salvarHorarios($arena, $request->input('horarios', []));
@@ -337,6 +338,64 @@ class ArenaController extends Controller
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('date')->orderBy('start_time')
             ->get();
+    }
+
+    /**
+     * Atualiza a config de taxa de cancelamento da arena (edição).
+     */
+    public function updateCancellationFee(Request $request, string $id)
+    {
+        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = $owner ? $owner->arenas()->find($id) : null;
+
+        if (! $arena) {
+            abort(404);
+        }
+
+        $arena->update(self::dadosTaxaCancelamento($request));
+
+        return redirect()->route('arenas.show', $arena->id)
+            ->with('msg', 'Taxa de cancelamento atualizada.');
+    }
+
+    /**
+     * Valida e normaliza a config de taxa de cancelamento vinda do formulário,
+     * devolvendo as colunas prontas para gravar na arena. Se não cobra, zera tudo.
+     * Compartilhado por cadastro de proprietário, nova arena e edição.
+     */
+    public static function dadosTaxaCancelamento(Request $request): array
+    {
+        if (! $request->boolean('charges_cancellation_fee')) {
+            return [
+                'charges_cancellation_fee' => false,
+                'cancellation_fee_type' => null,
+                'cancellation_fee_value' => null,
+                'cancellation_fee_mode' => null,
+                'cancellation_fee_window_hours' => null,
+            ];
+        }
+
+        $request->validate([
+            'cancellation_fee_type' => ['required', Rule::in(['fixed', 'percent'])],
+            'cancellation_fee_value' => ['required', 'numeric', 'min:0'],
+            'cancellation_fee_mode' => ['required', Rule::in(['always', 'window'])],
+            'cancellation_fee_window_hours' => ['required_if:cancellation_fee_mode,window', 'nullable', 'integer', 'min:1'],
+        ], [
+            'cancellation_fee_type.required' => 'Escolha o tipo da taxa (fixo ou porcentagem).',
+            'cancellation_fee_value.required' => 'Informe o valor da taxa.',
+            'cancellation_fee_mode.required' => 'Escolha quando a taxa é cobrada.',
+            'cancellation_fee_window_hours.required_if' => 'Informe quantas horas antes do início a taxa passa a valer.',
+        ]);
+
+        $window = $request->input('cancellation_fee_mode') === 'window';
+
+        return [
+            'charges_cancellation_fee' => true,
+            'cancellation_fee_type' => $request->input('cancellation_fee_type'),
+            'cancellation_fee_value' => $request->input('cancellation_fee_value'),
+            'cancellation_fee_mode' => $request->input('cancellation_fee_mode'),
+            'cancellation_fee_window_hours' => $window ? $request->input('cancellation_fee_window_hours') : null,
+        ];
     }
 
     /**

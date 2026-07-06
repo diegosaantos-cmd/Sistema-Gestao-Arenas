@@ -293,6 +293,12 @@ Route::middleware(['auth'])->group(function () {
     // Páginas de cada seção (fixas ANTES do {caixa} para não conflitar).
     Route::get('/owners/caixa/reservas-a-receber', [CashRegisterController::class, 'receivables'])
         ->name('caixa.receivables');
+    Route::get('/owners/caixa/taxas-a-receber', [CashRegisterController::class, 'fees'])
+        ->name('caixa.fees');
+    Route::get('/owners/caixa/pagamentos-a-lancar', [CashRegisterController::class, 'pendingPayments'])
+        ->name('caixa.pending-payments');
+    Route::post('/owners/caixa/pagamentos/{payment}/lancar', [CashRegisterController::class, 'launchPayment'])
+        ->name('caixa.launch-payment');
     Route::get('/owners/caixa/lancamentos', [CashRegisterController::class, 'entries'])
         ->name('caixa.entries');
     Route::get('/owners/caixa/fechados', [CashRegisterController::class, 'closed'])
@@ -309,6 +315,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('caixa.entry');
     Route::post('/owners/caixa/reservas/{booking}/receber', [CashRegisterController::class, 'pay'])
         ->name('caixa.pay');
+    Route::post('/owners/caixa/reservas/{booking}/receber-taxa', [CashRegisterController::class, 'payFee'])
+        ->name('caixa.pay-fee');
     Route::post('/owners/caixa/fechar', [CashRegisterController::class, 'close'])
         ->name('caixa.close');
     Route::get('/owners/caixa/{caixa}', [CashRegisterController::class, 'show'])
@@ -348,9 +356,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/client/reservas/pendentes', [ClientBookingController::class, 'pending'])
         ->name('client.bookings.pending');
 
-    Route::get('/client/reservas/confirmados', [ClientBookingController::class, 'confirmed'])
-        ->name('client.bookings.confirmed');
-
     Route::get('/client/reservas/{booking}/editar', [ClientBookingController::class, 'edit'])
         ->name('client.bookings.edit');
 
@@ -362,6 +367,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::patch('/client/reservas/{booking}/cancelar', [ClientBookingController::class, 'cancel'])
         ->name('client.bookings.cancel');
+
+    // Pagamento (simulado) da reserva confirmada.
+    Route::get('/client/reservas/{booking}/pagar', [ClientBookingController::class, 'pay'])
+        ->name('client.bookings.pay');
+    Route::post('/client/reservas/{booking}/pagar', [ClientBookingController::class, 'payConfirm'])
+        ->name('client.bookings.pay.confirm');
 
     // Perfil do cliente.
     Route::get('/client/perfil', [ClientProfileController::class, 'edit'])
@@ -390,6 +401,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('arenas.name.update');
     Route::patch('/arenas/{arena}/contato', [ArenaController::class, 'updateContact'])
         ->name('arenas.contact.update');
+    Route::patch('/arenas/{arena}/taxa-cancelamento', [ArenaController::class, 'updateCancellationFee'])
+        ->name('arenas.fee.update');
     Route::patch('/arenas/{arena}/horarios', [ArenaController::class, 'updateBusinessHours'])
         ->name('arenas.hours.update');
     Route::post('/arenas/{arena}/horarios/confirmar', [ArenaController::class, 'confirmBusinessHours'])

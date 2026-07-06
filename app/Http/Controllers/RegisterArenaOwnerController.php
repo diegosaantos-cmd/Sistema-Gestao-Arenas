@@ -114,9 +114,10 @@ class RegisterArenaOwnerController extends Controller
         $horarios = $request->input('horarios', []);
         $pagamentos = $request->input('pagamentos', []);
         $quadras = $request->input('quadras', []);
+        $dadosTaxa = ArenaController::dadosTaxaCancelamento($request);
 
         // Transação: ou cria usuário E proprietário, ou não cria nada.
-        $user = DB::transaction(function () use ($validated, $horarios, $pagamentos, $quadras) {
+        $user = DB::transaction(function () use ($validated, $horarios, $pagamentos, $quadras, $dadosTaxa) {
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -140,6 +141,7 @@ class RegisterArenaOwnerController extends Controller
                 'address_numero' => $validated['address_numero'],
                 'phone' => $validated['phone'],
                 'contact_email' => $validated['email_arena'],
+                ...$dadosTaxa,
             ]);
 
             ArenaController::salvarHorarios($arena, $horarios);

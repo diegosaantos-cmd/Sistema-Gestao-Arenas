@@ -18,6 +18,7 @@ class Payment extends Model
         'pix_transaction_id',
         'receipt_url',
         'origin',
+        'cash_register_entry_id',
         'paid_at',
     ];
 
@@ -35,5 +36,10 @@ class Payment extends Model
     public function paymentMethod()
     {
         return $this->belongsTo(PaymentMethod::class);
+    }
+
+    public function cashRegisterEntry()
+    {
+        return $this->belongsTo(CashRegisterEntry::class);
     }
 }

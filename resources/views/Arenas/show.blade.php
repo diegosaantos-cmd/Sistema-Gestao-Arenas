@@ -390,9 +390,89 @@
             </div>
         </div>
 
+        <!-- Taxa de cancelamento -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">Taxa de cancelamento</h5>
+                        <button type="button" class="btn btn-sm btn-warning" id="btnEditarTaxa">
+                            ✏️ Editar
+                        </button>
+                    </div>
+
+                    {{-- Modo leitura --}}
+                    <div id="taxaView">
+                        @if (! $arena->charges_cancellation_fee)
+                            <span class="text-muted">Esta arena <strong>não cobra</strong> taxa de cancelamento.</span>
+                        @else
+                            <p class="mb-1">
+                                <strong>Valor:</strong>
+                                @if ($arena->cancellation_fee_type === 'percent')
+                                    {{ rtrim(rtrim(number_format($arena->cancellation_fee_value, 2, ',', '.'), '0'), ',') }}% do valor da reserva
+                                @else
+                                    R$ {{ number_format($arena->cancellation_fee_value, 2, ',', '.') }} (fixo)
+                                @endif
+                            </p>
+                            <p class="mb-0">
+                                <strong>Quando:</strong>
+                                @if ($arena->cancellation_fee_mode === 'window')
+                                    a partir de {{ $arena->cancellation_fee_window_hours }}h antes do início
+                                    (grátis antes disso)
+                                @else
+                                    sempre que a reserva estiver confirmada
+                                @endif
+                            </p>
+                        @endif
+                    </div>
+
+                    {{-- Modo edição --}}
+                    <form method="POST" action="{{ route('arenas.fee.update', $arena->id) }}"
+                          id="taxaForm" class="d-none">
+                        @csrf
+                        @method('PATCH')
+
+                        @php
+                            $taxaAtual = [
+                                'charges' => $arena->charges_cancellation_fee,
+                                'type' => $arena->cancellation_fee_type ?? 'fixed',
+                                'value' => $arena->cancellation_fee_value,
+                                'mode' => $arena->cancellation_fee_mode ?? 'always',
+                                'hours' => $arena->cancellation_fee_window_hours,
+                            ];
+                        @endphp
+                        @include('arenas.partials.cancellation-fee', ['taxaAtual' => $taxaAtual])
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="submit" class="btn btn-success btn-sm">Salvar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btnCancelarTaxa">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnEditarTaxa = document.getElementById('btnEditarTaxa');
+        const btnCancelarTaxa = document.getElementById('btnCancelarTaxa');
+        const taxaView = document.getElementById('taxaView');
+        const taxaForm = document.getElementById('taxaForm');
+
+        btnEditarTaxa?.addEventListener('click', function () {
+            taxaView.classList.add('d-none');
+            taxaForm.classList.remove('d-none');
+            btnEditarTaxa.classList.add('d-none');
+        });
+        btnCancelarTaxa?.addEventListener('click', function () {
+            window.location.href = '{{ route('arenas.show', $arena->id) }}';
+        });
+    });
+</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

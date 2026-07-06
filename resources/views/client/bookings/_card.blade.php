@@ -1,6 +1,7 @@
 @php
     [$rotulo, $cor] = $badges[$b->status] ?? [$b->status, 'bg-secondary'];
-    $regra = $b->regraCancelamentoCliente();
+    $regra = $b->regraCancelamentoCliente();  // null quando já começou
+    $emAndamento = $b->estaEmAndamento();     // já começou, ainda não terminou
 @endphp
 
 <div class="col-sm-6 col-lg-3">
@@ -18,7 +19,11 @@
                 </div>
             </div>
             <div class="d-flex flex-column align-items-end gap-1">
-                <span class="badge {{ $cor }}">{{ $rotulo }}</span>
+                @if ($emAndamento)
+                    <span class="badge" style="background:#021B35;color:#fff;">Em andamento</span>
+                @else
+                    <span class="badge {{ $cor }}">{{ $rotulo }}</span>
+                @endif
                 @include('partials.payment-badge', ['booking' => $b])
             </div>
         </div>
@@ -32,17 +37,30 @@
             {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
         </div>
 
-        <div class="mb-3">
+        <div class="mb-2">
             <strong>R$ {{ number_format($b->total_amount, 2, ',', '.') }}</strong>
         </div>
+
+        @if ($b->status === 'cancelled')
+            <div class="small mb-2 {{ (float) $b->cancellation_fee_amount > 0 ? 'text-danger' : 'text-muted' }}">
+                <i class="bi bi-x-circle me-1"></i> {{ $b->taxaCancelamentoDescricao() }}
+            </div>
+        @endif
 
         <div class="mt-auto d-flex flex-wrap gap-2">
             <a href="{{ route('bookings.show', $b) }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-info-circle me-1"></i> Detalhes
             </a>
 
-            @if (in_array($b->status, ['pending', 'confirmed']))
-                <a href="{{ route('client.bookings.edit', $b) }}" class="btn btn-warning btn-sm">
+            @if ($b->status === 'confirmed' && ! $b->isPaga())
+                <a href="{{ route('client.bookings.pay', $b) }}" class="btn btn-success btn-sm">
+                    <i class="bi bi-credit-card me-1"></i> Pagar
+                </a>
+            @endif
+
+            @if ($regra)
+                <a href="{{ route('client.bookings.edit', ['booking' => $b, 'from' => request()->route()->getName()]) }}"
+                   class="btn btn-warning btn-sm">
                     <i class="bi bi-pencil me-1"></i> Editar
                 </a>
             @endif
@@ -57,11 +75,7 @@
         </div>
 
         @if ($regra)
-            @php
-                $msgCancelar = $regra === 'taxa'
-                    ? 'Falta menos de 1 hora para o horário. Para cancelar, é necessário pagar a taxa via PIX.'
-                    : 'Tem certeza que deseja cancelar esta reserva?';
-            @endphp
+            @php $taxaValor = $regra === 'taxa' ? $b->valorTaxaCancelamento() : 0; @endphp
 
             {{-- Modal de confirmação --}}
             <div class="modal fade" id="cancelModal{{ $b->id }}" tabindex="-1" aria-hidden="true">
@@ -76,7 +90,6 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                             </div>
                             <div class="modal-body">
-                                <p class="mb-1">{{ $msgCancelar }}</p>
                                 <p class="text-muted small mb-3">
                                     {{ $b->court->arena->name ?? '—' }} ·
                                     {{ $b->court->name ?? '—' }} ·
@@ -85,37 +98,19 @@
                                 </p>
 
                                 @if ($regra === 'taxa')
-                                    <div class="border rounded p-3 mb-3 text-center bg-light">
-                                        <div class="small text-muted">Taxa de cancelamento</div>
-                                        <div class="fs-3 fw-bold text-danger mb-1">
-                                            R$ {{ number_format($b->taxa_cancelamento_valor, 2, ',', '.') }}
-                                        </div>
-                                        <div class="small text-muted mb-3">
-                                            {{ number_format($b->taxa_cancelamento_percentual, 2, ',', '.') }}%
-                                            do valor da reserva
-                                        </div>
-
-                                        <img src="{{ $b->taxa_cancelamento_qrcode }}"
-                                             alt="QR Code PIX simulado para pagamento da taxa"
-                                             class="img-fluid border rounded bg-white p-2"
-                                             style="max-width: 220px;">
-
-                                        <div class="alert alert-warning small mt-3 mb-3">
-                                            Simulação: este QR Code não realiza uma cobrança bancária real.
-                                        </div>
-
-                                        <div class="form-check text-start">
-                                            <input class="form-check-input confirmacao-pix"
-                                                   type="checkbox"
-                                                   name="pagamento_taxa"
-                                                   value="1"
-                                                   id="pagamentoTaxa{{ $b->id }}"
-                                                   required>
-                                            <label class="form-check-label" for="pagamentoTaxa{{ $b->id }}">
-                                                Confirmo que simulei o pagamento da taxa via PIX.
-                                            </label>
+                                    <div class="alert alert-warning">
+                                        <div>Este cancelamento tem <strong>taxa</strong>:</div>
+                                        <div class="fs-4 fw-bold text-danger">R$ {{ number_format($taxaValor, 2, ',', '.') }}</div>
+                                        <div class="small mb-0">
+                                            A taxa ficará <strong>a receber no caixa da arena</strong> —
+                                            você acerta o pagamento diretamente com a arena.
                                         </div>
                                     </div>
+                                @else
+                                    <p class="mb-3">
+                                        Tem certeza que deseja cancelar esta reserva?
+                                        <strong>Sem taxa.</strong>
+                                    </p>
                                 @endif
 
                                 <label class="form-label">Motivo do cancelamento</label>
@@ -126,9 +121,7 @@
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                     Voltar
                                 </button>
-                                <button type="submit"
-                                        class="btn btn-danger botao-cancelar"
-                                        @if ($regra === 'taxa') disabled @endif>
+                                <button type="submit" class="btn btn-danger">
                                     <i class="bi bi-x-circle me-1"></i> Sim, cancelar
                                 </button>
                             </div>
@@ -136,20 +129,6 @@
                     </div>
                 </div>
             </div>
-
-            @if ($regra === 'taxa')
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const modal = document.getElementById('cancelModal{{ $b->id }}');
-                        const confirmacao = modal?.querySelector('.confirmacao-pix');
-                        const botao = modal?.querySelector('.botao-cancelar');
-
-                        confirmacao?.addEventListener('change', function () {
-                            botao.disabled = !this.checked;
-                        });
-                    });
-                </script>
-            @endif
         @endif
 
     </div>

@@ -11,13 +11,14 @@ class Booking extends Model
 
     protected $fillable = [
         'court_id', 'client_id', 'employee_id', 'date',
-        'start_time', 'end_time', 'total_amount', 'status', 'notes',
-        'cancelled_by', 'cancellation_reason', 'cancelled_at',
+        'start_time', 'end_time', 'total_amount', 'payment_method_id', 'status', 'notes',
+        'cancelled_by', 'cancellation_reason', 'cancelled_at', 'cancellation_fee_amount',
     ];
 
     protected $casts = [
         'date' => 'date',
         'cancelled_at' => 'datetime',
+        'cancellation_fee_amount' => 'decimal:2',
     ];
 
     public function court()
@@ -38,6 +39,32 @@ class Booking extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
+    /**
+     * O cliente pode pagar online agora? (confirmada, não paga e forma PIX/cartão).
+     * Dinheiro é pago na arena, então não entra no fluxo online.
+     */
+    public function podePagarOnline(): bool
+    {
+        return $this->status === 'confirmed'
+            && ! $this->isPaga()
+            && in_array($this->paymentMethod?->type, ['pix', 'card']);
+    }
+
+    /**
+     * Confirmada, não paga e a forma é dinheiro (paga na arena ao usar).
+     */
+    public function pagaNaArena(): bool
+    {
+        return $this->status === 'confirmed'
+            && ! $this->isPaga()
+            && $this->paymentMethod?->type === 'cash';
     }
 
     public function cancelledBy()
@@ -83,47 +110,68 @@ class Booking extends Model
     }
 
     /**
-     * O cliente pode editar somente até uma hora antes do início.
+     * A reserva está "em andamento": confirmada e o horário atual está entre o
+     * início e o fim (já começou mas ainda não terminou).
      */
-    public function podeSerEditadaPeloCliente(): bool
+    public function estaEmAndamento(): bool
     {
-        if (! in_array($this->status, ['pending', 'confirmed'])) {
+        if ($this->status !== 'confirmed') {
             return false;
         }
 
         $inicio = Carbon::parse($this->date->toDateString() . ' ' . $this->start_time);
+        $fim = Carbon::parse($this->date->toDateString() . ' ' . $this->end_time);
 
-        return now()->lessThanOrEqualTo($inicio->copy()->subHour());
+        return now()->greaterThanOrEqualTo($inicio) && now()->lessThan($fim);
     }
 
     /**
-     * Usa a taxa definida na arena/sistema e adota 30% como padrão.
+     * O cliente pode editar somente enquanto o cancelamento ainda seria GRÁTIS
+     * — ou seja, usando a MESMA janela que a arena configurou para a taxa de
+     * cancelamento. Dentro da janela de taxa (ou já iniciada), a edição fica
+     * bloqueada. Se a arena não cobra taxa, pode editar até o início.
      */
-    public function percentualTaxaCancelamento(): float
+    public function podeSerEditadaPeloCliente(): bool
+    {
+        return $this->regraCancelamentoCliente() === 'livre';
+    }
+
+    /**
+     * Texto da taxa numa reserva CANCELADA (para o histórico):
+     * "Com taxa de R$ X" ou "Sem taxa". null se não estiver cancelada.
+     */
+    public function taxaCancelamentoDescricao(): ?string
+    {
+        if ($this->status !== 'cancelled') {
+            return null;
+        }
+
+        $valor = (float) $this->cancellation_fee_amount;
+
+        return $valor > 0
+            ? 'Com taxa de R$ ' . number_format($valor, 2, ',', '.')
+            : 'Sem taxa';
+    }
+
+    /**
+     * Valor da taxa de cancelamento desta reserva, conforme a config da arena
+     * (fixo em R$ ou percentual sobre o valor da reserva). 0 se a arena não cobra.
+     */
+    public function valorTaxaCancelamento(): float
     {
         $arena = $this->court?->arena;
 
-        foreach (['cancellation_fee_percentage', 'cancellation_fee_percent', 'cancel_fee_percent'] as $campo) {
-            $percentual = $arena?->getAttribute($campo);
-
-            if (is_numeric($percentual)) {
-                return max(0, (float) $percentual);
-            }
-        }
-
-        return max(0, (float) config('bookings.cancellation_fee_percent', 30));
-    }
-
-    public function valorTaxaCancelamento(): float
-    {
-        return round((float) $this->total_amount * $this->percentualTaxaCancelamento() / 100, 2);
+        return $arena ? $arena->taxaCancelamentoPara((float) $this->total_amount) : 0.0;
     }
 
     /**
-     * Regra de cancelamento pelo CLIENTE:
+     * Regra de cancelamento pelo CLIENTE, usando a config da arena:
      * - pendente: pode cancelar sempre, sem taxa;
-     * - confirmada: grátis até 1h antes do início, com taxa se faltar 1h ou menos;
-     * - já começou/passada/cancelada/concluída: não pode.
+     * - confirmada: depende da arena —
+     *     • não cobra taxa -> 'livre';
+     *     • cobra no modo 'sempre' -> 'taxa';
+     *     • cobra no modo 'janela' -> 'livre' se faltar mais de X horas, senão 'taxa';
+     * - já começou/passada/cancelada/concluída: não pode (null).
      *
      * Retorna 'livre' | 'taxa' | null (null = não pode cancelar).
      */
@@ -139,11 +187,27 @@ class Booking extends Model
             return 'livre';
         }
 
-        if ($this->status === 'confirmed') {
-            return now()->lt($inicio->copy()->subHour()) ? 'livre' : 'taxa';
+        if ($this->status !== 'confirmed') {
+            return null;
         }
 
-        return null;
+        $arena = $this->court?->arena;
+
+        // Arena não cobra taxa (ou valor zerado) -> sempre livre.
+        if (! $arena || ! $arena->charges_cancellation_fee || $arena->taxaCancelamentoPara((float) $this->total_amount) <= 0) {
+            return 'livre';
+        }
+
+        // Cobra sempre que estiver confirmada.
+        if ($arena->cancellation_fee_mode === 'always') {
+            return 'taxa';
+        }
+
+        // Modo janela: grátis se faltar mais de X horas para o início.
+        $horas = (int) ($arena->cancellation_fee_window_hours ?? 0);
+        $limite = $inicio->copy()->subHours($horas);
+
+        return now()->lessThan($limite) ? 'livre' : 'taxa';
     }
 
     /**

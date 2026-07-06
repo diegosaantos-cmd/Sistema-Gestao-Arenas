@@ -9,6 +9,7 @@ use App\Models\CashRegister;
 use App\Models\CashRegisterEntry;
 use App\Models\Owner;
 use App\Models\Payment;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,8 @@ class CashRegisterController extends Controller
             ->first();
 
         $reservasCount = $caixaAberto ? $this->reservasAReceberQuery($arena)->count() : 0;
+        $taxasCount = $caixaAberto ? $this->taxasAReceberQuery($arena)->count() : 0;
+        $lancarCount = $caixaAberto ? $this->pagamentosALancarQuery($arena)->count() : 0;
         $lancamentosCount = $caixaAberto ? $caixaAberto->entries->count() : 0;
 
         // Card "Caixas fechados": conta só os do mês atual e informa o mês.
@@ -46,8 +49,8 @@ class CashRegisterController extends Controller
         $mesAtualLabel = $nomesMes[(int) now()->month] . '/' . now()->year;
 
         return view('owners.caixa.index', compact(
-            'arena', 'caixaAberto', 'reservasCount', 'lancamentosCount',
-            'fechadosCount', 'mesAtualLabel'
+            'arena', 'caixaAberto', 'reservasCount', 'taxasCount', 'lancarCount',
+            'lancamentosCount', 'fechadosCount', 'mesAtualLabel'
         ));
     }
 
@@ -77,6 +80,81 @@ class CashRegisterController extends Controller
         return view('owners.caixa.receivables', compact(
             'arena', 'caixaAberto', 'reservasAReceber', 'formasPagamento'
         ));
+    }
+
+    /**
+     * Página "Taxas de cancelamento a receber" (separada das reservas).
+     */
+    public function fees()
+    {
+        $arena = $this->arena();
+
+        $caixaAberto = CashRegister::where('arena_id', $arena->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (! $caixaAberto) {
+            return redirect()->route('caixa.index');
+        }
+
+        $taxasAReceber = $this->taxasAReceberQuery($arena)
+            ->with(['court', 'client.user'])
+            ->orderByDesc('cancelled_at')
+            ->get();
+
+        $formasPagamento = $arena->paymentMethods->where('active', true);
+
+        return view('owners.caixa.fees', compact(
+            'arena', 'caixaAberto', 'taxasAReceber', 'formasPagamento'
+        ));
+    }
+
+    /**
+     * Página "Pagamentos a lançar": pagamentos online que o cliente fez com o
+     * caixa fechado e ainda não entraram em nenhum caixa.
+     */
+    public function pendingPayments()
+    {
+        $arena = $this->arena();
+
+        $caixaAberto = CashRegister::where('arena_id', $arena->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (! $caixaAberto) {
+            return redirect()->route('caixa.index');
+        }
+
+        $pagamentos = $this->pagamentosALancarQuery($arena)
+            ->with(['booking.court', 'booking.client.user', 'paymentMethod'])
+            ->orderBy('paid_at')
+            ->get();
+
+        return view('owners.caixa.pending-payments', compact('arena', 'caixaAberto', 'pagamentos'));
+    }
+
+    /**
+     * Lança no caixa aberto um pagamento que estava pendente.
+     */
+    public function launchPayment(Payment $payment)
+    {
+        $arena = $this->arena();
+        $caixa = $this->caixaAberto($arena);
+
+        $booking = $payment->booking;
+        $courtIds = $arena->courts()->pluck('id')->all();
+
+        if (! $booking || ! in_array($booking->court_id, $courtIds)) {
+            abort(403);
+        }
+
+        if ($payment->status !== 'paid' || $payment->origin !== 'online' || $payment->cash_register_entry_id) {
+            return back()->withErrors(['pay' => 'Este pagamento já foi lançado no caixa.']);
+        }
+
+        PaymentService::lancarNoCaixa($payment, $caixa);
+
+        return redirect()->route('caixa.pending-payments')->with('status', 'Pagamento lançado no caixa.');
     }
 
     /**
@@ -440,6 +518,63 @@ class CashRegisterController extends Controller
     }
 
     /**
+     * Dá baixa numa TAXA DE CANCELAMENTO (reserva cancelada com taxa): registra
+     * o pagamento e lança a entrada no caixa. O valor é fixo (a taxa da reserva).
+     */
+    public function payFee(Request $request, Booking $booking)
+    {
+        $arena = $this->arena();
+        $caixa = $this->caixaAberto($arena);
+
+        $courtIds = $arena->courts()->pluck('id')->all();
+        if (! in_array($booking->court_id, $courtIds)) {
+            abort(403);
+        }
+
+        // Precisa ser uma reserva cancelada com taxa e ainda não recebida.
+        if ($booking->status !== 'cancelled' || (float) $booking->cancellation_fee_amount <= 0) {
+            return back()->withErrors(['pay' => 'Esta reserva não tem taxa a receber.']);
+        }
+        if ($booking->isPaga()) {
+            return back()->withErrors(['pay' => 'Esta taxa já foi recebida.']);
+        }
+
+        $validated = $request->validate([
+            'payment_method_id' => ['required', 'integer'],
+        ], [
+            'payment_method_id.required' => 'Escolha a forma de pagamento.',
+        ]);
+
+        $metodo = $arena->paymentMethods->firstWhere('id', (int) $validated['payment_method_id']);
+        if (! $metodo) {
+            return back()->withErrors(['pay' => 'Forma de pagamento inválida.']);
+        }
+
+        $valor = (float) $booking->cancellation_fee_amount;
+
+        DB::transaction(function () use ($booking, $metodo, $valor, $caixa) {
+            Payment::create([
+                'booking_id' => $booking->id,
+                'payment_method_id' => $metodo->id,
+                'amount' => $valor,
+                'status' => 'paid',
+                'origin' => 'local',
+                'paid_at' => now(),
+            ]);
+
+            CashRegisterEntry::create([
+                'cash_register_id' => $caixa->id,
+                'booking_id' => $booking->id,
+                'type' => 'income',
+                'amount' => $valor,
+                'description' => 'Taxa de cancelamento reserva #' . $booking->id . ' — ' . $metodo->label,
+            ]);
+        });
+
+        return redirect()->route('caixa.fees')->with('status', 'Taxa de cancelamento recebida.');
+    }
+
+    /**
      * Fecha o caixa aberto, gravando o saldo final apurado.
      */
     public function close(Request $request)
@@ -494,6 +629,34 @@ class CashRegisterController extends Controller
         return Booking::whereIn('court_id', $courtIds)
             ->whereIn('status', ['confirmed', 'completed'])
             ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'));
+    }
+
+    /**
+     * Query base das TAXAS DE CANCELAMENTO a receber: reservas canceladas com
+     * taxa (> 0) que ainda não foram pagas.
+     */
+    private function taxasAReceberQuery(Arena $arena)
+    {
+        $courtIds = $arena->courts()->pluck('id');
+
+        return Booking::whereIn('court_id', $courtIds)
+            ->where('status', 'cancelled')
+            ->where('cancellation_fee_amount', '>', 0)
+            ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'));
+    }
+
+    /**
+     * Query base dos pagamentos pagos (online) que ainda não foram lançados em
+     * nenhum caixa (feitos com o caixa fechado).
+     */
+    private function pagamentosALancarQuery(Arena $arena)
+    {
+        $courtIds = $arena->courts()->pluck('id');
+
+        return Payment::where('status', 'paid')
+            ->where('origin', 'online')
+            ->whereNull('cash_register_entry_id')
+            ->whereIn('booking_id', Booking::whereIn('court_id', $courtIds)->select('id'));
     }
 
     /**

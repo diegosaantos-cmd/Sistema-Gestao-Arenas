@@ -51,9 +51,9 @@
         </div>
 
         <div class="col-md-4">
-            <a href="{{ route('client.bookings.confirmed') }}"
+            <a href="{{ route('client.bookings.index') }}"
                class="dashboard-card text-decoration-none text-body"
-               aria-label="Ver agendamentos confirmados">
+               aria-label="Ver próximos agendamentos">
 
                 <div>
                     <h5>Agendamentos confirmados</h5>

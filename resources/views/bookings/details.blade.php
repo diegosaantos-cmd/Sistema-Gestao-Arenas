@@ -18,6 +18,8 @@
             'cancelled' => ['Cancelada',  'bg-danger'],
         ];
         $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary'];
+        $emAndamento = $booking->estaEmAndamento();
+        $statusRotulo = $emAndamento ? 'Em andamento' : $st[0];
         $dias = [
             0 => 'Domingo', 1 => 'Segunda-feira', 2 => 'Terça-feira',
             3 => 'Quarta-feira', 4 => 'Quinta-feira', 5 => 'Sexta-feira', 6 => 'Sábado',
@@ -26,7 +28,11 @@
 
     <div class="d-flex align-items-center gap-2 mb-4">
         <h1 class="fw-bold mb-0">Reserva #{{ $booking->id }}</h1>
-        <span class="badge {{ $st[1] }}">{{ $st[0] }}</span>
+        @if ($emAndamento)
+            <span class="badge" style="background:#021B35;color:#fff;">Em andamento</span>
+        @else
+            <span class="badge {{ $st[1] }}">{{ $st[0] }}</span>
+        @endif
         @include('partials.payment-badge', ['booking' => $booking])
     </div>
 
@@ -51,7 +57,7 @@
                         <strong>Valor:</strong>
                         R$ {{ number_format($booking->total_amount, 2, ',', '.') }}
                     </p>
-                    <p class="mb-0"><strong>Status:</strong> {{ $st[0] }}</p>
+                    <p class="mb-0"><strong>Status:</strong> {{ $statusRotulo }}</p>
 
                     @if (in_array($booking->status, ['confirmed', 'completed']))
                         @php $pago = $booking->payments->firstWhere('status', 'paid'); @endphp
@@ -129,8 +135,16 @@
                             <strong>Quando:</strong>
                             {{ optional($booking->cancelled_at)->format('d/m/Y H:i') ?? '—' }}
                         </p>
-                        <p class="mb-0">
+                        <p class="mb-1">
                             <strong>Motivo:</strong> {{ $booking->cancellation_reason ?: '—' }}
+                        </p>
+                        <p class="mb-0">
+                            <strong>Taxa:</strong>
+                            @if ((float) $booking->cancellation_fee_amount > 0)
+                                <span class="text-danger fw-semibold">R$ {{ number_format($booking->cancellation_fee_amount, 2, ',', '.') }}</span>
+                            @else
+                                <span class="text-muted">Sem taxa</span>
+                            @endif
                         </p>
                     @endif
                 </div>

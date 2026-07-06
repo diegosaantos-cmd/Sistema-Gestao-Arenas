@@ -17,12 +17,38 @@ class Arena extends Model
         'contact_email',
         'active',
         'deactivated_by_admin',
+        'charges_cancellation_fee',
+        'cancellation_fee_type',
+        'cancellation_fee_value',
+        'cancellation_fee_mode',
+        'cancellation_fee_window_hours',
     ];
 
     protected $casts = [
         'active' => 'boolean',
         'deactivated_by_admin' => 'boolean',
+        'charges_cancellation_fee' => 'boolean',
+        'cancellation_fee_value' => 'decimal:2',
+        'cancellation_fee_window_hours' => 'integer',
     ];
+
+    /**
+     * Valor da taxa de cancelamento para uma reserva de determinado valor.
+     * Fixo (R$) ou percentual sobre o valor da reserva, conforme a config.
+     */
+    public function taxaCancelamentoPara(float $valorReserva): float
+    {
+        if (! $this->charges_cancellation_fee) {
+            return 0.0;
+        }
+
+        if ($this->cancellation_fee_type === 'percent') {
+            return round($valorReserva * (float) $this->cancellation_fee_value / 100, 2);
+        }
+
+        // fixo
+        return round((float) $this->cancellation_fee_value, 2);
+    }
 
     public function scopePesquisar($query, ?string $busca)
     {

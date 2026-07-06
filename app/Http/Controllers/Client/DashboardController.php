@@ -45,15 +45,19 @@ class DashboardController extends Controller
                 ->whereDate('date', '>=', today())
                 ->whereIn('status', ['pending', 'confirmed']);
 
-            $proximosCount = (clone $reservasAtivas)->count();
+            // "Próximos" mostra só os CONFIRMADOS (os pendentes têm card próprio).
+            $proximosCount = (clone $reservasAtivas)->where('status', 'confirmed')->count();
             $pendentes = (clone $reservasAtivas)->where('status', 'pending')->count();
             $confirmados = (clone $reservasAtivas)->where('status', 'confirmed')->count();
+            // Só as de hoje CONFIRMADAS (não conta pendentes, já realizadas nem
+            // canceladas) — assim o número bate com a lista.
             $hojeCount = Booking::where('client_id', $client->id)
                 ->whereDate('date', today())
-                ->where('status', '!=', 'cancelled')
+                ->where('status', 'confirmed')
                 ->count();
 
             $proximos = (clone $reservasAtivas)
+                ->where('status', 'confirmed')
                 ->with('court.arena')
                 ->orderBy('date')
                 ->orderBy('start_time')

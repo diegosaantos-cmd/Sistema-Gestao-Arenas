@@ -6,7 +6,12 @@
 
 <div class="container py-4">
 
-    <a href="{{ route('client.bookings.index') }}" class="btn btn-dark btn-sm mb-3">
+    @php
+        $origensValidas = ['client.bookings.index', 'client.bookings.pending', 'client.bookings.today'];
+        $origem = in_array(request('from'), $origensValidas) ? request('from') : 'client.bookings.index';
+    @endphp
+
+    <a href="{{ route($origem) }}" class="btn btn-dark btn-sm mb-3">
         ← Voltar aos agendamentos
     </a>
 
@@ -21,17 +26,20 @@
         {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
     </div>
 
-    <div class="alert alert-info">
-        Alterações são permitidas somente com pelo menos <strong>1 hora de antecedência</strong>.
+    <div class="alert alert-info alert-dismissible fade show">
+        As alterações seguem o <strong>mesmo prazo do cancelamento gratuito</strong> da arena.
+        Passado esse prazo (quando o cancelamento já teria taxa), a edição fica bloqueada.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
     </div>
 
     @if ($errors->any())
-        <div class="alert alert-danger">
+        <div class="alert alert-danger alert-dismissible fade show">
             <ul class="mb-0">
                 @foreach ($errors->all() as $erro)
                     <li>{{ $erro }}</li>
                 @endforeach
             </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
         </div>
     @endif
 
@@ -51,6 +59,7 @@
                     <h5 class="fw-bold mb-3">1. Escolha o novo dia</h5>
                     <form method="GET" action="{{ route('client.bookings.edit', $booking) }}"
                           class="d-flex gap-2 flex-wrap">
+                        <input type="hidden" name="from" value="{{ $origem }}">
                         <input type="date" name="date" value="{{ $date }}"
                                min="{{ now()->toDateString() }}"
                                class="form-control" style="max-width: 220px;" required>
@@ -77,6 +86,7 @@
                     @csrf
                     @method('PATCH')
                     <input type="hidden" name="date" value="{{ $date }}">
+                    <input type="hidden" name="from" value="{{ $origem }}">
 
                     <div class="card shadow-sm border-0 mb-4">
                         <div class="card-body">
@@ -123,7 +133,7 @@
 
                     @if ($temLivre)
                         <div class="d-flex gap-2">
-                            <a href="{{ route('client.bookings.index') }}" class="btn btn-secondary">Cancelar</a>
+                            <a href="{{ route($origem) }}" class="btn btn-secondary">Cancelar</a>
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-circle me-1"></i> Salvar alteração
                             </button>

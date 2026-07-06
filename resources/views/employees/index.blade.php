@@ -42,16 +42,20 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    {{-- Editar perfil: sem ação por enquanto (lógica depois) --}}
-                    <button type="button" class="btn btn-sm btn-warning">✏️ Editar perfil</button>
+                    <a href="{{ route('employees.edit', $employee) }}" class="btn btn-sm btn-warning">✏️ Editar perfil</a>
 
-                    <form action="{{ route('employees.toggle', $employee) }}" method="POST" class="d-inline">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" class="btn btn-sm {{ $employee->active ? 'btn-secondary' : 'btn-success' }}">
-                            {{ $employee->active ? '🚫 Desativar perfil' : '✅ Ativar perfil' }}
+                    @if ($employee->active)
+                        <button type="button" class="btn btn-sm btn-secondary"
+                                data-bs-toggle="modal" data-bs-target="#desativarFuncionario{{ $employee->id }}">
+                            🚫 Desativar perfil
                         </button>
-                    </form>
+                    @else
+                        <form action="{{ route('employees.toggle', $employee) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="btn btn-sm btn-success">✅ Ativar perfil</button>
+                        </form>
+                    @endif
 
                     <button type="button" class="btn btn-sm btn-danger"
                             data-bs-toggle="modal" data-bs-target="#excluirFuncionario{{ $employee->id }}">
@@ -61,6 +65,34 @@
 
             </div>
         </div>
+
+        {{-- Modal de confirmação de desativação --}}
+        @if ($employee->active)
+            <div class="modal fade" id="desativarFuncionario{{ $employee->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <form method="POST" action="{{ route('employees.toggle', $employee) }}">
+                            @csrf
+                            @method('PATCH')
+                            <div class="modal-header">
+                                <h5 class="modal-title">Desativar perfil</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                Deseja realmente desativar o perfil de
+                                <strong>{{ $employee->user->name }}</strong>?
+                                Ele perde o acesso ao sistema até ser reativado, mas o
+                                <strong>histórico é preservado</strong>.
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-danger">🚫 Sim, desativar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- Modal de confirmação de exclusão --}}
         <div class="modal fade" id="excluirFuncionario{{ $employee->id }}" tabindex="-1" aria-hidden="true">

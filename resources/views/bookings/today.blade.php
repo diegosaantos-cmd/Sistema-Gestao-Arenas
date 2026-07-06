@@ -42,7 +42,11 @@
                             <td>{{ $booking->client->user->name }}</td>
                             <td>{{ $booking->court->name }}</td>
                             <td>
-                                <span class="badge bg-success text-center" style="min-width: 100px;">Confirmada</span>
+                                @if ($booking->estaEmAndamento())
+                                    <span class="badge text-center" style="min-width: 100px; background:#021B35; color:#fff;">Em andamento</span>
+                                @else
+                                    <span class="badge bg-success text-center" style="min-width: 100px;">Confirmada</span>
+                                @endif
                             </td>
                             <td class="text-end text-nowrap">
                                 <a href="{{ route('bookings.show', $booking) }}"

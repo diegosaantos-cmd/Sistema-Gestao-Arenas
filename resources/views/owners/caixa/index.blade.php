@@ -80,7 +80,7 @@
 
         {{-- ============ CARDS DAS SEÇÕES ============ --}}
         <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3 col-sm-6">
                 <a href="{{ route('caixa.receivables') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover text-center">
                         <div class="card-body">
@@ -92,7 +92,31 @@
                     </div>
                 </a>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ route('caixa.fees') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover text-center {{ $taxasCount > 0 ? 'border border-danger' : '' }}">
+                        <div class="card-body">
+                            <div class="fs-2">🚫</div>
+                            <h6 class="text-secondary mb-1">Taxas de cancelamento</h6>
+                            <h2 class="fw-bold mb-1 {{ $taxasCount > 0 ? 'text-danger' : '' }}">{{ $taxasCount }}</h2>
+                            <span class="small text-primary">ver todas →</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ route('caixa.pending-payments') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover text-center {{ $lancarCount > 0 ? 'border border-warning' : '' }}">
+                        <div class="card-body">
+                            <div class="fs-2">📥</div>
+                            <h6 class="text-secondary mb-1">Pagamentos a lançar</h6>
+                            <h2 class="fw-bold mb-1 {{ $lancarCount > 0 ? 'text-warning' : '' }}">{{ $lancarCount }}</h2>
+                            <span class="small text-primary">ver todos →</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
                 <a href="{{ route('caixa.entries') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover text-center">
                         <div class="card-body">
@@ -104,7 +128,7 @@
                     </div>
                 </a>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3 col-sm-6">
                 <a href="{{ route('caixa.closed') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover text-center">
                         <div class="card-body">

@@ -144,14 +144,78 @@ class EmployeeController extends Controller
         //
     }
 
-    public function edit(string $id)
+    /**
+     * Formulário de edição do funcionário (dono da arena dele).
+     */
+    public function edit(Employee $employee)
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
+            abort(403);
+        }
+
+        $employee->load('user');
+
+        return view('employees.edit', [
+            'employee' => $employee,
+            'arena' => $employee->arena,
+        ]);
     }
 
-    public function update(Request $request, string $id)
+    /**
+     * Salva a edição do funcionário: dados de acesso (nome, e-mail, telefone,
+     * senha opcional) + cargo e tipo. A arena e o status não mudam aqui.
+     */
+    public function update(Request $request, Employee $employee)
     {
-        //
+        $owner = Owner::where('user_id', auth()->id())->first();
+
+        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
+            abort(403);
+        }
+
+        $request->merge([
+            'name' => ArenaController::normalizarTexto($request->input('name')),
+            'position' => ArenaController::normalizarTexto($request->input('position')),
+            'email' => ArenaController::normalizarEmail($request->input('email')),
+        ]);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($employee->user_id)],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'password' => ['nullable', 'string', 'confirmed', 'min:8'],
+            'position' => ['required', 'string', 'max:80'],
+            'access_level' => ['required', Rule::in(['basic', 'managerial'])],
+        ], [
+            'email.unique' => 'Já existe um usuário com esse e-mail.',
+            'password.confirmed' => 'A confirmação da senha não confere.',
+            'access_level.in' => 'Tipo de funcionário inválido.',
+        ]);
+
+        DB::transaction(function () use ($validated, $employee) {
+            $dadosUser = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+            ];
+
+            // Só troca a senha se foi informada.
+            if (! empty($validated['password'])) {
+                $dadosUser['password_hash'] = Hash::make($validated['password']);
+            }
+
+            $employee->user->update($dadosUser);
+
+            $employee->update([
+                'position' => $validated['position'],
+                'access_level' => $validated['access_level'],
+            ]);
+        });
+
+        return redirect()->route('employees.index')
+            ->with('msg', 'Funcionário atualizado com sucesso!');
     }
 
     /**

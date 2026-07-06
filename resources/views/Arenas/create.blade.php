@@ -100,6 +100,9 @@
 
                 @include('arenas.partials.payment-methods')
 
+                <hr class="my-4">
+                @include('arenas.partials.cancellation-fee')
+
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('arenas.index') }}"
                        class="btn btn-secondary">

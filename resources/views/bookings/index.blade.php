@@ -85,8 +85,12 @@
                                 {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
                             </td>
                             <td>
-                                @php $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary']; @endphp
-                                <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
+                                @if ($booking->estaEmAndamento())
+                                    <span class="badge text-center" style="min-width: 100px; background:#021B35; color:#fff;">Em andamento</span>
+                                @else
+                                    @php $st = $statusInfo[$booking->status] ?? [$booking->status, 'bg-secondary']; @endphp
+                                    <span class="badge {{ $st[1] }} text-center" style="min-width: 100px;">{{ $st[0] }}</span>
+                                @endif
                             </td>
                             <td>
                                 @include('partials.payment-badge', ['booking' => $booking])

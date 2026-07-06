@@ -8,10 +8,7 @@ use App\Models\Booking;
 use App\Models\Client;
 use App\Models\Court;
 use App\Services\CourtScheduleService;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -45,7 +42,8 @@ class BookingController extends Controller
     }
 
     /**
-     * Próximos agendamentos do cliente (pendentes/confirmados ainda por vir).
+     * Próximos agendamentos do cliente — só os CONFIRMADOS ainda por vir.
+     * Os pendentes ficam na tela "Agendamentos pendentes".
      */
     public function index()
     {
@@ -56,15 +54,16 @@ class BookingController extends Controller
 
         $proximas = $client
             ? Booking::where('client_id', $client->id)
-                ->whereIn('status', ['pending', 'confirmed'])
+                ->where('status', 'confirmed')
                 ->whereDate('date', '>=', now()->toDateString())
-                ->with('court.arena', 'payments')
+                ->with('court.arena', 'payments', 'paymentMethod')
                 ->orderBy('date')->orderBy('start_time')->get()
             : collect();
 
-        $this->prepararTaxasDeCancelamento($proximas);
-
-        return view('client.bookings.index', compact('proximas'));
+        return view('client.bookings.index', [
+            'proximas' => $proximas,
+            'subtitulo' => 'Suas próximas reservas confirmadas',
+        ]);
     }
 
     /**
@@ -80,14 +79,12 @@ class BookingController extends Controller
         $proximas = $client
             ? Booking::where('client_id', $client->id)
                 ->whereDate('date', today())
-                ->whereIn('status', ['pending', 'confirmed'])
+                ->where('status', 'confirmed')
                 ->where('end_time', '>', now()->format('H:i:s'))
-                ->with('court.arena')
+                ->with('court.arena', 'payments', 'paymentMethod')
                 ->orderBy('start_time')
                 ->get()
             : collect();
-
-        $this->prepararTaxasDeCancelamento($proximas);
 
         return view('client.bookings.index', [
             'proximas' => $proximas,
@@ -111,7 +108,7 @@ class BookingController extends Controller
             ? Booking::where('client_id', $client->id)
                 ->whereDate('date', '>=', today())
                 ->where('status', 'pending')
-                ->with('court.arena')
+                ->with('court.arena', 'payments', 'paymentMethod')
                 ->orderBy('date')
                 ->orderBy('start_time')
                 ->get()
@@ -126,36 +123,6 @@ class BookingController extends Controller
     }
 
     /**
-     * Agendamentos futuros do cliente que já foram confirmados.
-     */
-    public function confirmed()
-    {
-        Booking::autoConfirmarExpiradas();
-        Booking::autoCompletarRealizadas();
-
-        $client = Client::where('user_id', auth()->id())->first();
-
-        $proximas = $client
-            ? Booking::where('client_id', $client->id)
-                ->whereDate('date', '>=', today())
-                ->where('status', 'confirmed')
-                ->with('court.arena')
-                ->orderBy('date')
-                ->orderBy('start_time')
-                ->get()
-            : collect();
-
-        $this->prepararTaxasDeCancelamento($proximas);
-
-        return view('client.bookings.index', [
-            'proximas' => $proximas,
-            'titulo' => 'Agendamentos confirmados',
-            'subtitulo' => 'Suas reservas que já foram confirmadas',
-            'mensagemVazia' => 'Você não tem agendamentos confirmados.',
-        ]);
-    }
-
-    /**
      * Formulário para alterar a data e o horário de uma reserva.
      */
     public function edit(Request $request, Booking $booking)
@@ -163,8 +130,8 @@ class BookingController extends Controller
         $this->autorizarClienteDaReserva($booking);
 
         if (! $booking->podeSerEditadaPeloCliente()) {
-            return redirect()->route('client.bookings.index')
-                ->withErrors(['edit' => 'Este agendamento não pode ser editado porque falta menos de 1 hora para o horário reservado.']);
+            return redirect()->route($this->origemAgendamentos($request->input('from')))
+                ->withErrors(['edit' => 'Este agendamento não pode mais ser editado — o prazo de alteração já expirou.']);
         }
 
         $booking->load('court.arena.paymentMethods', 'court.arena.businessHours');
@@ -194,8 +161,8 @@ class BookingController extends Controller
         $this->autorizarClienteDaReserva($booking);
 
         if (! $booking->podeSerEditadaPeloCliente()) {
-            return redirect()->route('client.bookings.index')
-                ->withErrors(['edit' => 'Este agendamento não pode ser editado porque falta menos de 1 hora para o horário reservado.']);
+            return redirect()->route($this->origemAgendamentos($request->input('from')))
+                ->withErrors(['edit' => 'Este agendamento não pode mais ser editado — o prazo de alteração já expirou.']);
         }
 
         $validated = $request->validate([
@@ -241,8 +208,20 @@ class BookingController extends Controller
             'end_time' => $endTime,
         ]);
 
-        return redirect()->route('client.bookings.index')
+        // Volta para a tela de origem (próximos, pendentes ou hoje).
+        return redirect()->route($this->origemAgendamentos($request->input('from')))
             ->with('status', 'Agendamento atualizado com sucesso.');
+    }
+
+    /**
+     * Nome de rota de origem válido (próximos/pendentes/hoje) ou o padrão
+     * (próximos). Usado para o "voltar" da edição respeitar de onde veio.
+     */
+    private function origemAgendamentos(?string $from): string
+    {
+        $validas = ['client.bookings.index', 'client.bookings.pending', 'client.bookings.today'];
+
+        return in_array($from, $validas, true) ? $from : 'client.bookings.index';
     }
 
     /**
@@ -279,29 +258,93 @@ class BookingController extends Controller
             return back()->withErrors(['cancel' => 'Esta reserva não pode mais ser cancelada.']);
         }
 
-        $regras = [
+        $validated = $request->validate([
             'motivo' => ['required', 'string', 'max:255'],
-        ];
-
-        if ($regra === 'taxa') {
-            $regras['pagamento_taxa'] = ['accepted'];
-        }
-
-        $validated = $request->validate($regras, [
+        ], [
             'motivo.required' => 'Informe o motivo do cancelamento.',
-            'pagamento_taxa.accepted' => 'Confirme o pagamento da taxa via PIX para cancelar a reserva.',
         ]);
+
+        // Se há taxa, registra o valor na reserva — ele vira uma cobrança
+        // "a receber" no caixa da arena, até o dono/atendente dar baixa.
+        $taxa = $regra === 'taxa' ? $booking->valorTaxaCancelamento() : null;
 
         $booking->update([
             'status' => 'cancelled',
             'cancelled_by' => auth()->id(),
             'cancelled_at' => now(),
             'cancellation_reason' => $validated['motivo'],
+            'cancellation_fee_amount' => $taxa,
         ]);
 
-        return back()->with('status', $regra === 'taxa'
-            ? 'Pagamento PIX simulado e reserva cancelada com sucesso.'
-            : 'Reserva cancelada.');
+        return back()->with('status', $taxa
+            ? 'Reserva cancelada. Uma taxa de R$ ' . number_format($taxa, 2, ',', '.')
+                . ' será cobrada (ficará a receber no caixa da arena).'
+            : 'Reserva cancelada. Sem taxa.');
+    }
+
+    /**
+     * Tela de pagamento da reserva (só confirmada e não paga). O cliente escolhe
+     * a forma (PIX/cartão simulados ou dinheiro na arena) e confirma.
+     */
+    public function pay(Booking $booking)
+    {
+        $this->autorizarClienteDaReserva($booking);
+        $booking->load('court.arena.paymentMethods', 'paymentMethod', 'payments');
+
+        if ($booking->status !== 'confirmed') {
+            return redirect()->route('client.bookings.index')
+                ->withErrors(['pay' => 'Só é possível pagar reservas confirmadas.']);
+        }
+        if ($booking->isPaga()) {
+            return redirect()->route('client.bookings.index')
+                ->withErrors(['pay' => 'Esta reserva já está paga.']);
+        }
+
+        $formas = $booking->court->arena->paymentMethods->where('active', true);
+
+        return view('client.bookings.pay', compact('booking', 'formas'));
+    }
+
+    /**
+     * Confirma o pagamento (simulado). PIX/cartão -> registra o pagamento
+     * (entra no caixa se aberto, senão fica "a lançar"). Dinheiro -> paga na arena.
+     */
+    public function payConfirm(Request $request, Booking $booking)
+    {
+        $this->autorizarClienteDaReserva($booking);
+        $booking->load('court.arena.paymentMethods', 'payments');
+
+        if ($booking->status !== 'confirmed' || $booking->isPaga()) {
+            return redirect()->route('client.bookings.index')
+                ->withErrors(['pay' => 'Esta reserva não pode ser paga.']);
+        }
+
+        $arena = $booking->court->arena;
+        $tipos = $arena->paymentMethods->pluck('type')->all();
+
+        $validated = $request->validate([
+            'payment_method' => ['required', Rule::in($tipos)],
+        ], [
+            'payment_method.in' => 'Forma de pagamento inválida.',
+        ]);
+
+        $metodo = $arena->paymentMethods->firstWhere('type', $validated['payment_method']);
+
+        // Guarda a forma escolhida na reserva (pode ter trocado aqui).
+        $booking->update(['payment_method_id' => $metodo->id]);
+
+        // Dinheiro: não paga online, acerta na arena.
+        if ($metodo->type === 'cash') {
+            return redirect()->route('client.bookings.index')
+                ->with('status', 'Forma alterada para dinheiro — você paga na arena ao usar o horário.');
+        }
+
+        // PIX/cartão: pagamento simulado -> registra (a integração com o caixa
+        // é interna; o cliente só precisa saber que foi pago).
+        PaymentService::registrar($booking, $metodo, (float) $booking->total_amount, 'online');
+
+        return redirect()->route('client.bookings.index')
+            ->with('status', 'Pagamento confirmado! Sua reserva está paga. ✅');
     }
 
     /**
@@ -333,8 +376,8 @@ class BookingController extends Controller
             ['date_of_birth' => null]
         );
 
-        $pagamento = $arena->paymentMethods->firstWhere('type', $validated['payment_method'])?->label
-            ?? $validated['payment_method'];
+        $metodo = $arena->paymentMethods->firstWhere('type', $validated['payment_method']);
+        $pagamento = $metodo?->label ?? $validated['payment_method'];
 
         foreach ($validated['horarios'] as $horario) {
             [$startTime, $endTime] = explode('-', $horario);
@@ -360,6 +403,7 @@ class BookingController extends Controller
                 'start_time' => $startTime,
                 'end_time' => $endTime,
                 'total_amount' => $court->hourly_rate,
+                'payment_method_id' => $metodo?->id,
                 'status' => 'pending',
                 'notes' => 'Responsável: ' . $user->name
                     . ' | Telefone: ' . ($user->phone ?: '—')
@@ -386,34 +430,6 @@ class BookingController extends Controller
 
         if (! $client || $booking->client_id !== $client->id) {
             abort(403);
-        }
-    }
-
-    private function prepararTaxasDeCancelamento($bookings): void
-    {
-        $renderer = new ImageRenderer(
-            new RendererStyle(220, 1),
-            new SvgImageBackEnd()
-        );
-        $writer = new Writer($renderer);
-
-        foreach ($bookings as $booking) {
-            if ($booking->regraCancelamentoCliente() !== 'taxa') {
-                continue;
-            }
-
-            $valor = $booking->valorTaxaCancelamento();
-            $conteudo = implode('|', [
-                'PIX-SIMULACAO',
-                'RESERVA-' . $booking->id,
-                number_format($valor, 2, '.', ''),
-                $booking->court->arena->name ?? 'ARENA',
-            ]);
-
-            $booking->taxa_cancelamento_percentual = $booking->percentualTaxaCancelamento();
-            $booking->taxa_cancelamento_valor = $valor;
-            $booking->taxa_cancelamento_qrcode = 'data:image/svg+xml;base64,'
-                . base64_encode($writer->writeString($conteudo));
         }
     }
 }
