@@ -15,7 +15,7 @@
         <div class="col-12 col-md-6">
             <div class="input-group arena-search-box shadow-sm">
                 <input type="search" class="form-control"
-                       placeholder="Empresa, proprietário, CPF/CNPJ, e-mail ou telefone"
+                       placeholder="Pesquise por empresa ou proprietário"
                        aria-label="Pesquisar empresa"
                        data-owner-search-input>
                 <span class="input-group-text bg-white border-0">
@@ -30,147 +30,62 @@
             <div class="col-6 col-lg-3 owner-card-shell"
                  data-owner-card
                  data-owner-search="{{ $proprietario->company_name }} {{ $proprietario->user?->name }} {{ $proprietario->tax_id }} {{ $proprietario->user?->email }} {{ $proprietario->user?->phone }}">
-                <div class="dashboard-box p-3 d-flex flex-column owner-system-card">
+                <div class="dashboard-box p-3 d-flex flex-column h-100 owner-system-card">
                     <span class="badge bg-danger text-white align-self-start mb-2 px-2 py-0 fw-normal">Empresa</span>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
-                            <div>
-                                <h2 class="h5 fw-bold mb-1">{{ $proprietario->company_name }}</h2>
-                                <span class="badge fw-normal {{ $proprietario->active ? 'bg-success' : 'bg-warning text-dark' }}"
-                                      data-owner-status>
-                                    {{ $proprietario->active ? 'Ativa' : 'Desativada' }}
-                                </span>
-                            </div>
-                            <button type="button"
-                                    class="btn btn-sm border-0 p-0 fs-4 lh-1 owner-corner-toggle"
-                                    data-owner-details-toggle="ownerDetails-{{ $proprietario->getKey() }}"
-                                    aria-controls="ownerDetails-{{ $proprietario->getKey() }}"
-                                    aria-expanded="false"
-                                    aria-label="Mostrar detalhes">
-                                <span aria-hidden="true">⌃</span>
-                            </button>
-                        </div>
 
-                        <div>
+                    <div class="mb-3">
+                        <h2 class="h5 fw-bold mb-1">{{ $proprietario->company_name }}</h2>
+                        <span class="badge fw-normal {{ $proprietario->active ? 'bg-success' : 'bg-warning text-dark' }}"
+                              data-owner-status>
+                            {{ $proprietario->active ? 'Ativa' : 'Desativada' }}
+                        </span>
+
+                        <div class="mt-2">
                             <span class="small text-dark fw-bold">Proprietário</span><br>
                             <span>{{ $proprietario->user?->name ?? '—' }}</span>
                         </div>
                     </div>
 
-                    <div class="collapse mb-3" id="ownerDetails-{{ $proprietario->getKey() }}">
-                        <div class="border-top pt-3">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <span class="small text-dark fw-bold">CPF/CNPJ</span><br>
-                                    <span>{{ $proprietario->tax_id }}</span>
-                                </div>
-                                <div class="col-12">
-                                    <span class="small text-dark fw-bold">E-mail</span><br>
-                                    <span class="text-break">{{ $proprietario->user?->email ?? '—' }}</span>
-                                </div>
-                                <div class="col-12">
-                                    <span class="small text-dark fw-bold">Telefone</span><br>
-                                    <span class="text-break">{{ $proprietario->user?->phone ?: '—' }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Arenas</span><br>
-                                    <span>{{ $proprietario->arenas_count }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Arenas ativas</span><br>
-                                    <span>{{ $proprietario->arenas_ativas_count }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Quadras</span><br>
-                                    <span>{{ $proprietario->quadras_count }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Funcionários</span><br>
-                                    <span>{{ $proprietario->funcionarios_count }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Cadastro</span><br>
-                                    <span>{{ optional($proprietario->created_at)->format('d/m/Y') ?? '—' }}</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="small text-dark fw-bold">Última atualização</span><br>
-                                    <span>{{ optional($proprietario->updated_at)->format('d/m/Y H:i') ?? '—' }}</span>
-                                </div>
-                                <div class="col-12">
-                                    <span class="small text-dark fw-bold">Política de Privacidade e Termos</span><br>
-                                    @if ($proprietario->user?->terms_accepted_at)
-                                        <span>Aceitos</span>
-                                        <div class="small text-muted">
-                                            {{ $proprietario->user->terms_accepted_at->format('d/m/Y H:i') }}
-                                        </div>
-                                    @else
-                                        <span class="text-muted">Aceite não registrado</span>
-                                    @endif
-                                </div>
-                                @if (! $proprietario->active)
-                                    <div class="col-12">
-                                        <span class="small text-dark fw-bold">Desativada por</span><br>
-                                        <span>
-                                            {{ $proprietario->deactivation_source === 'admin'
-                                                ? 'Administrador do sistema'
-                                                : 'Própria empresa' }}
-                                        </span>
-                                        @if ($proprietario->deactivated_at)
-                                            <div class="small text-muted">
-                                                {{ $proprietario->deactivated_at->format('d/m/Y H:i') }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
-                            </div>
+                    <div class="mt-auto d-grid gap-2">
+                        <a href="{{ route('admin.owners.show', $proprietario) }}"
+                           class="btn btn-primary btn-sm">
+                            Ver detalhes
+                        </a>
 
-                            <div class="d-flex gap-2 mt-3">
-                                <a href="{{ route('admin.owners.show', $proprietario) }}"
-                                   class="btn btn-outline-primary btn-sm flex-fill">
-                                    Ver empresa
-                                </a>
-
-                                @if ($proprietario->active)
-                                    <form method="POST" action="{{ route('admin.owners.deactivate', $proprietario) }}"
-                                          class="flex-fill"
-                                          data-owner-toggle-form
-                                          data-active="1"
-                                          data-activate-url="{{ route('admin.owners.activate', $proprietario) }}"
-                                          data-deactivate-url="{{ route('admin.owners.deactivate', $proprietario) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button class="btn btn-outline-warning btn-sm w-100">Desativar</button>
-                                    </form>
-                                @else
-                                    <form method="POST" action="{{ route('admin.owners.activate', $proprietario) }}"
-                                          class="flex-fill"
-                                          data-owner-toggle-form
-                                          data-active="0"
-                                          data-activate-url="{{ route('admin.owners.activate', $proprietario) }}"
-                                          data-deactivate-url="{{ route('admin.owners.deactivate', $proprietario) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button class="btn btn-outline-success btn-sm w-100">Ativar</button>
-                                    </form>
-                                @endif
-
-                                <form method="POST" action="{{ route('admin.owners.destroy', $proprietario) }}"
+                        <div class="d-flex gap-2">
+                            @if ($proprietario->active)
+                                <form method="POST" action="{{ route('admin.owners.deactivate', $proprietario) }}"
                                       class="flex-fill"
-                                      data-owner-delete-form>
+                                      data-owner-toggle-form
+                                      data-active="1"
+                                      data-activate-url="{{ route('admin.owners.activate', $proprietario) }}"
+                                      data-deactivate-url="{{ route('admin.owners.deactivate', $proprietario) }}">
                                     @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-outline-danger btn-sm w-100">Excluir</button>
+                                    @method('PATCH')
+                                    <button class="btn btn-warning btn-sm w-100">Desativar</button>
                                 </form>
-                            </div>
+                            @else
+                                <form method="POST" action="{{ route('admin.owners.activate', $proprietario) }}"
+                                      class="flex-fill"
+                                      data-owner-toggle-form
+                                      data-active="0"
+                                      data-activate-url="{{ route('admin.owners.activate', $proprietario) }}"
+                                      data-deactivate-url="{{ route('admin.owners.deactivate', $proprietario) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button class="btn btn-success btn-sm w-100">Ativar</button>
+                                </form>
+                            @endif
+
+                            <form method="POST" action="{{ route('admin.owners.destroy', $proprietario) }}"
+                                  class="flex-fill"
+                                  data-owner-delete-form>
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-danger btn-sm w-100">Excluir</button>
+                            </form>
                         </div>
                     </div>
-
-                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-auto"
-                            data-owner-details-toggle="ownerDetails-{{ $proprietario->getKey() }}"
-                            aria-controls="ownerDetails-{{ $proprietario->getKey() }}"
-                            aria-expanded="false">
-                        Ver detalhes
-                    </button>
                 </div>
             </div>
         @empty
@@ -184,8 +99,6 @@
         </div>
     </div>
 </div>
-
-<div class="owner-details-backdrop" data-owner-details-backdrop aria-hidden="true"></div>
 
 <div class="modal fade" id="ownerActionConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -207,38 +120,8 @@
      style="top: 82px; z-index: 1060; max-width: 680px;"
      data-owner-feedback></div>
 
-<style>
-    .owner-corner-toggle {
-        color: #021b35;
-        min-width: 1.5rem;
-    }
-
-    .owner-card-shell.is-open {
-        position: relative;
-        z-index: 1015;
-    }
-
-    .owner-card-shell.is-open .owner-system-card {
-        box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .35);
-    }
-
-    .owner-details-backdrop {
-        display: none;
-        position: fixed;
-        z-index: 1010;
-        inset: 0;
-        background: rgba(2, 27, 53, .68);
-    }
-
-    .owner-details-backdrop.is-visible {
-        display: block;
-    }
-</style>
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const backdrop = document.querySelector('[data-owner-details-backdrop]');
-        const toggles = document.querySelectorAll('[data-owner-details-toggle]');
         const feedback = document.querySelector('[data-owner-feedback]');
         const searchInput = document.querySelector('[data-owner-search-input]');
         const ownerCards = document.querySelectorAll('[data-owner-card]');
@@ -248,8 +131,6 @@
         const confirmTitle = confirmModalElement.querySelector('[data-owner-confirm-title]');
         const confirmMessage = confirmModalElement.querySelector('[data-owner-confirm-message]');
         const confirmButton = confirmModalElement.querySelector('[data-owner-confirm-action]');
-        let activeDetails = null;
-        let activeShell = null;
 
         function normalizeSearch(value) {
             return (value || '')
@@ -317,89 +198,6 @@
             }
         }
 
-        function updateButtons(detailsId, opened) {
-            document.querySelectorAll(`[data-owner-details-toggle="${detailsId}"]`).forEach(function (button) {
-                button.setAttribute('aria-expanded', opened ? 'true' : 'false');
-
-                if (button.classList.contains('owner-corner-toggle')) {
-                    button.querySelector('span').textContent = opened ? '⌄' : '⌃';
-                    button.setAttribute('aria-label', opened ? 'Fechar detalhes' : 'Mostrar detalhes');
-                } else {
-                    button.textContent = opened ? 'Fechar detalhes' : 'Ver detalhes';
-                }
-            });
-        }
-
-        function clearActive(details, shell) {
-            shell?.classList.remove('is-open');
-
-            if (details) {
-                updateButtons(details.id, false);
-            }
-
-            backdrop.classList.remove('is-visible');
-            backdrop.setAttribute('aria-hidden', 'true');
-        }
-
-        function closeActive() {
-            if (activeDetails) {
-                bootstrap.Collapse.getOrCreateInstance(activeDetails, { toggle: false }).hide();
-            }
-        }
-
-        function openDetails(details, shell) {
-            if (activeDetails && activeDetails !== details) {
-                const previousDetails = activeDetails;
-                const previousShell = activeShell;
-
-                activeDetails = null;
-                activeShell = null;
-                bootstrap.Collapse.getOrCreateInstance(previousDetails, { toggle: false }).hide();
-                clearActive(previousDetails, previousShell);
-            }
-
-            activeDetails = details;
-            activeShell = shell;
-            shell.classList.add('is-open');
-            backdrop.classList.add('is-visible');
-            backdrop.setAttribute('aria-hidden', 'false');
-            updateButtons(details.id, true);
-            bootstrap.Collapse.getOrCreateInstance(details, { toggle: false }).show();
-        }
-
-        toggles.forEach(function (button) {
-            button.addEventListener('click', function () {
-                const details = document.getElementById(button.dataset.ownerDetailsToggle);
-
-                if (!details) {
-                    return;
-                }
-
-                const shell = button.closest('.owner-card-shell');
-
-                if (activeDetails === details) {
-                    closeActive();
-                } else {
-                    openDetails(details, shell);
-                }
-            });
-        });
-
-        document.querySelectorAll('.owner-card-shell .collapse').forEach(function (details) {
-            details.addEventListener('hidden.bs.collapse', function () {
-                const shell = details.closest('.owner-card-shell');
-
-                if (activeDetails === details) {
-                    clearActive(details, shell);
-                    activeDetails = null;
-                    activeShell = null;
-                } else {
-                    shell.classList.remove('is-open');
-                    updateButtons(details.id, false);
-                }
-            });
-        });
-
         document.querySelectorAll('[data-owner-toggle-form]').forEach(function (form) {
             form.addEventListener('submit', async function (event) {
                 event.preventDefault();
@@ -448,7 +246,7 @@
                     form.dataset.active = nowActive ? '1' : '0';
                     form.action = nowActive ? form.dataset.deactivateUrl : form.dataset.activateUrl;
                     button.textContent = nowActive ? 'Desativar' : 'Ativar';
-                    button.className = `btn btn-sm w-100 ${nowActive ? 'btn-outline-warning' : 'btn-outline-success'}`;
+                    button.className = `btn btn-sm w-100 ${nowActive ? 'btn-warning' : 'btn-success'}`;
                     showFeedback(`Empresa ${nowActive ? 'ativada' : 'desativada'} com sucesso.`);
                 } catch (error) {
                     showFeedback(error.message, 'danger');
@@ -485,16 +283,7 @@
                 try {
                     await sendForm(form);
 
-                    const shell = form.closest('.owner-card-shell');
-                    const details = shell.querySelector('.collapse');
-
-                    if (activeShell === shell) {
-                        clearActive(details, shell);
-                        activeDetails = null;
-                        activeShell = null;
-                    }
-
-                    shell.remove();
+                    form.closest('.owner-card-shell').remove();
                     showFeedback('Empresa excluída com sucesso.');
                 } catch (error) {
                     button.disabled = false;
@@ -507,8 +296,6 @@
             const term = normalizeSearch(searchInput.value);
             let visibleCards = 0;
 
-            closeActive();
-
             ownerCards.forEach(function (card) {
                 const matches = normalizeSearch(card.dataset.ownerSearch).includes(term);
                 card.classList.toggle('d-none', !matches);
@@ -519,14 +306,6 @@
             });
 
             noResults.classList.toggle('d-none', visibleCards > 0);
-        });
-
-        backdrop.addEventListener('click', closeActive);
-
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                closeActive();
-            }
         });
     });
 </script>

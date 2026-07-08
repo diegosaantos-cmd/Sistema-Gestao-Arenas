@@ -94,19 +94,26 @@
                                 </li>
                             @endif
 
-                            @if (auth()->user()->type === 'client')
+                            <li class="nav-item">
+                                <a class="nav-link position-relative" href="{{ route('notifications.index') }}"
+                                   title="Notificações">
+                                    <i class="bi bi-bell-fill fs-5"></i>
+                                    @if (($notifUnreadCount ?? 0) > 0)
+                                        <span class="position-absolute badge rounded-pill bg-danger"
+                                              style="top: 0; left: 100%; transform: translate(-80%, 0);
+                                                     font-size: .55rem; padding: .2em .45em; line-height: 1;">
+                                            {{ $notifUnreadCount > 99 ? '99+' : $notifUnreadCount }}
+                                            <span class="visually-hidden">mensagens não lidas</span>
+                                        </span>
+                                    @endif
+                                </a>
+                            </li>
+
+                            @if (auth()->user()->type !== 'admin')
                                 <li class="nav-item">
-                                    <a class="nav-link position-relative" href="{{ route('notifications.index') }}"
-                                       title="Notificações">
-                                        <i class="bi bi-bell-fill fs-5"></i>
-                                        @if (($notifUnreadCount ?? 0) > 0)
-                                            <span class="position-absolute badge rounded-pill bg-danger"
-                                                  style="top: 0; left: 100%; transform: translate(-80%, 0);
-                                                         font-size: .55rem; padding: .2em .45em; line-height: 1;">
-                                                {{ $notifUnreadCount > 99 ? '99+' : $notifUnreadCount }}
-                                                <span class="visually-hidden">mensagens não lidas</span>
-                                            </span>
-                                        @endif
+                                    <a class="nav-link" href="{{ route('feedback.create') }}" title="Sugestões e bugs">
+                                        <i class="bi bi-chat-left-dots"></i>
+                                        SUGESTÕES
                                     </a>
                                 </li>
                             @endif

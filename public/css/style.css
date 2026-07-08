@@ -14,14 +14,14 @@
     letter-spacing: 1px;
 }
 
-.nav-link{
+.custom-navbar .nav-link{
     color: white !important;
     font-size: 1.2rem;
     font-weight: 500;
     transition: 0.3s;
 }
 
-.nav-link:hover{
+.custom-navbar .nav-link:hover{
     color: #f6c026 !important;
 }
 
@@ -346,4 +346,44 @@ body{
 .card-hover:hover{
     transform: translateY(-4px);
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}
+
+/* ===== Responsividade (tablet e celular) =====
+   O layout usava tamanhos fixos grandes sem media queries; aqui os
+   componentes de dashboard encolhem conforme a tela para não vazar. */
+
+/* Notebook pequeno / tablet em paisagem */
+@media (max-width: 991.98px){
+    .dashboard-title{ font-size: 2.2rem; }
+    .dashboard-subtitle{ font-size: 1.1rem; }
+    .section-title{ font-size: 1.6rem; }
+    .dashboard-card{ padding: 20px; }
+    .dashboard-card h2{ font-size: 2rem; }
+    .dashboard-icon{ font-size: 2.2rem; }
+    .dashboard-box{ padding: 24px; }
+}
+
+/* Tablet em retrato / celular grande */
+@media (max-width: 767.98px){
+    .dashboard-title{ font-size: 1.7rem; }
+    .dashboard-subtitle{ font-size: 1rem; }
+    .section-title{ font-size: 1.35rem; }
+    .dashboard-card{ padding: 16px; border-radius: 14px; }
+    .dashboard-card h5{ font-size: .9rem; }
+    .dashboard-card h2{ font-size: 1.6rem; }
+    .dashboard-icon{ font-size: 1.8rem; }
+    .dashboard-box{ padding: 18px; border-radius: 14px; }
+    .custom-navbar .nav-link{ font-size: 1.05rem; }
+    .logo{ font-size: 1.4rem; }
+}
+
+/* Celular pequeno */
+@media (max-width: 575.98px){
+    .dashboard-title{ font-size: 1.45rem; }
+    .dashboard-subtitle{ font-size: .95rem; }
+    .dashboard-card{ padding: 14px; }
+    .dashboard-card h2{ font-size: 1.4rem; }
+    /* o ícone grande aperta o texto em telas muito estreitas */
+    .dashboard-icon{ display: none; }
+    .dashboard-box{ padding: 14px; }
 }

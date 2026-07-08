@@ -347,7 +347,7 @@ class Booking extends Model
 
     public function notificarClienteConfirmada(?int $sentBy = null): void
     {
-        ClientNotification::paraReserva(
+        UserNotification::paraReserva(
             $this,
             'Reserva confirmada',
             'Sua reserva foi confirmada: ' . $this->descricaoCurta() . '.',
@@ -362,12 +362,12 @@ class Booking extends Model
             $texto .= ' Motivo: ' . $motivo;
         }
 
-        ClientNotification::paraReserva($this, 'Reserva cancelada', $texto, $sentBy);
+        UserNotification::paraReserva($this, 'Reserva cancelada', $texto, $sentBy);
     }
 
     public function notificarClienteReagendada(?int $sentBy = null): void
     {
-        ClientNotification::paraReserva(
+        UserNotification::paraReserva(
             $this,
             'Reserva reagendada',
             'Sua reserva foi reagendada pela arena para: ' . $this->descricaoCurta() . '.',
@@ -377,7 +377,7 @@ class Booking extends Model
 
     public function notificarClienteNaoPaga(?int $sentBy = null): void
     {
-        ClientNotification::paraReserva(
+        UserNotification::paraReserva(
             $this,
             'Reserva não paga',
             'A reserva ' . $this->descricaoCurta() . ' foi realizada e está sem pagamento. '

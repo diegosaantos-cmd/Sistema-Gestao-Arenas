@@ -10,7 +10,6 @@
             ← Voltar às empresas
         </a>
         <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
-            @include('admin.owners._company-switcher')
             @if ($owner->active)
                 <button type="button" class="btn btn-warning btn-sm"
                         data-bs-toggle="modal" data-bs-target="#modalDesativarEmpresa">
@@ -33,7 +32,8 @@
     </div>
 
     <div class="mb-4">
-        <h1 class="dashboard-title mb-1">Empresa {{ $owner->company_name }}</h1>
+        <div class="text-muted text-uppercase fw-semibold small mb-1" style="letter-spacing:.05em;">Empresa</div>
+        <h1 class="dashboard-title mb-1">{{ $owner->company_name }}</h1>
         <div class="d-flex flex-wrap align-items-center gap-2">
             @if ($owner->active)
                 <span class="badge bg-success">Empresa ativa</span>
@@ -70,15 +70,15 @@
         </div>
 
         <div class="col-6 col-lg-4">
-            <button type="button" class="dashboard-card h-100 w-100 border-0 text-start"
-                    data-bs-toggle="modal" data-bs-target="#modalClientesEmpresa">
+            <a href="{{ route('admin.owners.clients.page', $owner) }}"
+               class="dashboard-card h-100 w-100 border-0 text-start text-decoration-none text-reset">
                 <div>
                     <h5 class="fw-bold text-dark">Clientes</h5>
                     <h2>{{ $clientesEmpresa->total() }}</h2>
                     <small class="text-muted">Com reservas nas arenas</small>
                 </div>
                 <i class="bi bi-people dashboard-icon text-primary"></i>
-            </button>
+            </a>
         </div>
 
         <div class="col-6 col-lg-4">
@@ -117,6 +117,7 @@
             </button>
         </div>
     </div>
+
 </div>
 
 <div class="modal fade" id="modalPerfilEmpresa" tabindex="-1" aria-hidden="true">
@@ -322,8 +323,7 @@
 </div>
 
 <div class="modal fade" id="modalFuncionariosEmpresa" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"
-         style="max-width: 420px;">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
         <div class="modal-content">
             <div class="modal-header">
                 <div><h5 class="modal-title">Funcionários da empresa</h5><small class="text-muted">{{ $owner->company_name }}</small></div>
@@ -333,8 +333,7 @@
                 <div class="row g-3">
                     @forelse ($arenas->flatMap->employees->sortBy(fn ($employee) => $employee->user?->name) as $employee)
                         <div class="col-12">
-                        <div class="border rounded p-3 h-100 overflow-hidden">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div class="border rounded p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                                 <div>
                                     <h6 class="fw-bold mb-1">{{ $employee->user?->name ?? 'Funcionário sem usuário' }}</h6>
                                     <div class="small">
@@ -343,61 +342,18 @@
                                         {{ $employee->arena?->name ?? 'Arena não informada' }}
                                     </div>
                                 </div>
-                                <button type="button"
-                                        class="btn btn-outline-primary btn-sm"
-                                        data-bs-toggle="collapse"
-                                        data-bs-target="#detalhesFuncionarioEmpresa{{ $employee->id }}"
-                                        aria-expanded="false">
-                                    <i class="bi bi-eye me-1"></i> Ver detalhes
-                                </button>
-                            </div>
-
-                            <div class="collapse mt-3 w-100" id="detalhesFuncionarioEmpresa{{ $employee->id }}">
-                                <div class="border-top pt-3">
-                                    <div class="row g-3">
-                                        @if ($employee->user?->email)
-                                            <div class="col-12">
-                                                <span class="small text-muted">E-mail</span><br>
-                                                <strong class="text-break">{{ $employee->user->email }}</strong>
-                                            </div>
-                                        @endif
-                                        @if ($employee->user?->phone)
-                                            <div class="col-md-6"><span class="small text-muted">Telefone</span><br><strong>{{ $employee->user->phone }}</strong></div>
-                                        @endif
-                                        <div class="col-md-6"><span class="small text-muted">Cargo</span><br><strong>{{ $employee->position }}</strong></div>
-                                        <div class="col-md-6"><span class="small text-muted">Arena</span><br><strong>{{ $employee->arena?->name ?? '—' }}</strong></div>
-                                        <div class="col-md-6">
-                                            <span class="small text-muted">Nível de acesso</span><br>
-                                            <strong>{{ $employee->access_level === 'managerial' ? 'Gerencial' : 'Básico' }}</strong>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <span class="small text-muted">Situação</span><br>
-                                            <span class="badge {{ $employee->active ? 'bg-success' : 'bg-secondary' }}">
-                                                {{ $employee->active ? 'Ativo' : 'Inativo' }}
-                                            </span>
-                                        </div>
-                                        @if ($employee->created_at)
-                                            <div class="col-md-6"><span class="small text-muted">Cadastrado em</span><br><strong>{{ $employee->created_at->format('d/m/Y H:i') }}</strong></div>
-                                        @endif
-                                        @if ($employee->updated_at)
-                                            <div class="col-md-6"><span class="small text-muted">Última atualização</span><br><strong>{{ $employee->updated_at->format('d/m/Y H:i') }}</strong></div>
-                                        @endif
-                                        @if ($employee->createdBy?->name)
-                                            <div class="col-md-6"><span class="small text-muted">Cadastrado por</span><br><strong>{{ $employee->createdBy->name }}</strong></div>
-                                        @endif
-                                        @if ($employee->arena)
-                                            <div class="col-12 text-end">
-                                                <button type="button" class="btn btn-outline-danger btn-sm"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#modalExcluirFuncionarioEmpresa{{ $employee->id }}">
-                                                    <i class="bi bi-trash me-1"></i> Excluir
-                                                </button>
-                                            </div>
-                                        @endif
-                                    </div>
+                                <div class="d-flex gap-1">
+                                    @if ($employee->user)
+                                        <a href="{{ route('admin.users.show', $employee->user) }}" class="btn btn-primary btn-sm">Ver detalhes</a>
+                                    @endif
+                                    @if ($employee->arena)
+                                        <button type="button" class="btn btn-danger btn-sm"
+                                                data-bs-toggle="modal" data-bs-target="#modalExcluirFuncionarioEmpresa{{ $employee->id }}">
+                                            <i class="bi bi-trash me-1"></i> Excluir
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
-                        </div>
                         </div>
                     @empty
                         <div class="col-12 text-center text-muted py-4">Nenhum funcionário cadastrado.</div>

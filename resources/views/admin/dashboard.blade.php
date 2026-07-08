@@ -21,7 +21,11 @@
                             <span class="text-muted small">Visualizar</span>
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['proprietarios'] }}</h1>
-                        <div class="small text-muted">Empresas e proprietários</div>
+                        <div class="small text-muted">Empresas e proprietários cadastrados</div>
+                        <div class="small mt-1">
+                            <span class="text-success">{{ $resumo['proprietarios_ativos'] }} ativas</span>
+                            · <span class="text-muted">{{ $resumo['proprietarios_inativos'] }} inativas</span>
+                        </div>
                     </div>
                 </div>
             </a>
@@ -36,7 +40,11 @@
                             <span class="text-muted small">Visualizar</span>
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['arenas'] }}</h1>
-                        <div class="small text-muted">{{ $resumo['arenas_ativas'] }} ativas</div>
+                        <div class="small text-muted">Arenas cadastradas</div>
+                        <div class="small mt-1">
+                            <span class="text-success">{{ $resumo['arenas_ativas'] }} ativas</span>
+                            · <span class="text-muted">{{ $resumo['arenas_inativas'] }} inativas</span>
+                        </div>
                     </div>
                 </div>
             </a>
@@ -52,6 +60,10 @@
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['quadras'] }}</h1>
                         <div class="small text-muted">Em todas as arenas</div>
+                        <div class="small mt-1">
+                            <span class="text-success">{{ $resumo['quadras_ativas'] }} ativas</span>
+                            · <span class="text-muted">{{ $resumo['quadras_inativas'] }} inativas</span>
+                        </div>
                     </div>
                 </div>
             </a>
@@ -66,7 +78,11 @@
                             <span class="text-muted small">Visualizar</span>
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['clientes'] }}</h1>
-                        <div class="small text-muted">Clientes do sistema</div>
+                        <div class="small text-muted">Clientes cadastrados</div>
+                        <div class="small mt-1">
+                            <span class="text-success">{{ $resumo['clientes_ativos'] }} ativos</span>
+                            · <span class="text-muted">{{ $resumo['clientes_inativos'] }} inativos</span>
+                        </div>
                     </div>
                 </div>
             </a>
@@ -76,7 +92,26 @@
     <div class="row g-4 mt-1 align-items-start">
         <div class="col-lg-8">
             <div class="row g-4">
-                <div class="col-6">
+                <div class="col-md-4">
+                    <a href="{{ route('admin.system.users') }}" class="text-decoration-none text-reset">
+                        <div class="card shadow-sm border-0 h-100 card-hover">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h4 class="text-secondary">Total de usuários</h4>
+                                    <span class="text-muted small">Visualizar</span>
+                                </div>
+                                <h1 class="fw-bold mb-1">{{ $resumo['usuarios'] }}</h1>
+                                <div class="small text-muted">Clientes, funcionários e proprietários</div>
+                                <div class="small mt-1">
+                                    <span class="text-success">{{ $resumo['usuarios_ativos'] }} ativos</span>
+                                    · <span class="text-muted">{{ $resumo['usuarios_inativos'] }} inativos</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-4">
                     <a href="{{ route('admin.system.employees') }}" class="text-decoration-none text-reset">
                         <div class="card shadow-sm border-0 h-100 card-hover">
                             <div class="card-body">
@@ -85,13 +120,17 @@
                                     <span class="text-muted small">Visualizar</span>
                                 </div>
                                 <h1 class="fw-bold mb-1">{{ $resumo['funcionarios'] }}</h1>
-                                <div class="small text-muted">Equipe do sistema</div>
+                                <div class="small text-muted">Funcionários cadastrados nas arenas</div>
+                                <div class="small mt-1">
+                                    <span class="text-success">{{ $resumo['funcionarios_ativos'] }} ativos</span>
+                                    · <span class="text-muted">{{ $resumo['funcionarios_inativos'] }} inativos</span>
+                                </div>
                             </div>
                         </div>
                     </a>
                 </div>
 
-                <div class="col-6">
+                <div class="col-md-4">
                     <a href="{{ route('admin.system.administrators') }}" class="text-decoration-none text-reset">
                         <div class="card shadow-sm border-0 h-100 card-hover">
                             <div class="card-body">
@@ -126,26 +165,11 @@
                     Novo admin
                 </button>
             </div>
-            <div class="col-6 quick-action-cell">
-                <button type="button" class="btn btn-outline-dark btn-lg w-100"
-                        data-quick-search="empresa" data-search-title="Pesquisar empresas">
-                    <i class="bi bi-search me-1"></i>
-                    Empresas
-                </button>
-            </div>
-            <div class="col-6 quick-action-cell">
-                <button type="button" class="btn btn-outline-dark btn-lg w-100"
-                        data-quick-search="arena" data-search-title="Pesquisar arenas">
-                    <i class="bi bi-search me-1"></i>
-                    Arenas
-                </button>
-            </div>
-            <div class="col-6 quick-action-cell">
-                <button type="button" class="btn btn-outline-dark btn-lg w-100"
-                        data-quick-search="usuario" data-search-title="Pesquisar usuários">
-                    <i class="bi bi-search me-1"></i>
-                    Usuários
-                </button>
+            <div class="col-12 quick-action-cell">
+                <a href="{{ route('admin.feedbacks') }}" class="btn btn-outline-dark btn-lg w-100">
+                    <i class="bi bi-chat-left-dots me-1"></i>
+                    Sugestões e bugs
+                </a>
             </div>
                 </div>
             </div>

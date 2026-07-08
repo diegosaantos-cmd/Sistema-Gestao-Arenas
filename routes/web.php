@@ -6,6 +6,7 @@ use App\Http\Controllers\QuadraController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientNotificationController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Client\ArenaController as ClientArenaController;
 use App\Http\Controllers\Client\BookingController as ClientBookingController;
@@ -77,6 +78,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('admin.system.clients');
     Route::get('/admin/clientes/carregar', [AdminDashboardController::class, 'systemClientsData'])
         ->name('admin.system.clients.data');
+    Route::get('/admin/usuarios', [AdminDashboardController::class, 'usuarios'])
+        ->name('admin.system.users');
+    Route::get('/admin/usuarios/{user}', [AdminDashboardController::class, 'showUser'])
+        ->name('admin.users.show');
+    Route::get('/admin/feedbacks', [FeedbackController::class, 'index'])
+        ->name('admin.feedbacks');
+    Route::patch('/admin/feedbacks/{feedback}/status', [FeedbackController::class, 'updateStatus'])
+        ->name('admin.feedbacks.status');
     Route::patch('/admin/usuarios/{user}/bloquear', [AdminDashboardController::class, 'blockUser'])
         ->name('admin.users.block');
     Route::patch('/admin/usuarios/{user}/desbloquear', [AdminDashboardController::class, 'unblockUser'])
@@ -89,6 +98,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('admin.owners.show');
     Route::get('/admin/proprietarios/{owner}/clientes', [AdminDashboardController::class, 'ownerClients'])
         ->name('admin.owners.clients');
+    Route::get('/admin/proprietarios/{owner}/lista-clientes', [AdminDashboardController::class, 'ownerClientsPage'])
+        ->name('admin.owners.clients.page');
     Route::patch('/admin/proprietarios/{owner}/desativar', [AdminDashboardController::class, 'deactivateOwner'])
         ->name('admin.owners.deactivate');
     Route::patch('/admin/proprietarios/{owner}/ativar', [AdminDashboardController::class, 'activateOwner'])
@@ -99,6 +110,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('admin.arenas.show');
     Route::get('/admin/arenas/{arena}/clientes', [AdminDashboardController::class, 'arenaClients'])
         ->name('admin.arenas.clients');
+    Route::get('/admin/arenas/{arena}/lista-clientes', [AdminDashboardController::class, 'arenaClientsPage'])
+        ->name('admin.arenas.clients.page');
+    Route::get('/admin/arenas/{arena}/reservas', [AdminDashboardController::class, 'arenaReservasPage'])
+        ->name('admin.arenas.reservas');
     Route::patch('/admin/arenas/{arena}/desativar', [AdminDashboardController::class, 'deactivateArena'])
         ->name('admin.arenas.deactivate');
     Route::patch('/admin/arenas/{arena}/ativar', [AdminDashboardController::class, 'activateArena'])
@@ -394,6 +409,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('notifications.readAll');
     Route::get('/notificacoes/{notification}', [ClientNotificationController::class, 'show'])
         ->name('notifications.show');
+
+    // Sugestões e reporte de bugs (qualquer usuário logado envia).
+    Route::get('/sugestoes', [FeedbackController::class, 'create'])
+        ->name('feedback.create');
+    Route::post('/sugestoes', [FeedbackController::class, 'store'])
+        ->name('feedback.store');
 
     // Detalhes completos de uma reserva (cliente dono, dono da arena ou funcionário).
     Route::get('/reservas/{booking}/detalhes', [BookingDetailController::class, 'show'])

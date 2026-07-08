@@ -1,5 +1,5 @@
 <div class="dashboard-box p-0 overflow-hidden">
-    <div class="table-responsive" style="max-height: 55vh; overflow-y: auto;">
+    <div class="table-responsive">
         <table class="table table-hover align-middle mb-0 admin-sticky-table">
             <thead class="table-light sticky-top">
                 <tr>

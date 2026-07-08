@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ClientNotification extends Model
+class UserNotification extends Model
 {
-    protected $table = 'client_notifications';
+    protected $table = 'user_notifications';
 
     protected $fillable = [
         'user_id', 'arena_id', 'sent_by', 'title', 'body', 'read_at',

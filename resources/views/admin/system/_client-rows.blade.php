@@ -33,57 +33,12 @@
             </span>
         </td>
         <td class="text-end pe-3 client-main-actions">
-            <div class="d-none d-md-block ms-auto" style="max-width: 115px;">
+            <div class="d-none d-md-block ms-auto" style="max-width: 130px;">
+                <a href="{{ route('admin.users.show', $usuario) }}" class="btn btn-primary btn-sm w-100 mb-2">Ver detalhes</a>
                 @include('admin.system._client-actions', ['usuario' => $usuario])
             </div>
-            <button type="button"
-                    class="btn btn-outline-primary btn-sm d-md-none px-2 py-1 text-nowrap"
-                    data-client-mobile-details>
-                Ver mais
-            </button>
-        </td>
-    </tr>
-
-    <tr class="client-mobile-details-row d-none d-md-none">
-        <td colspan="8" class="p-3 bg-light">
-            <div class="row g-3 small">
-                <div class="col-6">
-                    <span class="fw-bold text-dark">Telefone</span><br>
-                    <span class="text-break">{{ $usuario->phone ?: '—' }}</span>
-                </div>
-                <div class="col-6">
-                    <span class="fw-bold text-dark">Nascimento</span><br>
-                    <span>
-                        {{ $usuario->client?->date_of_birth
-                            ? \Carbon\Carbon::parse($usuario->client->date_of_birth)->format('d/m/Y')
-                            : '—' }}
-                    </span>
-                </div>
-                <div class="col-6">
-                    <span class="fw-bold text-dark">Termos</span><br>
-                    @if ($usuario->terms_accepted_at)
-                        <span>Aceitos</span>
-                        <div class="text-muted">
-                            {{ $usuario->terms_accepted_at->format('d/m/Y') }}<br>
-                            {{ $usuario->terms_accepted_at->format('H:i') }}
-                        </div>
-                    @else
-                        <span class="text-muted">Não registrado</span>
-                    @endif
-                </div>
-                <div class="col-6">
-                    <span class="fw-bold text-dark">Cadastro</span><br>
-                    @if ($usuario->created_at)
-                        <span>{{ $usuario->created_at->format('d/m/Y') }}</span><br>
-                        <span class="text-muted">{{ $usuario->created_at->format('H:i') }}</span>
-                    @else
-                        —
-                    @endif
-                </div>
-                <div class="col-12">
-                    @include('admin.system._client-actions', ['usuario' => $usuario])
-                </div>
-            </div>
+            <a href="{{ route('admin.users.show', $usuario) }}"
+               class="btn btn-primary btn-sm d-md-none px-2 py-1 text-nowrap">Ver detalhes</a>
         </td>
     </tr>
 @empty

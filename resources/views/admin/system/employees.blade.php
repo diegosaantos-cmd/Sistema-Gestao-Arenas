@@ -7,7 +7,7 @@
     <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
 
     <div class="mb-4">
-        <h1 class="dashboard-title mb-1">Funcionários do sistema</h1>
+        <h1 class="dashboard-title mb-1">Funcionários cadastrados nas arenas</h1>
         <p class="dashboard-subtitle mb-0">Funcionários de todas as empresas e arenas.</p>
     </div>
 
@@ -16,7 +16,7 @@
             <div class="input-group arena-search-box shadow-sm">
                 <input type="search"
                        class="form-control"
-                       placeholder="Nome, e-mail, cargo, arena ou empresa"
+                       placeholder="Pesquise por nome, cargo, arena ou empresa"
                        aria-label="Pesquisar funcionário"
                        data-employee-search-input>
                 <span class="input-group-text bg-white border-0">
@@ -63,11 +63,9 @@
                             </td>
                             <td class="text-end pe-3 employee-main-actions">
                                 <div class="d-none d-md-flex gap-1 justify-content-end">
-                                    <button type="button"
-                                            class="btn btn-outline-primary btn-sm"
-                                            data-employee-desktop-details>
-                                        Ver mais
-                                    </button>
+                                    @if ($funcionario->user)
+                                        <a href="{{ route('admin.users.show', $funcionario->user) }}" class="btn btn-primary btn-sm">Ver detalhes</a>
+                                    @endif
 
                                     @if ($funcionario->user)
                                         @if ($acessoAtivo)
@@ -75,14 +73,14 @@
                                                   onsubmit="return confirm('Deseja bloquear este funcionário? Ele perderá imediatamente o acesso ao sistema.')">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button class="btn btn-outline-warning btn-sm">Bloquear</button>
+                                                <button class="btn btn-warning btn-sm">Bloquear</button>
                                             </form>
                                         @else
                                             <form method="POST" action="{{ route('admin.users.unblock', $funcionario->user) }}"
                                                   onsubmit="return confirm('Deseja desbloquear este funcionário?')">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button class="btn btn-outline-success btn-sm">Desbloquear</button>
+                                                <button class="btn btn-success btn-sm">Desbloquear</button>
                                             </form>
                                         @endif
                                     @endif
@@ -93,16 +91,15 @@
                                               data-employee-delete-form>
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-outline-danger btn-sm">Excluir</button>
+                                            <button class="btn btn-danger btn-sm">Excluir</button>
                                         </form>
                                     @endif
                                 </div>
 
-                                <button type="button"
-                                        class="btn btn-outline-primary btn-sm d-md-none px-2 py-1 text-nowrap"
-                                        data-employee-mobile-details>
-                                    Ver mais
-                                </button>
+                                @if ($funcionario->user)
+                                    <a href="{{ route('admin.users.show', $funcionario->user) }}"
+                                       class="btn btn-primary btn-sm d-md-none px-2 py-1 text-nowrap">Ver detalhes</a>
+                                @endif
                             </td>
                         </tr>
 
@@ -179,7 +176,7 @@
                                                           onsubmit="return confirm('Deseja bloquear este funcionário? Ele perderá imediatamente o acesso ao sistema.')">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button class="btn btn-outline-warning btn-sm w-100">Bloquear funcionário</button>
+                                                        <button class="btn btn-warning btn-sm w-100">Bloquear funcionário</button>
                                                     </form>
                                                 @else
                                                     <form method="POST" action="{{ route('admin.users.unblock', $funcionario->user) }}"
@@ -187,17 +184,17 @@
                                                           onsubmit="return confirm('Deseja desbloquear este funcionário?')">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button class="btn btn-outline-success btn-sm w-100">Desbloquear funcionário</button>
+                                                        <button class="btn btn-success btn-sm w-100">Desbloquear funcionário</button>
                                                     </form>
                                                 @endif
                                             @endif
 
                                             <form method="POST"
                                                   action="{{ route('admin.arenas.employees.destroy', [$funcionario->arena, $funcionario]) }}"
-                                                  data-employee-delete-form>
+                                                  onsubmit="return confirm('Deseja excluir este funcionário? Ele perderá o acesso ao sistema.')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button class="btn btn-outline-danger btn-sm w-100">Excluir funcionário</button>
+                                                <button class="btn btn-danger btn-sm w-100">Excluir funcionário</button>
                                             </form>
                                         </div>
                                     @endif
@@ -219,21 +216,6 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered employee-details-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <span class="badge bg-danger text-white px-2 py-0 fw-normal mb-1">Funcionário</span>
-                    <h5 class="modal-title mb-0" data-employee-details-title>Detalhes do funcionário</h5>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body" data-employee-details-modal-content></div>
         </div>
     </div>
 </div>
@@ -337,10 +319,6 @@
         const searchInput = document.querySelector('[data-employee-search-input]');
         const noResults = document.querySelector('[data-no-employee-results]');
         const feedback = document.querySelector('[data-employee-feedback]');
-        const detailsModalElement = document.getElementById('employeeDetailsModal');
-        const detailsModal = bootstrap.Modal.getOrCreateInstance(detailsModalElement);
-        const detailsModalTitle = detailsModalElement.querySelector('[data-employee-details-title]');
-        const detailsModalContent = detailsModalElement.querySelector('[data-employee-details-modal-content]');
         const modalElement = document.getElementById('employeeDeleteConfirmModal');
         const confirmModal = bootstrap.Modal.getOrCreateInstance(modalElement);
         const confirmButton = modalElement.querySelector('[data-confirm-employee-delete]');
@@ -366,51 +344,6 @@
                 feedback.innerHTML = '';
             }, 4500);
         }
-
-        function closeMobileDetails(except = null) {
-            body.querySelectorAll('[data-employee-details-row]:not(.d-none)').forEach(function (detailsRow) {
-                if (detailsRow === except) {
-                    return;
-                }
-
-                detailsRow.classList.add('d-none');
-                const button = detailsRow.previousElementSibling
-                    ?.querySelector('[data-employee-mobile-details]');
-
-                if (button) {
-                    button.textContent = 'Ver mais';
-                }
-            });
-        }
-
-        body.addEventListener('click', function (event) {
-            const desktopDetailsButton = event.target.closest('[data-employee-desktop-details]');
-
-            if (desktopDetailsButton) {
-                const mainRow = desktopDetailsButton.closest('tr');
-                const source = mainRow.nextElementSibling.querySelector('[data-employee-details-content]');
-                const details = source.cloneNode(true);
-
-                details.querySelector('[data-mobile-delete-action]')?.remove();
-                detailsModalTitle.textContent = mainRow.querySelector('td')?.textContent.trim()
-                    || 'Detalhes do funcionário';
-                detailsModalContent.replaceChildren(details);
-                detailsModal.show();
-                return;
-            }
-
-            const detailsButton = event.target.closest('[data-employee-mobile-details]');
-
-            if (detailsButton) {
-                const detailsRow = detailsButton.closest('tr').nextElementSibling;
-                const opening = detailsRow.classList.contains('d-none');
-
-                closeMobileDetails(opening ? detailsRow : null);
-                detailsRow.classList.toggle('d-none', !opening);
-                detailsButton.textContent = opening ? 'Fechar' : 'Ver mais';
-                return;
-            }
-        });
 
         body.addEventListener('submit', function (event) {
             const form = event.target.closest('[data-employee-delete-form]');
@@ -467,8 +400,6 @@
         searchInput.addEventListener('input', function () {
             const term = normalizeSearch(searchInput.value);
             let visible = 0;
-
-            closeMobileDetails();
 
             body.querySelectorAll('[data-employee-row]').forEach(function (row) {
                 const matches = normalizeSearch(row.dataset.employeeSearch).includes(term);

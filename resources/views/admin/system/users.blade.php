@@ -7,7 +7,7 @@
     <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
 
     <div class="mb-4">
-        <h1 class="dashboard-title mb-1">Clientes do sistema</h1>
+        <h1 class="dashboard-title mb-1">Clientes cadastrados no sistema</h1>
         <p class="dashboard-subtitle mb-0">Consulte e gerencie os clientes cadastrados.</p>
     </div>
 
@@ -21,7 +21,7 @@
                            name="busca_cliente"
                            value="{{ request('busca_cliente') }}"
                            class="form-control"
-                           placeholder="Nome, e-mail ou telefone"
+                           placeholder="Pesquise por nome ou e-mail"
                            aria-label="Pesquisar cliente">
                     <span class="input-group-text bg-white border-0">
                         <i class="bi bi-search text-secondary"></i>
@@ -139,37 +139,4 @@
 </style>
 
 @include('admin.clients._infinite-script')
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const clientsBody = document.getElementById('systemClientsBody');
-
-        clientsBody.addEventListener('click', function (event) {
-            const button = event.target.closest('[data-client-mobile-details]');
-
-            if (!button) {
-                return;
-            }
-
-            const row = button.closest('tr');
-            const detailsRow = row.nextElementSibling;
-            const expanded = detailsRow.classList.contains('d-none');
-
-            clientsBody.querySelectorAll('.client-mobile-details-row:not(.d-none)').forEach(function (openRow) {
-                if (openRow !== detailsRow) {
-                    openRow.classList.add('d-none');
-                    const openButton = openRow.previousElementSibling
-                        ?.querySelector('[data-client-mobile-details]');
-
-                    if (openButton) {
-                        openButton.textContent = 'Ver mais';
-                    }
-                }
-            });
-
-            detailsRow.classList.toggle('d-none', !expanded);
-            button.textContent = expanded ? 'Fechar' : 'Ver mais';
-        });
-    });
-</script>
 @endsection

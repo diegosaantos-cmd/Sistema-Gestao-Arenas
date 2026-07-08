@@ -35,12 +35,24 @@ class DashboardController extends Controller
 
         $resumo = [
             'proprietarios' => Owner::count(),
+            'proprietarios_ativos' => Owner::where('active', true)->count(),
+            'proprietarios_inativos' => Owner::where('active', false)->count(),
             'arenas' => Arena::count(),
             'arenas_ativas' => Arena::where('active', true)->count(),
+            'arenas_inativas' => Arena::where('active', false)->count(),
             'quadras' => Court::count(),
+            'quadras_ativas' => Court::where('active', true)->count(),
+            'quadras_inativas' => Court::where('active', false)->count(),
             'clientes' => Client::count(),
+            'clientes_ativos' => Client::whereHas('user', fn ($q) => $q->where('active', true))->count(),
+            'clientes_inativos' => Client::whereHas('user', fn ($q) => $q->where('active', false))->count(),
             'funcionarios' => Employee::count(),
+            'funcionarios_ativos' => Employee::where('active', true)->count(),
+            'funcionarios_inativos' => Employee::where('active', false)->count(),
             'administradores' => User::where('type', 'admin')->count(),
+            'usuarios' => User::where('type', '!=', 'admin')->count(),
+            'usuarios_ativos' => User::where('type', '!=', 'admin')->where('active', true)->count(),
+            'usuarios_inativos' => User::where('type', '!=', 'admin')->where('active', false)->count(),
             'reservas_mes' => Booking::whereBetween('date', [
                 $inicioMes->toDateString(),
                 $fimMes->toDateString(),
@@ -50,6 +62,153 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', compact(
             'resumo'
+        ));
+    }
+
+    /**
+     * Lista todos os usuários do sistema (exceto administradores), com seus
+     * dados — sem a senha. Alimenta a tela aberta pelo card "Total de usuários".
+     */
+    public function usuarios()
+    {
+        $q = trim((string) request('q'));
+
+        $usuarios = User::where('type', '!=', 'admin')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($w) use ($q) {
+                    $w->where('name', 'like', "%{$q}%")
+                      ->orWhere('email', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(30)
+            ->withQueryString();
+
+        return view('admin.system.usuarios', compact('usuarios'));
+    }
+
+    /**
+     * Tela dedicada com os detalhes de um usuário (cliente, funcionário ou
+     * administrador) — sem a senha. Para cliente, mostra também as reservas
+     * (dados que crescem com o tempo, por isso tela e não modal).
+     */
+    public function showUser(User $user)
+    {
+        $user->load([
+            'client',
+            'employee.arena.owner.user',
+            'employee.createdBy',
+        ]);
+
+        $reservas = collect();
+        if ($user->client) {
+            $reservas = Booking::with(['court.arena'])
+                ->where('client_id', $user->client->id)
+                ->orderByDesc('date')->orderByDesc('start_time')
+                ->paginate(20);
+        }
+
+        return view('admin.users.show', compact('user', 'reservas'));
+    }
+
+    /**
+     * Query paginada de clientes com reservas nas quadras informadas
+     * (com nº de reservas e total gasto). Reusada pelas telas de clientes.
+     */
+    private function clientesComReservas($idsQuadras)
+    {
+        $busca = trim((string) request('busca_cliente'));
+        $chave = preg_replace('/\s+/u', '', mb_strtolower($busca));
+
+        return Client::with('user')
+            ->whereIn('id', Booking::select('client_id')->whereIn('court_id', clone $idsQuadras)->distinct())
+            ->when($chave !== '', function ($query) use ($chave) {
+                $termo = '%' . $chave . '%';
+                $query->whereHas('user', function ($user) use ($termo) {
+                    $user->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(email), ' ', '') LIKE ?", [$termo])
+                        ->orWhereRaw("REPLACE(LOWER(COALESCE(phone, '')), ' ', '') LIKE ?", [$termo]);
+                });
+            })
+            ->select('clients.*')
+            ->selectSub(
+                Booking::selectRaw('COUNT(*)')->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras),
+                'reservas_total'
+            )
+            ->selectSub(
+                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras)->where('status', '!=', 'cancelled'),
+                'valor_total'
+            )
+            ->orderByDesc('reservas_total')
+            ->orderBy(User::select('name')->whereColumn('users.id', 'clients.user_id'))
+            ->paginate(25)
+            ->appends(['busca_cliente' => $busca]);
+    }
+
+    /**
+     * Tela dedicada: clientes de uma empresa (antes era modal).
+     */
+    public function ownerClientsPage(Owner $owner)
+    {
+        $idsQuadras = Court::withTrashed()
+            ->whereIn('arena_id', $owner->arenas()->select('arenas.id'))
+            ->select('id');
+
+        $clientes = $this->clientesComReservas($idsQuadras);
+
+        return view('admin.owners.clients-page', compact('owner', 'clientes'));
+    }
+
+    /**
+     * Tela dedicada: clientes de uma arena (antes era modal).
+     */
+    public function arenaClientsPage(Arena $arena)
+    {
+        $idsQuadras = Court::withTrashed()->where('arena_id', $arena->id)->select('id');
+
+        $clientes = $this->clientesComReservas($idsQuadras);
+
+        return view('admin.arenas.clients-page', compact('arena', 'clientes'));
+    }
+
+    /**
+     * Tela dedicada: reservas de uma arena (mês / canceladas / histórico).
+     */
+    public function arenaReservasPage(Arena $arena)
+    {
+        $idsQuadras = Court::withTrashed()->where('arena_id', $arena->id)->select('id');
+
+        $consulta = Booking::with(['courtWithTrashed', 'client.user', 'cancelledBy', 'payments.paymentMethod'])
+            ->whereIn('court_id', clone $idsQuadras)
+            ->orderByDesc('date')->orderByDesc('start_time');
+
+        $busca = trim((string) request('busca_reserva'));
+        $chave = preg_replace('/\s+/u', '', mb_strtolower($busca));
+        $data = null;
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $busca, $p) && checkdate((int) $p[2], (int) $p[1], (int) $p[3])) {
+            $data = sprintf('%04d-%02d-%02d', $p[3], $p[2], $p[1]);
+        }
+        $consulta->when($chave !== '' && ! $data, function ($query) use ($chave) {
+            $termo = '%' . $chave . '%';
+            $query->whereHas('client.user', fn ($u) => $u->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo]));
+        })->when($data, fn ($query) => $query->whereDate('date', $data));
+
+        $aba = request('aba_reservas', 'mes');
+        $filtros = ['busca_reserva' => $busca, 'aba_reservas' => $aba];
+
+        $reservasMesLista = (clone $consulta)
+            ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->paginate(25, ['*'], 'mes_page')->appends($filtros);
+        $reservasCanceladasLista = (clone $consulta)->where('status', 'cancelled')
+            ->paginate(25, ['*'], 'canceladas_page')->appends($filtros);
+        $historicoReservasLista = (clone $consulta)
+            ->paginate(25, ['*'], 'historico_page')->appends($filtros);
+
+        return view('admin.arenas.reservas-page', compact(
+            'arena', 'aba', 'busca',
+            'reservasMesLista', 'reservasCanceladasLista', 'historicoReservasLista'
         ));
     }
 

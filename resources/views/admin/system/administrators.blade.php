@@ -11,19 +11,6 @@
         <p class="dashboard-subtitle mb-0">Consulte e gerencie os administradores gerais.</p>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-12 col-md-6">
-            <div class="input-group arena-search-box shadow-sm">
-                <input type="search" class="form-control"
-                       placeholder="Nome, e-mail ou telefone"
-                       aria-label="Pesquisar administrador"
-                       data-admin-search>
-                <span class="input-group-text bg-white border-0">
-                    <i class="bi bi-search text-secondary"></i>
-                </span>
-            </div>
-        </div>
-    </div>
 
     <div class="dashboard-box p-0 overflow-hidden system-admins-box">
         <div class="table-responsive system-admins-container" style="max-height: 72vh; overflow-y: auto;">
@@ -65,23 +52,24 @@
                                 </span>
                             </td>
                             <td class="text-end pe-3">
-                                @if ($administrador->is(auth()->user()))
-                                    <span class="small text-muted d-none d-md-inline">Conta atual</span>
-                                @else
-                                    <div class="d-none d-md-flex justify-content-end gap-1">
+                                <div class="d-none d-md-flex justify-content-end gap-1">
+                                    <a href="{{ route('admin.users.show', $administrador) }}" class="btn btn-primary btn-sm">Ver detalhes</a>
+                                    @if ($administrador->is(auth()->user()))
+                                        <span class="small text-muted align-self-center">Conta atual</span>
+                                    @else
                                         @if ($administrador->active)
                                             <form method="POST" action="{{ route('admin.users.block', $administrador) }}"
                                                   onsubmit="return confirm('Deseja bloquear este administrador? Ele perderá imediatamente o acesso ao sistema.')">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button class="btn btn-outline-warning btn-sm">Bloquear</button>
+                                                <button class="btn btn-warning btn-sm">Bloquear</button>
                                             </form>
                                         @else
                                             <form method="POST" action="{{ route('admin.users.unblock', $administrador) }}"
                                                   onsubmit="return confirm('Deseja desbloquear este administrador?')">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button class="btn btn-outline-success btn-sm">Desbloquear</button>
+                                                <button class="btn btn-success btn-sm">Desbloquear</button>
                                             </form>
                                         @endif
 
@@ -89,62 +77,13 @@
                                               onsubmit="return confirm('Deseja excluir este administrador? Ele perderá o acesso ao sistema.')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-outline-danger btn-sm">Excluir</button>
+                                            <button class="btn btn-danger btn-sm">Excluir</button>
                                         </form>
-                                    </div>
-                                @endif
-
-                                <button type="button"
-                                        class="btn btn-outline-primary btn-sm d-md-none px-2 py-1"
-                                        data-admin-mobile-details>
-                                    Ver mais
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr class="admin-mobile-details-row d-none d-md-none" data-admin-details>
-                            <td colspan="6" class="p-3 bg-light">
-                                <div class="row g-3 small">
-                                    <div class="col-6">
-                                        <span class="fw-bold">Telefone</span><br>
-                                        <span class="text-break">{{ $administrador->phone ?: '—' }}</span>
-                                    </div>
-                                    <div class="col-6">
-                                        <span class="fw-bold">Cadastro</span><br>
-                                        <span>{{ optional($administrador->created_at)->format('d/m/Y H:i') ?? '—' }}</span>
-                                    </div>
-                                    <div class="col-6">
-                                        <span class="fw-bold">Última atualização</span><br>
-                                        <span>{{ optional($administrador->updated_at)->format('d/m/Y H:i') ?? '—' }}</span>
-                                    </div>
-
-                                    @if (! $administrador->is(auth()->user()))
-                                        <div class="col-12 d-grid gap-2">
-                                            @if ($administrador->active)
-                                                <form method="POST" action="{{ route('admin.users.block', $administrador) }}"
-                                                      onsubmit="return confirm('Deseja bloquear este administrador? Ele perderá imediatamente o acesso ao sistema.')">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button class="btn btn-outline-warning btn-sm w-100">Bloquear</button>
-                                                </form>
-                                            @else
-                                                <form method="POST" action="{{ route('admin.users.unblock', $administrador) }}"
-                                                      onsubmit="return confirm('Deseja desbloquear este administrador?')">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button class="btn btn-outline-success btn-sm w-100">Desbloquear</button>
-                                                </form>
-                                            @endif
-
-                                            <form method="POST" action="{{ route('admin.users.destroy', $administrador) }}"
-                                                  onsubmit="return confirm('Deseja excluir este administrador? Ele perderá o acesso ao sistema.')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="btn btn-outline-danger btn-sm w-100">Excluir</button>
-                                            </form>
-                                        </div>
                                     @endif
                                 </div>
+
+                                <a href="{{ route('admin.users.show', $administrador) }}"
+                                   class="btn btn-primary btn-sm d-md-none px-2 py-1">Ver detalhes</a>
                             </td>
                         </tr>
                     @empty
@@ -165,6 +104,7 @@
         </div>
     </div>
 </div>
+
 
 <style>
     @media (max-width: 767.98px) {
@@ -216,55 +156,4 @@
         }
     }
 </style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const body = document.querySelector('[data-admins-body]');
-        const search = document.querySelector('[data-admin-search]');
-        const noResults = document.querySelector('[data-no-admin-results]');
-
-        function normalize(value) {
-            return (value || '')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/\s+/g, '')
-                .toLowerCase();
-        }
-
-        function closeDetails(except = null) {
-            body.querySelectorAll('[data-admin-details]:not(.d-none)').forEach(function (details) {
-                if (details === except) return;
-                details.classList.add('d-none');
-                const button = details.previousElementSibling?.querySelector('[data-admin-mobile-details]');
-                if (button) button.textContent = 'Ver mais';
-            });
-        }
-
-        body.addEventListener('click', function (event) {
-            const button = event.target.closest('[data-admin-mobile-details]');
-            if (!button) return;
-
-            const details = button.closest('tr').nextElementSibling;
-            const opening = details.classList.contains('d-none');
-            closeDetails(opening ? details : null);
-            details.classList.toggle('d-none', !opening);
-            button.textContent = opening ? 'Fechar' : 'Ver mais';
-        });
-
-        search.addEventListener('input', function () {
-            const term = normalize(search.value);
-            let visible = 0;
-            closeDetails();
-
-            body.querySelectorAll('[data-admin-row]').forEach(function (row) {
-                const matches = normalize(row.dataset.adminSearch).includes(term);
-                row.classList.toggle('d-none', !matches);
-                row.nextElementSibling.classList.add('d-none');
-                if (matches) visible++;
-            });
-
-            noResults.classList.toggle('d-none', visible > 0);
-        });
-    });
-</script>
 @endsection

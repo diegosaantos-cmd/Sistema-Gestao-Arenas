@@ -38,11 +38,11 @@
 
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <h1 class="dashboard-title mb-1">
-                <span style="font-size: 0.9em;">Empresa {{ $arena->owner?->company_name }}</span>
-                <span class="text-muted mx-1" style="font-size: 0.65em; vertical-align: 0.08em;">&gt;</span>
-                <span class="fs-3 text-danger">{{ $arena->name }}</span>
-            </h1>
+            <div class="text-muted small mb-1">
+                <span class="text-uppercase fw-semibold" style="letter-spacing:.05em;">Empresa</span>
+                {{ $arena->owner?->company_name }}
+            </div>
+            <h1 class="dashboard-title mb-1">{{ $arena->name }}</h1>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <span class="badge {{ $arena->active ? 'bg-success' : 'bg-warning text-dark' }}">
                     {{ $arena->active ? 'Arena ativa' : 'Arena desativada' }}
@@ -94,17 +94,15 @@
         </div>
 
         <div class="col-6 col-lg-4">
-            <button type="button"
-                    class="dashboard-card h-100 w-100 border-0 text-start"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalReservasArena">
+            <a href="{{ route('admin.arenas.reservas', $arena) }}"
+               class="dashboard-card h-100 w-100 border-0 text-start text-decoration-none text-reset">
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Reservas da arena</h5>
                     <h2>{{ $reservasMes }}</h2>
                     <small class="text-muted">{{ $reservasTotal }} no histórico</small>
                 </div>
                 <i class="bi bi-calendar-check dashboard-icon text-warning"></i>
-            </button>
+            </a>
         </div>
 
         <div class="col-6 col-lg-4">
@@ -124,17 +122,15 @@
         </div>
 
         <div class="col-6 col-lg-4">
-            <button type="button"
-                    class="dashboard-card h-100 w-100 border-0 text-start"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalClientesArena">
+            <a href="{{ route('admin.arenas.clients.page', $arena) }}"
+               class="dashboard-card h-100 w-100 border-0 text-start text-decoration-none text-reset">
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Clientes</h5>
                     <h2>{{ $clientesArena->total() }}</h2>
                     <small class="text-muted">Com reservas na arena</small>
                 </div>
                 <i class="bi bi-people dashboard-icon text-primary"></i>
-            </button>
+            </a>
         </div>
     </div>
 </div>

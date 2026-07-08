@@ -5,7 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
-use App\Models\ClientNotification;
+use App\Models\UserNotification;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,8 +23,8 @@ class AppServiceProvider extends ServiceProvider
             $notifUnreadCount = 0;
 
             $user = auth()->user();
-            if ($user && $user->type === 'client') {
-                $notifUnreadCount = ClientNotification::where('user_id', $user->id)
+            if ($user) {
+                $notifUnreadCount = UserNotification::where('user_id', $user->id)
                     ->whereNull('read_at')->count();
             }
 

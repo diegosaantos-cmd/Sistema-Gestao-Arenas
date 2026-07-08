@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ClientNotification;
+use App\Models\UserNotification;
 
 class ClientNotificationController extends Controller
 {
@@ -11,7 +11,7 @@ class ClientNotificationController extends Controller
      */
     public function index()
     {
-        $notifications = ClientNotification::with('arena')
+        $notifications = UserNotification::with('arena')
             ->where('user_id', auth()->id())
             ->latest()
             ->get();
@@ -22,7 +22,7 @@ class ClientNotificationController extends Controller
     /**
      * Abre uma notificação (e marca como lida).
      */
-    public function show(ClientNotification $notification)
+    public function show(UserNotification $notification)
     {
         abort_unless($notification->user_id === auth()->id(), 403);
 
@@ -40,7 +40,7 @@ class ClientNotificationController extends Controller
      */
     public function readAll()
     {
-        ClientNotification::where('user_id', auth()->id())
+        UserNotification::where('user_id', auth()->id())
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 

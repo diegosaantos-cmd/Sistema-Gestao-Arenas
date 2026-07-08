@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\Client;
-use App\Models\ClientNotification;
+use App\Models\UserNotification;
 use App\Models\Owner;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -181,7 +181,7 @@ class ClientController extends Controller
         $clients = Client::whereIn('id', $alvo)->whereNotNull('user_id')->get();
 
         foreach ($clients as $client) {
-            ClientNotification::create([
+            UserNotification::create([
                 'user_id'  => $client->user_id,
                 'arena_id' => $arena->id,
                 'sent_by'  => auth()->id(),
@@ -236,7 +236,7 @@ class ClientController extends Controller
             'body.required'  => 'Escreva a mensagem.',
         ]);
 
-        ClientNotification::create([
+        UserNotification::create([
             'user_id'  => $client->user_id,
             'arena_id' => $arena->id,
             'sent_by'  => auth()->id(),
