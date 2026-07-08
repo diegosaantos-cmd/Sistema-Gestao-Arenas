@@ -5,6 +5,7 @@ use App\Http\Controllers\ArenaController;
 use App\Http\Controllers\QuadraController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Client\ArenaController as ClientArenaController;
 use App\Http\Controllers\Client\BookingController as ClientBookingController;
@@ -289,6 +290,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/owners/clients', [ClientController::class, 'index'])
         ->name('clients.index');
 
+    // Disparo de mensagem para vários clientes de uma vez.
+    Route::get('/owners/clients/mensagem-massa', [ClientController::class, 'broadcastForm'])
+        ->name('clients.broadcast.create');
+    Route::post('/owners/clients/mensagem-massa', [ClientController::class, 'broadcast'])
+        ->name('clients.broadcast');
+
+    // Detalhes de um cliente (reservas, dívidas) e envio de mensagem.
+    Route::get('/owners/clients/{client}', [ClientController::class, 'show'])
+        ->name('clients.show');
+    Route::get('/owners/clients/{client}/reservas/{tipo}', [ClientController::class, 'bookings'])
+        ->name('clients.bookings');
+    Route::get('/owners/clients/{client}/mensagem', [ClientController::class, 'messageForm'])
+        ->name('clients.message.create');
+    Route::post('/owners/clients/{client}/mensagem', [ClientController::class, 'sendMessage'])
+        ->name('clients.message');
+
     // Todos os próximos agendamentos da arena atual.
     Route::get('/owners/bookings', [BookingController::class, 'index'])
         ->name('bookings.index');
@@ -370,6 +387,14 @@ Route::middleware(['auth'])->group(function () {
         return view('client.bookings.success');
     })->name('client.bookings.success');
 
+    // Notificações do cliente.
+    Route::get('/notificacoes', [ClientNotificationController::class, 'index'])
+        ->name('notifications.index');
+    Route::post('/notificacoes/ler-todas', [ClientNotificationController::class, 'readAll'])
+        ->name('notifications.readAll');
+    Route::get('/notificacoes/{notification}', [ClientNotificationController::class, 'show'])
+        ->name('notifications.show');
+
     // Detalhes completos de uma reserva (cliente dono, dono da arena ou funcionário).
     Route::get('/reservas/{booking}/detalhes', [BookingDetailController::class, 'show'])
         ->name('bookings.show');
@@ -401,6 +426,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('client.bookings.pay');
     Route::post('/client/reservas/{booking}/pagar', [ClientBookingController::class, 'payConfirm'])
         ->name('client.bookings.pay.confirm');
+
+    // Cancelamento COM taxa: paga a taxa online para cancelar.
+    Route::get('/client/reservas/{booking}/cancelar-taxa', [ClientBookingController::class, 'cancelPay'])
+        ->name('client.bookings.cancel-pay');
+    Route::post('/client/reservas/{booking}/cancelar-taxa', [ClientBookingController::class, 'cancelPayConfirm'])
+        ->name('client.bookings.cancel-pay.confirm');
 
     // Perfil do cliente.
     Route::get('/client/perfil', [ClientProfileController::class, 'edit'])

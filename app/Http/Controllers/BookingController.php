@@ -101,7 +101,17 @@ class BookingController extends Controller
 
         $bookings = $query->orderBy('date', 'desc')->orderBy('start_time', 'desc')->get();
 
-        return view('bookings.history', compact('arena', 'bookings'));
+        // Filtro por situação: concluídas / canceladas / pagas / atrasadas.
+        $situacao = request('situacao');
+        $bookings = match ($situacao) {
+            'concluidas' => $bookings->where('status', 'completed')->values(),
+            'canceladas' => $bookings->where('status', 'cancelled')->values(),
+            'pagas'      => $bookings->filter(fn ($b) => $b->isPaga())->values(),
+            'atrasadas'  => $bookings->filter(fn ($b) => $b->situacaoPagamento() === 'atrasado')->values(),
+            default      => $bookings,
+        };
+
+        return view('bookings.history', compact('arena', 'bookings', 'situacao'));
     }
 
     /**
@@ -164,7 +174,17 @@ class BookingController extends Controller
             ->orderBy('date')->orderBy('start_time')
             ->get();
 
-        return view('bookings.pending', compact('arena', 'bookings'));
+        // Quantas reservas o cliente já deixou SEM pagamento nesta arena
+        // (horário passou e nunca foi pago) — sinal de risco antes de confirmar.
+        $naoPagasPorCliente = Booking::whereIn('court_id', $idsQuadras)
+            ->where('status', 'completed')
+            ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'))
+            ->selectRaw('client_id, COUNT(*) as total')
+            ->groupBy('client_id')
+            ->pluck('total', 'client_id')
+            ->all();
+
+        return view('bookings.pending', compact('arena', 'bookings', 'naoPagasPorCliente'));
     }
 
     /**
@@ -179,6 +199,7 @@ class BookingController extends Controller
         }
 
         $booking->update(['status' => 'confirmed']);
+        $booking->notificarClienteConfirmada(auth()->id());
 
         return redirect()->route('bookings.pending')->with('msg', 'Reserva confirmada.');
     }
@@ -206,6 +227,7 @@ class BookingController extends Controller
             'cancelled_at' => now(),
             'cancellation_reason' => $validated['motivo'],
         ]);
+        $booking->notificarClienteCancelada($validated['motivo'], auth()->id());
 
         // Volta para a página de origem (próximos ou aguardando confirmação).
         return back()->with('msg', 'Reserva cancelada.');
@@ -241,6 +263,7 @@ class BookingController extends Controller
             'aberto' => $aberto,
             'slots' => $slots,
             'diasAbertos' => CourtScheduleService::diasAbertos($arena),
+            'numeroReserva' => $booking->numeroNaArena(),
         ]);
     }
 
@@ -294,6 +317,7 @@ class BookingController extends Controller
             'start_time' => $startTime,
             'end_time' => $endTime,
         ]);
+        $booking->notificarClienteReagendada(auth()->id());
 
         return redirect()->route('bookings.index')->with('msg', 'Reserva reagendada.');
     }

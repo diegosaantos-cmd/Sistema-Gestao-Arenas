@@ -52,7 +52,7 @@
                 <i class="bi bi-info-circle me-1"></i> Detalhes
             </a>
 
-            @if ($b->status === 'confirmed' && ! $b->isPaga())
+            @if (in_array($b->status, ['confirmed', 'completed']) && ! $b->isPaga())
                 <a href="{{ route('client.bookings.pay', $b) }}" class="btn btn-success btn-sm">
                     <i class="bi bi-credit-card me-1"></i> Pagar
                 </a>
@@ -65,19 +65,20 @@
                 </a>
             @endif
 
-            @if ($regra)
+            @if ($regra === 'taxa')
+                <a href="{{ route('client.bookings.cancel-pay', $b) }}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-x-circle me-1"></i> Cancelar (com taxa)
+                </a>
+            @elseif ($regra === 'livre')
                 <button type="button" class="btn btn-danger btn-sm"
                         data-bs-toggle="modal" data-bs-target="#cancelModal{{ $b->id }}">
-                    <i class="bi bi-x-circle me-1"></i>
-                    {{ $regra === 'taxa' ? 'Cancelar (sujeita a taxa)' : 'Cancelar' }}
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
                 </button>
             @endif
         </div>
 
-        @if ($regra)
-            @php $taxaValor = $regra === 'taxa' ? $b->valorTaxaCancelamento() : 0; @endphp
-
-            {{-- Modal de confirmação --}}
+        @if ($regra === 'livre')
+            {{-- Modal de confirmação (cancelamento sem taxa) --}}
             <div class="modal fade" id="cancelModal{{ $b->id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
@@ -97,21 +98,10 @@
                                     {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
                                 </p>
 
-                                @if ($regra === 'taxa')
-                                    <div class="alert alert-warning">
-                                        <div>Este cancelamento tem <strong>taxa</strong>:</div>
-                                        <div class="fs-4 fw-bold text-danger">R$ {{ number_format($taxaValor, 2, ',', '.') }}</div>
-                                        <div class="small mb-0">
-                                            A taxa ficará <strong>a receber no caixa da arena</strong> —
-                                            você acerta o pagamento diretamente com a arena.
-                                        </div>
-                                    </div>
-                                @else
-                                    <p class="mb-3">
-                                        Tem certeza que deseja cancelar esta reserva?
-                                        <strong>Sem taxa.</strong>
-                                    </p>
-                                @endif
+                                <p class="mb-3">
+                                    Tem certeza que deseja cancelar esta reserva?
+                                    <strong>Sem taxa.</strong>
+                                </p>
 
                                 <label class="form-label">Motivo do cancelamento</label>
                                 <textarea name="motivo" class="form-control" rows="3" required

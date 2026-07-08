@@ -15,7 +15,7 @@
         ← Voltar aos agendamentos
     </a>
 
-    <h1 class="fw-bold mb-1">Editar agendamento #{{ $booking->id }}</h1>
+    <h1 class="fw-bold mb-1">Editar agendamento #{{ $numeroReserva ?? $booking->id }}</h1>
     <p class="text-muted">
         {{ $arena->name }} · Quadra <strong>{{ $court->name }}</strong>
     </p>

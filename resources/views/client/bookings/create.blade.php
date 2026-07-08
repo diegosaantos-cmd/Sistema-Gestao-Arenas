@@ -157,28 +157,67 @@
 
         </div>
 
-        {{-- Lateral: dias de funcionamento --}}
+        {{-- Lateral: dias de funcionamento + política de cancelamento --}}
         <div class="col-lg-4">
-            <div class="dashboard-box" style="position: sticky; top: 1rem;">
-                <h3 class="fw-bold mb-2" style="font-size: 1rem;">Dias de funcionamento</h3>
-                @if (empty($diasAbertos))
-                    <p class="text-muted mb-0">Esta arena ainda não definiu horários de funcionamento.</p>
-                @else
-                    <ul class="list-unstyled mb-0">
-                        @foreach ($diasNome as $num => $nome)
-                            <li class="d-flex justify-content-between border-bottom py-1">
-                                <span>{{ $nome }}</span>
-                                <span>
-                                    @if (isset($diasAbertos[$num]))
-                                        {{ $diasAbertos[$num] }}
-                                    @else
-                                        <span class="text-muted">Fechado</span>
-                                    @endif
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
+            <div style="position: sticky; top: 1rem;">
+                <div class="dashboard-box">
+                    <h3 class="fw-bold mb-2" style="font-size: 1rem;">Dias de funcionamento</h3>
+                    @if (empty($diasAbertos))
+                        <p class="text-muted mb-0">Esta arena ainda não definiu horários de funcionamento.</p>
+                    @else
+                        <ul class="list-unstyled mb-0">
+                            @foreach ($diasNome as $num => $nome)
+                                <li class="d-flex justify-content-between border-bottom py-1">
+                                    <span>{{ $nome }}</span>
+                                    <span>
+                                        @if (isset($diasAbertos[$num]))
+                                            {{ $diasAbertos[$num] }}
+                                        @else
+                                            <span class="text-muted">Fechado</span>
+                                        @endif
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+
+                {{-- Política de cancelamento e edição --}}
+                <div class="dashboard-box mt-3">
+                    <h3 class="fw-bold mb-2" style="font-size: 1rem;">Cancelamento e edição</h3>
+                    @if (! $arena->charges_cancellation_fee)
+                        <p class="mb-0 small text-muted">
+                            Esta arena <strong>não cobra taxa</strong> de cancelamento.
+                            Você pode <strong>cancelar ou editar</strong> a reserva a qualquer
+                            momento antes do horário, <strong>sem custo</strong>.
+                        </p>
+                    @else
+                        @php
+                            $valorTaxa = $arena->cancellation_fee_type === 'percent'
+                                ? rtrim(rtrim(number_format($arena->cancellation_fee_value, 2, ',', '.'), '0'), ',') . '% do valor'
+                                : 'R$ ' . number_format($arena->cancellation_fee_value, 2, ',', '.');
+                        @endphp
+                        @if ($arena->cancellation_fee_mode === 'window')
+                            <p class="mb-1 small">
+                                <i class="bi bi-check-circle text-success me-1"></i>
+                                <strong>Grátis</strong> para cancelar e editar até
+                                <strong>{{ $arena->cancellation_fee_window_hours }}h antes</strong> do início.
+                            </p>
+                            <p class="mb-0 small text-danger">
+                                <i class="bi bi-exclamation-circle me-1"></i>
+                                A partir daí: cancelar tem taxa de <strong>{{ $valorTaxa }}</strong>
+                                e a edição fica bloqueada.
+                            </p>
+                        @else
+                            <p class="mb-0 small text-danger">
+                                <i class="bi bi-exclamation-circle me-1"></i>
+                                Cancelar uma reserva já confirmada tem taxa de
+                                <strong>{{ $valorTaxa }}</strong>. A edição só é possível
+                                enquanto a reserva está <strong>pendente</strong>.
+                            </p>
+                        @endif
+                    @endif
+                </div>
             </div>
         </div>
 

@@ -76,9 +76,10 @@ class CashRegisterController extends Controller
             ->get();
 
         $formasPagamento = $arena->paymentMethods->where('active', true);
+        $numerosReservas = Booking::numerosNaArena($arena->id);
 
         return view('owners.caixa.receivables', compact(
-            'arena', 'caixaAberto', 'reservasAReceber', 'formasPagamento'
+            'arena', 'caixaAberto', 'reservasAReceber', 'formasPagamento', 'numerosReservas'
         ));
     }
 
@@ -103,9 +104,10 @@ class CashRegisterController extends Controller
             ->get();
 
         $formasPagamento = $arena->paymentMethods->where('active', true);
+        $numerosReservas = Booking::numerosNaArena($arena->id);
 
         return view('owners.caixa.fees', compact(
-            'arena', 'caixaAberto', 'taxasAReceber', 'formasPagamento'
+            'arena', 'caixaAberto', 'taxasAReceber', 'formasPagamento', 'numerosReservas'
         ));
     }
 
@@ -507,7 +509,7 @@ class CashRegisterController extends Controller
                 'booking_id' => $booking->id,
                 'type' => 'income',
                 'amount' => $valor,
-                'description' => 'Pagamento reserva #' . $booking->id . ' — ' . $metodo->label,
+                'description' => 'Pagamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label,
                 'created_by' => auth()->id(),
             ]);
 
@@ -566,7 +568,7 @@ class CashRegisterController extends Controller
                 'booking_id' => $booking->id,
                 'type' => 'income',
                 'amount' => $valor,
-                'description' => 'Taxa de cancelamento reserva #' . $booking->id . ' — ' . $metodo->label,
+                'description' => 'Taxa de cancelamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label,
                 'created_by' => auth()->id(),
             ]);
 
@@ -657,8 +659,9 @@ class CashRegisterController extends Controller
             : null;
 
         $numeros = $this->numerosDaArena($entry->cashRegister->arena);
+        $numeroReserva = $entry->booking?->numeroNaArena();
 
-        return view('owners.caixa.entry-details', compact('entry', 'pagamento', 'numeros'));
+        return view('owners.caixa.entry-details', compact('entry', 'pagamento', 'numeros', 'numeroReserva'));
     }
 
     /**

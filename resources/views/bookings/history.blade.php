@@ -29,8 +29,15 @@
         </select>
         <input type="text" name="q" id="busca-input" value="{{ request('q') }}" class="form-control"
                style="max-width: 280px;" placeholder="Buscar...">
-        <button class="btn btn-primary">Buscar</button>
-        @if (request('q'))
+        <select name="situacao" class="form-select" style="max-width: 180px;">
+            <option value="" @selected(request('situacao', '') === '')>Todas as situações</option>
+            <option value="concluidas" @selected(request('situacao') === 'concluidas')>Concluídas</option>
+            <option value="canceladas" @selected(request('situacao') === 'canceladas')>Canceladas</option>
+            <option value="pagas" @selected(request('situacao') === 'pagas')>Pagas</option>
+            <option value="atrasadas" @selected(request('situacao') === 'atrasadas')>Atrasadas</option>
+        </select>
+        <button class="btn btn-primary">Filtrar</button>
+        @if (request('q') || request('situacao'))
             <a href="{{ route('bookings.history') }}" class="btn btn-outline-secondary">Limpar</a>
         @endif
     </form>
@@ -106,7 +113,11 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center text-muted">
-                                Nenhum agendamento no histórico ainda
+                                @if (request('q') || request('situacao'))
+                                    Nenhum agendamento encontrado para o filtro.
+                                @else
+                                    Nenhum agendamento no histórico ainda
+                                @endif
                             </td>
                         </tr>
                     @endforelse

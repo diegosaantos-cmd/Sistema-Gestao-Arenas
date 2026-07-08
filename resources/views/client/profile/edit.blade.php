@@ -31,97 +31,77 @@
     @endif
 
     <div class="dashboard-box mx-auto" style="max-width: 900px;">
-        <form method="POST" action="{{ route('client.profile.update') }}" id="perfilForm">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="section-title mb-0" style="font-size: 1.5rem;">Dados pessoais</h2>
+            <button type="button" class="btn btn-warning" id="btnEditarPessoais">
+                ✏️ Editar
+            </button>
+        </div>
+
+        {{-- Visualização --}}
+        <div id="pessoaisView" class="row g-3">
+            <div class="col-md-6">
+                <div class="text-muted small">Nome</div>
+                <div class="fw-semibold">{{ $user->name }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">E-mail</div>
+                <div class="fw-semibold">{{ $user->email }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">Telefone / WhatsApp</div>
+                <div class="fw-semibold">{{ $user->phone ?: '—' }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">Data de nascimento</div>
+                <div class="fw-semibold">
+                    {{ $client?->date_of_birth ? \Carbon\Carbon::parse($client->date_of_birth)->format('d/m/Y') : '—' }}
+                </div>
+            </div>
+        </div>
+
+        {{-- Edição --}}
+        <form method="POST" action="{{ route('client.profile.update') }}" id="pessoaisForm" class="d-none">
             @csrf
             @method('PATCH')
-
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-                <div>
-                    <h2 class="section-title mb-1" style="font-size: 1.5rem;">Dados pessoais</h2>
-                    <p class="text-muted mb-0">Clique na caneta para editar um campo.</p>
-                </div>
-
-                <button type="submit" class="btn btn-secondary px-4" id="btnSalvarDados" disabled>
-                    <i class="bi bi-check-circle me-2"></i> Salvar dados
-                </button>
-            </div>
 
             <div class="row g-4">
                 <div class="col-md-6">
                     <label for="name" class="form-label text-muted">Nome</label>
-                    <div class="input-group">
-                        <input type="text" id="name" name="name" class="form-control border-end-0 campo-editavel"
-                               value="{{ old('name', $user->name) }}" maxlength="100" readonly required>
-                        <button class="btn bg-white text-secondary border border-start-0 editar-campo"
-                                style="border-color: var(--bs-border-color) !important;" type="button"
-                                data-campo="name" aria-label="Editar nome" title="Editar nome">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                    </div>
+                    <input type="text" id="name" name="name" class="form-control"
+                           value="{{ old('name', $user->name) }}" maxlength="100" required>
                 </div>
-
                 <div class="col-md-6">
                     <label for="email" class="form-label text-muted">E-mail</label>
-                    <div class="input-group">
-                        <input type="email" id="email" name="email" class="form-control border-end-0 campo-editavel"
-                               value="{{ old('email', $user->email) }}" maxlength="150" readonly required>
-                        <button class="btn bg-white text-secondary border border-start-0 editar-campo"
-                                style="border-color: var(--bs-border-color) !important;" type="button"
-                                data-campo="email" aria-label="Editar e-mail" title="Editar e-mail">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                    </div>
+                    <input type="email" id="email" name="email" class="form-control"
+                           value="{{ old('email', $user->email) }}" maxlength="150" required>
                 </div>
-
                 <div class="col-md-6">
                     <label for="phone" class="form-label text-muted">Telefone / WhatsApp</label>
-                    <div class="input-group">
-                        <input type="text" id="phone" name="phone" class="form-control border-end-0 campo-editavel"
-                               value="{{ old('phone', $user->phone) }}" maxlength="20"
-                               placeholder="Não informado" readonly>
-                        <button class="btn bg-white text-secondary border border-start-0 editar-campo"
-                                style="border-color: var(--bs-border-color) !important;" type="button"
-                                data-campo="phone" aria-label="Editar telefone" title="Editar telefone">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                    </div>
+                    <input type="text" id="phone" name="phone" class="form-control"
+                           value="{{ old('phone', $user->phone) }}" maxlength="20" placeholder="Não informado">
                 </div>
-
                 <div class="col-md-6">
                     <label for="date_of_birth" class="form-label text-muted">Data de nascimento</label>
-                    <div class="input-group">
-                        <input type="date" id="date_of_birth" name="date_of_birth"
-                               class="form-control border-end-0 campo-editavel"
-                               value="{{ old('date_of_birth', $client?->date_of_birth) }}"
-                               max="{{ now()->toDateString() }}" readonly>
-                        <button class="btn bg-white text-secondary border border-start-0 editar-campo"
-                                style="border-color: var(--bs-border-color) !important;" type="button"
-                                data-campo="date_of_birth" aria-label="Editar data de nascimento"
-                                title="Editar data de nascimento">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                    </div>
+                    <input type="date" id="date_of_birth" name="date_of_birth" class="form-control"
+                           value="{{ old('date_of_birth', $client?->date_of_birth) }}"
+                           max="{{ now()->toDateString() }}">
                 </div>
+            </div>
 
-                <div class="col-md-6">
-                    <label class="form-label text-muted">Tipo da conta</label>
-                    <input type="text" class="form-control bg-light"
-                           value="{{ ['client' => 'Cliente', 'owner' => 'Proprietário', 'employee' => 'Funcionário'][$user->type] ?? ucfirst($user->type) }}"
-                           readonly>
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label text-muted">Cadastrado desde</label>
-                    <input type="text" class="form-control bg-light"
-                           value="{{ optional($user->created_at)->format('d/m/Y') ?? '—' }}" readonly>
-                </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-2"></i> Salvar dados
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnCancelarPessoais">Cancelar</button>
             </div>
         </form>
 
         <hr class="my-4">
 
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <button type="button" class="btn btn-outline-danger"
+            <button type="button" class="btn btn-danger"
                     data-bs-toggle="modal" data-bs-target="#modalExcluirConta">
                 <i class="bi bi-trash me-2"></i> Excluir conta
             </button>
@@ -231,33 +211,30 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('perfilForm');
-        const campos = Array.from(form.querySelectorAll('.campo-editavel'));
-        const salvar = document.getElementById('btnSalvarDados');
-        const valoresIniciais = new Map(campos.map(campo => [campo.name, campo.value]));
+        const btnEditar = document.getElementById('btnEditarPessoais');
+        const btnCancelar = document.getElementById('btnCancelarPessoais');
+        const view = document.getElementById('pessoaisView');
+        const form = document.getElementById('pessoaisForm');
 
-        function atualizarBotaoSalvar() {
-            const alterado = campos.some(campo => campo.value !== valoresIniciais.get(campo.name));
-            salvar.disabled = !alterado;
-            salvar.classList.toggle('btn-secondary', !alterado);
-            salvar.classList.toggle('btn-success', alterado);
+        function abrir() {
+            view.classList.add('d-none');
+            form.classList.remove('d-none');
+            btnEditar.classList.add('d-none');
         }
 
-        document.querySelectorAll('.editar-campo').forEach(botao => {
-            botao.addEventListener('click', function () {
-                const campo = document.getElementById(this.dataset.campo);
-                campo.readOnly = false;
-                campo.classList.add('border-warning');
-                this.style.setProperty('border-color', 'var(--bs-warning)', 'important');
-                campo.focus();
+        if (btnEditar) btnEditar.addEventListener('click', abrir);
 
-                if (campo.type !== 'date') {
-                    campo.select();
-                }
+        // Cancelar recarrega a página, voltando aos dados reais salvos.
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', function () {
+                window.location.href = '{{ route('client.profile.edit') }}';
             });
-        });
+        }
 
-        campos.forEach(campo => campo.addEventListener('input', atualizarBotaoSalvar));
+        // Se houve erro de validação nos dados pessoais, já abre o formulário.
+        @if ($errors->hasAny(['name', 'email', 'phone', 'date_of_birth']))
+            abrir();
+        @endif
 
         @if ($errors->has('current_password') || $errors->has('password'))
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTrocarSenha')).show();

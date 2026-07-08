@@ -85,7 +85,7 @@
             <form method="POST" action="{{ route('caixa.pay-fee', $t) }}" class="modal-content">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Receber taxa — reserva #{{ $t->id }}</h5>
+                    <h5 class="modal-title">Receber taxa — reserva #{{ $numerosReservas[$t->id] ?? $t->id }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">

@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PaymentMethodSeeder::class,
+            AdminUserSeeder::class,
         ]);
 
         // TODO: criar usuário de teste compatível com a tabela users

@@ -27,7 +27,7 @@
     @endphp
 
     <div class="d-flex align-items-center gap-2 mb-4">
-        <h1 class="fw-bold mb-0">Reserva #{{ $booking->id }}</h1>
+        <h1 class="fw-bold mb-0">Reserva #{{ $numeroReserva ?? $booking->id }}</h1>
         @if ($emAndamento)
             <span class="badge" style="background:#021B35;color:#fff;">Em andamento</span>
         @else

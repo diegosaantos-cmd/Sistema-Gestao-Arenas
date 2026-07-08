@@ -10,7 +10,7 @@
         ← Voltar aos agendamentos
     </a>
 
-    <h1 class="fw-bold mb-1">Reagendar reserva #{{ $booking->id }}</h1>
+    <h1 class="fw-bold mb-1">Reagendar reserva #{{ $numeroReserva ?? $booking->id }}</h1>
     <p class="text-muted">
         {{ $arena->name }} · Quadra <strong>{{ $court->name }}</strong> ·
         Cliente {{ $booking->client->user->name ?? '—' }}

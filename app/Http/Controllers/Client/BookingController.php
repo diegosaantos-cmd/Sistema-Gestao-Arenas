@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Court;
 use App\Services\CourtScheduleService;
 use App\Services\PaymentService;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -150,6 +151,7 @@ class BookingController extends Controller
             'aberto' => $aberto,
             'slots' => $slots,
             'diasAbertos' => CourtScheduleService::diasAbertos($arena),
+            'numeroReserva' => $booking->numeroDoCliente(),
         ]);
     }
 
@@ -242,20 +244,22 @@ class BookingController extends Controller
     }
 
     /**
-     * Cancela uma reserva do próprio cliente, respeitando a regra de cancelamento.
+     * Cancela uma reserva SEM taxa (grátis). Se houver taxa, redireciona para a
+     * tela de pagamento da taxa (só cancela pagando online).
      */
     public function cancel(Request $request, Booking $booking)
     {
-        $client = Client::where('user_id', auth()->id())->first();
-
-        if (! $client || $booking->client_id !== $client->id) {
-            abort(403);
-        }
+        $this->autorizarClienteDaReserva($booking);
 
         $regra = $booking->regraCancelamentoCliente();
 
         if ($regra === null) {
             return back()->withErrors(['cancel' => 'Esta reserva não pode mais ser cancelada.']);
+        }
+
+        // Com taxa: só cancela pagando a taxa online.
+        if ($regra === 'taxa') {
+            return redirect()->route('client.bookings.cancel-pay', $booking);
         }
 
         $validated = $request->validate([
@@ -264,22 +268,96 @@ class BookingController extends Controller
             'motivo.required' => 'Informe o motivo do cancelamento.',
         ]);
 
-        // Se há taxa, registra o valor na reserva — ele vira uma cobrança
-        // "a receber" no caixa da arena, até o dono/atendente dar baixa.
-        $taxa = $regra === 'taxa' ? $booking->valorTaxaCancelamento() : null;
-
         $booking->update([
             'status' => 'cancelled',
             'cancelled_by' => auth()->id(),
             'cancelled_at' => now(),
             'cancellation_reason' => $validated['motivo'],
-            'cancellation_fee_amount' => $taxa,
+            'cancellation_fee_amount' => null,
         ]);
 
-        return back()->with('status', $taxa
-            ? 'Reserva cancelada. Uma taxa de R$ ' . number_format($taxa, 2, ',', '.')
-                . ' será cobrada (ficará a receber no caixa da arena).'
-            : 'Reserva cancelada. Sem taxa.');
+        return back()->with('status', 'Reserva cancelada. Sem taxa.');
+    }
+
+    /**
+     * Tela de cancelamento COM taxa: o cliente paga a taxa online (cartão/PIX
+     * simulados) para poder cancelar. Se não pagar, a reserva continua.
+     */
+    public function cancelPay(Booking $booking)
+    {
+        $this->autorizarClienteDaReserva($booking);
+        $booking->load('court.arena.paymentMethods', 'payments');
+
+        $regra = $booking->regraCancelamentoCliente();
+
+        if ($regra === null) {
+            return redirect()->route('client.bookings.index')
+                ->withErrors(['cancel' => 'Esta reserva não pode mais ser cancelada.']);
+        }
+        // Sem taxa: não precisa desta tela.
+        if ($regra !== 'taxa') {
+            return redirect()->route('client.bookings.index');
+        }
+
+        $taxa = $booking->valorTaxaCancelamento();
+        // Só formas online (PIX/cartão) — dinheiro não paga taxa remotamente.
+        $formas = $booking->court->arena->paymentMethods
+            ->where('active', true)
+            ->whereIn('type', ['pix', 'card']);
+
+        $numeroReserva = $booking->numeroDoCliente();
+
+        return view('client.bookings.cancel-pay', compact('booking', 'taxa', 'formas', 'numeroReserva'));
+    }
+
+    /**
+     * Confirma o pagamento da taxa (simulado) e cancela a reserva.
+     */
+    public function cancelPayConfirm(Request $request, Booking $booking)
+    {
+        $this->autorizarClienteDaReserva($booking);
+        $booking->load('court.arena.paymentMethods', 'payments');
+
+        $regra = $booking->regraCancelamentoCliente();
+        if ($regra !== 'taxa') {
+            return redirect()->route('client.bookings.index')
+                ->withErrors(['cancel' => 'Esta reserva não exige pagamento de taxa para cancelar.']);
+        }
+
+        $arena = $booking->court->arena;
+        $tiposOnline = $arena->paymentMethods
+            ->where('active', true)
+            ->whereIn('type', ['pix', 'card'])
+            ->pluck('type')->all();
+
+        $validated = $request->validate([
+            'motivo' => ['required', 'string', 'max:255'],
+            'payment_method' => ['required', Rule::in($tiposOnline)],
+        ], [
+            'motivo.required' => 'Informe o motivo do cancelamento.',
+            'payment_method.in' => 'Escolha PIX ou cartão para pagar a taxa.',
+        ]);
+
+        $metodo = $arena->paymentMethods->firstWhere('type', $validated['payment_method']);
+        $taxa = $booking->valorTaxaCancelamento();
+
+        DB::transaction(function () use ($booking, $metodo, $taxa, $validated) {
+            $booking->update([
+                'status' => 'cancelled',
+                'cancelled_by' => auth()->id(),
+                'cancelled_at' => now(),
+                'cancellation_reason' => $validated['motivo'],
+                'cancellation_fee_amount' => $taxa,
+            ]);
+
+            PaymentService::registrar(
+                $booking, $metodo, $taxa, 'online', auth()->id(),
+                'Taxa de cancelamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label
+            );
+        });
+
+        return redirect()->route('client.bookings.index')->with('status',
+            'Reserva cancelada. Taxa de R$ ' . number_format($taxa, 2, ',', '.') . ' paga. ✅');
     }
 
     /**
@@ -291,9 +369,9 @@ class BookingController extends Controller
         $this->autorizarClienteDaReserva($booking);
         $booking->load('court.arena.paymentMethods', 'paymentMethod', 'payments');
 
-        if ($booking->status !== 'confirmed') {
+        if (! in_array($booking->status, ['confirmed', 'completed'])) {
             return redirect()->route('client.bookings.index')
-                ->withErrors(['pay' => 'Só é possível pagar reservas confirmadas.']);
+                ->withErrors(['pay' => 'Só é possível pagar reservas confirmadas ou já realizadas.']);
         }
         if ($booking->isPaga()) {
             return redirect()->route('client.bookings.index')
@@ -301,8 +379,9 @@ class BookingController extends Controller
         }
 
         $formas = $booking->court->arena->paymentMethods->where('active', true);
+        $numeroReserva = $booking->numeroDoCliente();
 
-        return view('client.bookings.pay', compact('booking', 'formas'));
+        return view('client.bookings.pay', compact('booking', 'formas', 'numeroReserva'));
     }
 
     /**
@@ -314,7 +393,7 @@ class BookingController extends Controller
         $this->autorizarClienteDaReserva($booking);
         $booking->load('court.arena.paymentMethods', 'payments');
 
-        if ($booking->status !== 'confirmed' || $booking->isPaga()) {
+        if (! in_array($booking->status, ['confirmed', 'completed']) || $booking->isPaga()) {
             return redirect()->route('client.bookings.index')
                 ->withErrors(['pay' => 'Esta reserva não pode ser paga.']);
         }

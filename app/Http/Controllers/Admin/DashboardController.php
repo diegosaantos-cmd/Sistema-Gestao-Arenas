@@ -57,7 +57,6 @@ class DashboardController extends Controller
     {
         $request->merge([
             'email' => mb_strtolower(trim((string) $request->input('email'))),
-            'cpf' => preg_replace('/\D/', '', (string) $request->input('cpf')),
             'phone' => trim((string) $request->input('phone')),
         ]);
 
@@ -65,7 +64,6 @@ class DashboardController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:30'],
-            'cpf' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/', 'unique:system_admins,cpf'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
@@ -82,7 +80,6 @@ class DashboardController extends Controller
 
             SystemAdmin::create([
                 'user_id' => $usuario->id,
-                'cpf' => $dados['cpf'],
             ]);
         });
 

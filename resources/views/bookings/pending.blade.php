@@ -41,6 +41,7 @@
                     <thead>
                         <tr>
                             <th>Cliente</th>
+                            <th class="text-center">Reservas não pagas</th>
                             <th>Quadra</th>
                             <th>Data / Horário</th>
                             <th>Confirma auto. em</th>
@@ -49,8 +50,19 @@
                     </thead>
                     <tbody>
                         @forelse ($bookings as $booking)
+                            @php $naoPagas = $naoPagasPorCliente[$booking->client_id] ?? 0; @endphp
                             <tr>
                                 <td>{{ $booking->client->user->name ?? '—' }}</td>
+                                <td class="text-center">
+                                    @if ($naoPagas > 0)
+                                        <span class="badge bg-danger"
+                                              title="Este cliente tem {{ $naoPagas }} reserva(s) que ficaram sem pagamento nesta arena.">
+                                            {{ $naoPagas }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">0</span>
+                                    @endif
+                                </td>
                                 <td>{{ $booking->court->name ?? '—' }}</td>
                                 <td>
                                     {{ $booking->date->format('d/m/Y') }}
@@ -78,7 +90,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="6" class="text-center text-muted">
                                     Nenhuma reserva aguardando confirmação.
                                 </td>
                             </tr>

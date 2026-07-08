@@ -8,55 +8,67 @@
     <div class="mb-5">
         <span class="badge bg-danger mb-2">ADMINISTRADOR GERAL</span>
         <h1 class="dashboard-title mb-1">Painel administrativo</h1>
-        <p class="dashboard-subtitle mb-0">Escolha uma área para gerenciar o sistema.</p>
+        <p class="dashboard-subtitle mb-0">Escolha uma área do sistema para gerenciar.</p>
     </div>
 
     <div class="row g-4">
         <div class="col-6 col-lg-3">
-            <a href="{{ route('admin.owners.index') }}"
-               class="dashboard-card h-100 text-decoration-none text-body">
-                <div>
-                    <h5>Empresas</h5>
-                    <h2>{{ $resumo['proprietarios'] }}</h2>
-                    <small class="text-muted">Empresas e proprietários</small>
+            <a href="{{ route('admin.owners.index') }}" class="text-decoration-none text-reset">
+                <div class="card shadow-sm border-0 h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h4 class="text-secondary">Empresas</h4>
+                            <span class="text-muted small">Visualizar</span>
+                        </div>
+                        <h1 class="fw-bold mb-1">{{ $resumo['proprietarios'] }}</h1>
+                        <div class="small text-muted">Empresas e proprietários</div>
+                    </div>
                 </div>
-                <i class="bi bi-buildings dashboard-icon text-primary"></i>
             </a>
         </div>
 
         <div class="col-6 col-lg-3">
-            <a href="{{ route('admin.system.arenas') }}"
-               class="dashboard-card h-100 text-decoration-none text-body">
-                <div>
-                    <h5>Arenas</h5>
-                    <h2>{{ $resumo['arenas'] }}</h2>
-                    <small class="text-muted">{{ $resumo['arenas_ativas'] }} ativas</small>
+            <a href="{{ route('admin.system.arenas') }}" class="text-decoration-none text-reset">
+                <div class="card shadow-sm border-0 h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h4 class="text-secondary">Arenas</h4>
+                            <span class="text-muted small">Visualizar</span>
+                        </div>
+                        <h1 class="fw-bold mb-1">{{ $resumo['arenas'] }}</h1>
+                        <div class="small text-muted">{{ $resumo['arenas_ativas'] }} ativas</div>
+                    </div>
                 </div>
-                <i class="bi bi-geo-alt dashboard-icon text-success"></i>
             </a>
         </div>
 
         <div class="col-6 col-lg-3">
-            <a href="{{ route('admin.system.courts') }}"
-               class="dashboard-card h-100 text-decoration-none text-body">
-                <div>
-                    <h5>Quadras</h5>
-                    <h2>{{ $resumo['quadras'] }}</h2>
-                    <small class="text-muted">Em todas as arenas</small>
+            <a href="{{ route('admin.system.courts') }}" class="text-decoration-none text-reset">
+                <div class="card shadow-sm border-0 h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h4 class="text-secondary">Quadras</h4>
+                            <span class="text-muted small">Visualizar</span>
+                        </div>
+                        <h1 class="fw-bold mb-1">{{ $resumo['quadras'] }}</h1>
+                        <div class="small text-muted">Em todas as arenas</div>
+                    </div>
                 </div>
-                <i class="bi bi-grid-3x3-gap dashboard-icon text-info"></i>
             </a>
         </div>
 
         <div class="col-6 col-lg-3">
-            <a href="{{ route('admin.system.clients') }}"
-               class="dashboard-card h-100 text-decoration-none text-body">
-                <div>
-                    <h5>Clientes</h5>
-                    <h2>{{ $resumo['clientes'] }}</h2>
-                    <small class="text-muted">Clientes do sistema</small>
+            <a href="{{ route('admin.system.clients') }}" class="text-decoration-none text-reset">
+                <div class="card shadow-sm border-0 h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h4 class="text-secondary">Clientes</h4>
+                            <span class="text-muted small">Visualizar</span>
+                        </div>
+                        <h1 class="fw-bold mb-1">{{ $resumo['clientes'] }}</h1>
+                        <div class="small text-muted">Clientes do sistema</div>
+                    </div>
                 </div>
-                <i class="bi bi-people dashboard-icon text-warning"></i>
             </a>
         </div>
     </div>
@@ -65,26 +77,32 @@
         <div class="col-lg-8">
             <div class="row g-4">
                 <div class="col-6">
-                    <a href="{{ route('admin.system.employees') }}"
-                       class="dashboard-card h-100 text-decoration-none text-body">
-                        <div>
-                            <h5>Funcionários</h5>
-                            <h2>{{ $resumo['funcionarios'] }}</h2>
-                            <small class="text-muted">Equipe do sistema</small>
+                    <a href="{{ route('admin.system.employees') }}" class="text-decoration-none text-reset">
+                        <div class="card shadow-sm border-0 h-100 card-hover">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h4 class="text-secondary">Funcionários</h4>
+                                    <span class="text-muted small">Visualizar</span>
+                                </div>
+                                <h1 class="fw-bold mb-1">{{ $resumo['funcionarios'] }}</h1>
+                                <div class="small text-muted">Equipe do sistema</div>
+                            </div>
                         </div>
-                        <i class="bi bi-person-badge dashboard-icon text-secondary"></i>
                     </a>
                 </div>
 
                 <div class="col-6">
-                    <a href="{{ route('admin.system.administrators') }}"
-                       class="dashboard-card h-100 text-decoration-none text-body">
-                        <div>
-                            <h5>Administradores do sistema</h5>
-                            <h2>{{ $resumo['administradores'] }}</h2>
-                            <small class="text-muted">Controle administrativo</small>
+                    <a href="{{ route('admin.system.administrators') }}" class="text-decoration-none text-reset">
+                        <div class="card shadow-sm border-0 h-100 card-hover">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h4 class="text-secondary">Administradores do sistema</h4>
+                                    <span class="text-muted small">Visualizar</span>
+                                </div>
+                                <h1 class="fw-bold mb-1">{{ $resumo['administradores'] }}</h1>
+                                <div class="small text-muted">Controle administrativo</div>
+                            </div>
                         </div>
-                        <i class="bi bi-shield-lock dashboard-icon text-danger"></i>
                     </a>
                 </div>
             </div>
@@ -95,42 +113,35 @@
                 <h2 class="section-title">Ações rápidas</h2>
                 <div class="row g-3 mt-2">
             <div class="col-6 quick-action-cell">
-                <button type="button" class="btn w-100 quick-action-btn"
+                <button type="button" class="btn btn-outline-dark btn-lg w-100"
                         data-bs-toggle="modal" data-bs-target="#adminProfileModal">
                     <i class="bi bi-person-circle me-1"></i>
                     Perfil
                 </button>
             </div>
             <div class="col-6 quick-action-cell">
-                <button type="button" class="btn w-100 quick-action-btn"
+                <button type="button" class="btn btn-outline-dark btn-lg w-100"
                         data-bs-toggle="modal" data-bs-target="#newAdminModal">
                     <i class="bi bi-person-plus me-1"></i>
                     Novo admin
                 </button>
             </div>
             <div class="col-6 quick-action-cell">
-                <button type="button" class="btn w-100 quick-action-btn"
+                <button type="button" class="btn btn-outline-dark btn-lg w-100"
                         data-quick-search="empresa" data-search-title="Pesquisar empresas">
                     <i class="bi bi-search me-1"></i>
                     Empresas
                 </button>
             </div>
             <div class="col-6 quick-action-cell">
-                <button type="button" class="btn w-100 quick-action-btn"
+                <button type="button" class="btn btn-outline-dark btn-lg w-100"
                         data-quick-search="arena" data-search-title="Pesquisar arenas">
                     <i class="bi bi-search me-1"></i>
                     Arenas
                 </button>
             </div>
             <div class="col-6 quick-action-cell">
-                <button type="button" class="btn w-100 quick-action-btn"
-                        data-quick-search="quadra" data-search-title="Pesquisar quadras">
-                    <i class="bi bi-search me-1"></i>
-                    Quadras
-                </button>
-            </div>
-            <div class="col-6 quick-action-cell">
-                <button type="button" class="btn w-100 quick-action-btn"
+                <button type="button" class="btn btn-outline-dark btn-lg w-100"
                         data-quick-search="usuario" data-search-title="Pesquisar usuários">
                     <i class="bi bi-search me-1"></i>
                     Usuários
@@ -162,10 +173,6 @@
                     <div class="col-6">
                         <span class="small fw-bold text-dark">Telefone</span><br>
                         <span>{{ auth()->user()->phone ?: '—' }}</span>
-                    </div>
-                    <div class="col-6">
-                        <span class="small fw-bold text-dark">CPF</span><br>
-                        <span>{{ auth()->user()->systemAdmin?->cpf ?: '—' }}</span>
                     </div>
                     <div class="col-6">
                         <span class="small fw-bold text-dark">Tipo da conta</span><br>
@@ -294,13 +301,6 @@
                                inputmode="numeric" autocomplete="tel" maxlength="15"
                                placeholder="(00) 00000-0000" data-mask-phone required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="adminCpf">CPF</label>
-                        <input class="form-control" id="adminCpf" name="cpf"
-                               inputmode="numeric" minlength="14" maxlength="14"
-                               pattern="\d{3}\.\d{3}\.\d{3}-\d{2}"
-                               placeholder="000.000.000-00" data-mask-cpf required>
-                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label" for="adminPassword">Senha</label>
@@ -356,29 +356,6 @@
     .quick-actions-box {
         width: 100%;
         padding: 30px;
-    }
-
-    .quick-action-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 62px;
-        color: #021b35;
-        background: #fff;
-        border: 1px solid #021b35;
-        border-radius: 12px;
-        padding: 16px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        transition: .3s;
-    }
-
-    .quick-action-btn:hover,
-    .quick-action-btn:focus {
-        color: #fff;
-        background: #021b35;
-        border-color: #021b35;
-        transform: translateY(-2px);
     }
 
     .quick-action-cell {
@@ -688,7 +665,6 @@
             try {
                 const formData = new FormData(adminForm);
                 formData.set('email', normalizeEmail(formData.get('email')));
-                formData.set('cpf', onlyNumbers(formData.get('cpf')));
 
                 const response = await fetch(adminForm.action, {
                     method: 'POST',

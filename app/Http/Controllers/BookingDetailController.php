@@ -61,6 +61,10 @@ class BookingDetailController extends Controller
             }
         }
 
-        return view('bookings.details', compact('booking', 'funcionario', 'canceladoPor'));
+        // Número da reserva no contexto de quem está vendo: o cliente vê a
+        // sequência dele; dono/funcionário veem a sequência da arena.
+        $numeroReserva = $ehCliente ? $booking->numeroDoCliente() : $booking->numeroNaArena();
+
+        return view('bookings.details', compact('booking', 'funcionario', 'canceladoPor', 'numeroReserva'));
     }
 }

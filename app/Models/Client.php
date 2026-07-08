@@ -8,9 +8,6 @@ class Client extends Model
 {
     protected $table = 'clients';
 
-    // A tabela clients só tem created_at (sem updated_at).
-    public $timestamps = false;
-
     protected $fillable = [
         'user_id',
         'date_of_birth',

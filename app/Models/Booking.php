@@ -36,6 +36,59 @@ class Booking extends Model
         return $this->belongsTo(Client::class);
     }
 
+    /**
+     * Número da reserva na sequência do CLIENTE dono dela (1, 2, 3...), na
+     * ordem em que ele reservou. Evita expor o id global do banco, que
+     * "pularia" (ex.: a 2ª reserva do cliente aparecer como #10).
+     */
+    public function numeroDoCliente(): int
+    {
+        return static::where('client_id', $this->client_id)
+            ->where('id', '<=', $this->id)
+            ->count();
+    }
+
+    /**
+     * Número da reserva na sequência da ARENA (1, 2, 3...), na ordem de
+     * criação dentro daquela arena. Conta reservas de quadras já excluídas
+     * também, para a sequência não pular.
+     */
+    public function numeroNaArena(): int
+    {
+        $arenaId = $this->court?->arena_id ?? $this->courtWithTrashed?->arena_id;
+
+        if (! $arenaId) {
+            return $this->id;
+        }
+
+        return static::whereIn('court_id', static::courtIdsDaArena($arenaId))
+            ->where('id', '<=', $this->id)
+            ->count();
+    }
+
+    /**
+     * Mapa [booking_id => número na arena] para todas as reservas de uma
+     * arena — usado nas listagens para evitar uma consulta por linha.
+     */
+    public static function numerosNaArena(int $arenaId): array
+    {
+        return static::whereIn('court_id', static::courtIdsDaArena($arenaId))
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->flip()
+            ->map(fn ($pos) => $pos + 1)
+            ->all();
+    }
+
+    /**
+     * Ids das quadras (inclusive excluídas) de uma arena.
+     */
+    protected static function courtIdsDaArena(int $arenaId)
+    {
+        return Court::withTrashed()->where('arena_id', $arenaId)->pluck('id');
+    }
+
     public function payments()
     {
         return $this->hasMany(Payment::class);
@@ -252,6 +305,7 @@ class Booking extends Model
         foreach ($query->get() as $booking) {
             if ($booking->deveAutoConfirmar()) {
                 $booking->update(['status' => 'confirmed']);
+                $booking->notificarClienteConfirmada();
             }
         }
     }
@@ -273,7 +327,62 @@ class Booking extends Model
 
             if (now()->greaterThan($fim)) {
                 $booking->update(['status' => 'completed']);
+
+                if (! $booking->isPaga()) {
+                    $booking->notificarClienteNaoPaga();
+                }
             }
         }
+    }
+
+    /**
+     * Descrição curta da reserva para mensagens/notificações.
+     */
+    public function descricaoCurta(): string
+    {
+        return ($this->court->name ?? 'Quadra') . ' — '
+            . $this->date->format('d/m/Y') . ' '
+            . substr($this->start_time, 0, 5) . '–' . substr($this->end_time, 0, 5);
+    }
+
+    public function notificarClienteConfirmada(?int $sentBy = null): void
+    {
+        ClientNotification::paraReserva(
+            $this,
+            'Reserva confirmada',
+            'Sua reserva foi confirmada: ' . $this->descricaoCurta() . '.',
+            $sentBy
+        );
+    }
+
+    public function notificarClienteCancelada(?string $motivo = null, ?int $sentBy = null): void
+    {
+        $texto = 'Sua reserva foi cancelada pela arena: ' . $this->descricaoCurta() . '.';
+        if ($motivo) {
+            $texto .= ' Motivo: ' . $motivo;
+        }
+
+        ClientNotification::paraReserva($this, 'Reserva cancelada', $texto, $sentBy);
+    }
+
+    public function notificarClienteReagendada(?int $sentBy = null): void
+    {
+        ClientNotification::paraReserva(
+            $this,
+            'Reserva reagendada',
+            'Sua reserva foi reagendada pela arena para: ' . $this->descricaoCurta() . '.',
+            $sentBy
+        );
+    }
+
+    public function notificarClienteNaoPaga(?int $sentBy = null): void
+    {
+        ClientNotification::paraReserva(
+            $this,
+            'Reserva não paga',
+            'A reserva ' . $this->descricaoCurta() . ' foi realizada e está sem pagamento. '
+                . 'Você ainda pode pagá-la em "Meus Agendamentos".',
+            $sentBy
+        );
     }
 }

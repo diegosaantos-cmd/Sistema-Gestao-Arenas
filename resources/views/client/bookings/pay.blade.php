@@ -10,7 +10,7 @@
         ← Voltar aos agendamentos
     </a>
 
-    <h1 class="fw-bold mb-1">Pagar reserva #{{ $booking->id }}</h1>
+    <h1 class="fw-bold mb-1">Pagar reserva #{{ $numeroReserva ?? $booking->id }}</h1>
     <p class="text-muted">
         {{ $booking->court->arena->name ?? '—' }} · Quadra <strong>{{ $booking->court->name ?? '—' }}</strong> ·
         {{ $booking->date->format('d/m/Y') }}

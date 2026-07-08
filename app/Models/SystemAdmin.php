@@ -8,7 +8,6 @@ class SystemAdmin extends Model
 {
     protected $fillable = [
         'user_id',
-        'cpf',
     ];
 
     public function user()

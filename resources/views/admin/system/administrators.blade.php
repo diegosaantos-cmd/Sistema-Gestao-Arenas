@@ -15,7 +15,7 @@
         <div class="col-12 col-md-6">
             <div class="input-group arena-search-box shadow-sm">
                 <input type="search" class="form-control"
-                       placeholder="Nome, e-mail, telefone ou CPF"
+                       placeholder="Nome, e-mail ou telefone"
                        aria-label="Pesquisar administrador"
                        data-admin-search>
                 <span class="input-group-text bg-white border-0">
@@ -34,7 +34,6 @@
                         <th class="ps-3" style="width: 17%;">Administrador</th>
                         <th style="width: 21%;">E-mail</th>
                         <th class="admin-secondary-column" style="width: 13%;">Telefone</th>
-                        <th class="admin-secondary-column" style="width: 13%;">CPF</th>
                         <th class="admin-secondary-column" style="width: 13%;">Cadastro</th>
                         <th style="width: 9%;">Situação</th>
                         <th class="text-end pe-3" style="width: 14%;">Ações</th>
@@ -43,7 +42,7 @@
                 <tbody data-admins-body>
                     @forelse ($administradores as $administrador)
                         <tr data-admin-row
-                            data-admin-search="{{ $administrador->name }} {{ $administrador->email }} {{ $administrador->phone }} {{ $administrador->systemAdmin?->cpf }}">
+                            data-admin-search="{{ $administrador->name }} {{ $administrador->email }} {{ $administrador->phone }}">
                             <td class="ps-3 fw-bold text-break">
                                 {{ $administrador->name }}
                                 @if ($administrador->is(auth()->user()))
@@ -52,7 +51,6 @@
                             </td>
                             <td class="text-break" style="overflow-wrap: anywhere;">{{ $administrador->email }}</td>
                             <td class="admin-secondary-column text-break">{{ $administrador->phone ?: '—' }}</td>
-                            <td class="admin-secondary-column">{{ $administrador->systemAdmin?->cpf ?: '—' }}</td>
                             <td class="admin-secondary-column">
                                 @if ($administrador->created_at)
                                     <span class="d-block">{{ $administrador->created_at->format('d/m/Y') }}</span>
@@ -105,15 +103,11 @@
                         </tr>
 
                         <tr class="admin-mobile-details-row d-none d-md-none" data-admin-details>
-                            <td colspan="7" class="p-3 bg-light">
+                            <td colspan="6" class="p-3 bg-light">
                                 <div class="row g-3 small">
                                     <div class="col-6">
                                         <span class="fw-bold">Telefone</span><br>
                                         <span class="text-break">{{ $administrador->phone ?: '—' }}</span>
-                                    </div>
-                                    <div class="col-6">
-                                        <span class="fw-bold">CPF</span><br>
-                                        <span>{{ $administrador->systemAdmin?->cpf ?: '—' }}</span>
                                     </div>
                                     <div class="col-6">
                                         <span class="fw-bold">Cadastro</span><br>
@@ -155,14 +149,14 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 Nenhum administrador cadastrado.
                             </td>
                         </tr>
                     @endforelse
 
                     <tr class="d-none" data-no-admin-results>
-                        <td colspan="7" class="text-center text-muted py-4">
+                        <td colspan="6" class="text-center text-muted py-4">
                             Nenhum administrador encontrado.
                         </td>
                     </tr>

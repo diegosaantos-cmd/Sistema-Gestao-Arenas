@@ -17,7 +17,7 @@ class PaymentService
      * fechado, o pagamento fica "a lançar" (cash_register_entry_id = null) até
      * o dono adicionar quando abrir o caixa. Retorna o Payment criado.
      */
-    public static function registrar(Booking $booking, PaymentMethod $metodo, float $valor, string $origin, ?int $createdBy = null): Payment
+    public static function registrar(Booking $booking, PaymentMethod $metodo, float $valor, string $origin, ?int $createdBy = null, ?string $descricao = null): Payment
     {
         $arena = $booking->court?->arena;
 
@@ -25,7 +25,9 @@ class PaymentService
             ? CashRegister::where('arena_id', $arena->id)->where('status', 'open')->first()
             : null;
 
-        return DB::transaction(function () use ($booking, $metodo, $valor, $origin, $caixa, $createdBy) {
+        $descricao = $descricao ?? 'Pagamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label;
+
+        return DB::transaction(function () use ($booking, $metodo, $valor, $origin, $caixa, $createdBy, $descricao) {
             $entryId = null;
 
             if ($caixa) {
@@ -34,7 +36,7 @@ class PaymentService
                     'booking_id' => $booking->id,
                     'type' => 'income',
                     'amount' => $valor,
-                    'description' => 'Pagamento reserva #' . $booking->id . ' — ' . $metodo->label,
+                    'description' => $descricao,
                     'created_by' => $createdBy,
                 ]);
                 $entryId = $entry->id;
@@ -64,7 +66,7 @@ class PaymentService
                 'booking_id' => $pagamento->booking_id,
                 'type' => 'income',
                 'amount' => $pagamento->amount,
-                'description' => 'Pagamento reserva #' . $pagamento->booking_id
+                'description' => 'Pagamento reserva #' . (optional($pagamento->booking)->numeroNaArena() ?? $pagamento->booking_id)
                     . ' — ' . ($pagamento->paymentMethod->label ?? 'Pagamento'),
                 'created_by' => $createdBy,
             ]);
