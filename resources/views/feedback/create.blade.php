@@ -5,7 +5,15 @@
 @section('content')
 <div class="container py-4" style="max-width: 760px;">
 
-    <a href="{{ url()->previous() }}" class="btn btn-dark btn-sm mb-3">← Voltar</a>
+    @php
+        // Depois de enviar, o fluxo POST → redirect volta para esta mesma tela,
+        // e aí url()->previous() apontaria para ela própria (o "Voltar" recarregava
+        // a página em vez de sair). Nesse caso, volta para a área do usuário —
+        // a rota 'dashboard' se auto-roteia por tipo (dono/funcionário/cliente).
+        $anterior = url()->previous();
+        $voltarUrl = ($anterior === url()->current() || $anterior === '') ? route('dashboard') : $anterior;
+    @endphp
+    <a href="{{ $voltarUrl }}" class="btn btn-dark btn-sm mb-3">← Voltar</a>
 
     <h1 class="fw-bold mb-1">Sugestões e reporte de bugs</h1>
     <p class="text-muted">Ajude a melhorar o sistema: envie uma sugestão ou avise sobre um problema.</p>

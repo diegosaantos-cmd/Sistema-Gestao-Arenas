@@ -4,26 +4,26 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.arenas.show', $arena) }}" class="btn btn-dark btn-sm mb-3">← Voltar à arena</a>
+    <a href="{{ route('admin.arenas.show', [$arena, 'origem' => request('origem')]) }}" class="btn btn-dark btn-sm mb-3">← Voltar à arena</a>
 
     <div class="mb-4">
         <div class="text-muted text-uppercase fw-semibold small" style="letter-spacing:.05em;">Arena {{ $arena->name }}</div>
         <h1 class="dashboard-title mb-1">Clientes da arena</h1>
-        <p class="dashboard-subtitle mb-0">Clientes com reservas nesta arena.</p>
     </div>
 
     <form method="GET" class="mb-4 d-flex gap-2 flex-wrap" style="max-width: 520px;">
+        <input type="hidden" name="origem" value="{{ request('origem') }}">
         <input type="text" name="busca_cliente" value="{{ request('busca_cliente') }}"
                class="form-control" placeholder="Pesquise por nome, e-mail ou telefone">
         <button class="btn btn-primary">Buscar</button>
         @if (request('busca_cliente'))
-            <a href="{{ route('admin.arenas.clients.page', $arena) }}" class="btn btn-outline-secondary">Limpar</a>
+            <a href="{{ route('admin.arenas.clients.page', [$arena, 'origem' => request('origem')]) }}" class="btn btn-outline-secondary">Limpar</a>
         @endif
     </form>
 
     <div class="dashboard-box p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0 small">
+            <table class="table table-sm table-hover align-middle mb-0 small" style="min-width: 720px;">
                 <thead class="table-light">
                     <tr>
                         <th class="ps-3">Cliente</th>

@@ -380,8 +380,11 @@ class Booking extends Model
         UserNotification::paraReserva(
             $this,
             'Reserva não paga',
-            'A reserva ' . $this->descricaoCurta() . ' foi realizada e está sem pagamento. '
-                . 'Você ainda pode pagá-la em "Meus Agendamentos".',
+            'A sua reserva #' . $this->id
+                . ' na ' . ($this->court->arena->name ?? 'arena')
+                . ' (' . $this->descricaoCurta() . ') foi realizada, '
+                . 'mas ficou sem pagamento. '
+                . 'Você ainda pode pagá-la na área "Pagamentos pendentes".',
             $sentBy
         );
     }

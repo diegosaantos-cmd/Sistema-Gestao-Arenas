@@ -53,7 +53,7 @@
             </a>
 
             @if (in_array($b->status, ['confirmed', 'completed']) && ! $b->isPaga())
-                <a href="{{ route('client.bookings.pay', $b) }}" class="btn btn-success btn-sm">
+                <a href="{{ route('client.bookings.pay', ['booking' => $b, 'origem' => request()->route()->getName()]) }}" class="btn btn-success btn-sm">
                     <i class="bi bi-credit-card me-1"></i> Pagar
                 </a>
             @endif

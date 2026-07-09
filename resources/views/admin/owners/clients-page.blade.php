@@ -23,7 +23,7 @@
 
     <div class="dashboard-box p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0 small">
+            <table class="table table-sm table-hover align-middle mb-0 small" style="min-width: 720px;">
                 <thead class="table-light">
                     <tr>
                         <th class="ps-3">Cliente</th>

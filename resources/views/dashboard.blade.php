@@ -20,7 +20,7 @@
     <!-- Cards Resumo -->
     <div class="row g-4 mb-4">
 
-        <div class="col-md-4">
+        <div class="col-6 col-lg-3">
             <a href="{{ route('client.bookings.today') }}"
                class="dashboard-card text-decoration-none text-body"
                aria-label="Ver agendamentos de hoje">
@@ -35,7 +35,7 @@
             </a>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-6 col-lg-3">
             <a href="{{ route('client.bookings.pending') }}"
                class="dashboard-card text-decoration-none text-body"
                aria-label="Ver agendamentos pendentes">
@@ -50,7 +50,7 @@
             </a>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-6 col-lg-3">
             <a href="{{ route('client.bookings.index') }}"
                class="dashboard-card text-decoration-none text-body"
                aria-label="Ver próximos agendamentos">
@@ -61,6 +61,21 @@
                 </div>
 
                 <i class="bi bi-check-circle dashboard-icon text-success"></i>
+
+            </a>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <a href="{{ route('client.bookings.unpaid') }}"
+               class="dashboard-card text-decoration-none text-body {{ ($pagamentosPendentes ?? 0) > 0 ? 'border border-danger' : '' }}"
+               aria-label="Ver pagamentos pendentes">
+
+                <div>
+                    <h5>Pagamentos pendentes</h5>
+                    <h2 class="{{ ($pagamentosPendentes ?? 0) > 0 ? 'text-danger' : '' }}">{{ $pagamentosPendentes ?? 0 }}</h2>
+                </div>
+
+                <i class="bi bi-cash-coin dashboard-icon text-danger"></i>
 
             </a>
         </div>
@@ -201,57 +216,6 @@
 
     </div>
 
-    <section class="mt-5">
-        <div class="border-top border-start border-end border-3 rounded-top-3 p-3 p-md-4 mb-4"
-             style="border-color: #021b35 !important;">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <div>
-                    <h2 class="section-title mb-1">Arenas disponíveis</h2>
-                    <p class="text-muted mb-0">Conheça as arenas e encontre sua próxima quadra.</p>
-                </div>
-
-                <a href="{{ route('client.arenas.index') }}" class="btn btn-outline-primary">
-                    Ver todas
-                </a>
-            </div>
-
-            <div class="row mt-3">
-                <div class="col-12 col-lg-6">
-                    <form method="GET" action="{{ route('client.arenas.index') }}"
-                          class="arena-search-form arena-search-box shadow-sm mb-0">
-                        <div class="input-group">
-                            <input type="search" name="busca" class="form-control border-end-0"
-                                   placeholder="Pesquisar pelo nome da arena ou do proprietário"
-                                   aria-label="Pesquisar arena">
-                            <button type="submit" class="btn bg-white text-secondary border border-start-0"
-                                    style="border-color: var(--bs-border-color) !important;"
-                                    aria-label="Pesquisar" title="Pesquisar">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4" data-arena-results>
-            @forelse ($arenas as $arena)
-                <div class="col-6 col-lg-3">
-                    @include('client.arenas._gallery-card', [
-                        'arenaUrl' => route('client.arenas.show', $arena),
-                        'botaoTexto' => 'Ver arena',
-                    ])
-                </div>
-            @empty
-                <div class="col-12">
-                    <div class="dashboard-box text-center text-muted">
-                        Nenhuma arena disponível no momento.
-                    </div>
-                </div>
-            @endforelse
-        </div>
-    </section>
-
     @if(auth()->user()->type === 'client')
         <a href="{{ route('register.arena.owners') }}"
            class="arena-owner-card mt-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 text-decoration-none text-white">
@@ -271,8 +235,6 @@
             </span>
         </a>
     @endif
-
-    @include('client.arenas._live-search')
 
 </div>
 

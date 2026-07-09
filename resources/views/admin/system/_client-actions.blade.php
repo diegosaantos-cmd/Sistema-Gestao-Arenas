@@ -1,24 +1,36 @@
 <div class="d-grid gap-2 client-system-actions">
     @if ($usuario->active)
-        <form method="POST" action="{{ route('admin.users.block', $usuario) }}"
-              onsubmit="return confirm('Deseja realmente bloquear este cliente? Ele perderá o acesso ao sistema.')">
+        <form method="POST" action="{{ route('admin.users.block', $usuario) }}">
             @csrf
             @method('PATCH')
-            <button class="btn btn-warning btn-sm w-100">Bloquear</button>
+            <button type="button" class="btn btn-warning btn-sm w-100"
+                    data-confirm
+                    data-confirm-title="Bloquear cliente"
+                    data-confirm-message="Deseja realmente bloquear {{ $usuario->name }}? Ele perderá o acesso ao sistema."
+                    data-confirm-label="Sim, bloquear"
+                    data-confirm-variant="warning">Bloquear</button>
         </form>
     @else
-        <form method="POST" action="{{ route('admin.users.unblock', $usuario) }}"
-              onsubmit="return confirm('Deseja desbloquear este cliente?')">
+        <form method="POST" action="{{ route('admin.users.unblock', $usuario) }}">
             @csrf
             @method('PATCH')
-            <button class="btn btn-success btn-sm w-100">Desbloquear</button>
+            <button type="button" class="btn btn-success btn-sm w-100"
+                    data-confirm
+                    data-confirm-title="Desbloquear cliente"
+                    data-confirm-message="Deseja desbloquear {{ $usuario->name }}? Ele voltará a ter acesso ao sistema."
+                    data-confirm-label="Sim, desbloquear"
+                    data-confirm-variant="success">Desbloquear</button>
         </form>
     @endif
 
-    <form method="POST" action="{{ route('admin.users.destroy', $usuario) }}"
-          onsubmit="return confirm('Deseja realmente excluir este cliente? O histórico será preservado.')">
+    <form method="POST" action="{{ route('admin.users.destroy', $usuario) }}">
         @csrf
         @method('DELETE')
-        <button class="btn btn-danger btn-sm w-100">Excluir</button>
+        <button type="button" class="btn btn-danger btn-sm w-100"
+                data-confirm
+                data-confirm-title="Excluir cliente"
+                data-confirm-message="Deseja realmente excluir {{ $usuario->name }}? O histórico será preservado."
+                data-confirm-label="Sim, excluir"
+                data-confirm-variant="danger">Excluir</button>
     </form>
 </div>

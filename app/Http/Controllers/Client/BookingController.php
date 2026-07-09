@@ -124,6 +124,35 @@ class BookingController extends Controller
     }
 
     /**
+     * Pagamentos pendentes: reservas já realizadas (completed) que o cliente
+     * ainda não pagou — ele pode pagá-las aqui.
+     */
+    public function unpaidPayments()
+    {
+        Booking::autoConfirmarExpiradas();
+        Booking::autoCompletarRealizadas();
+
+        $client = Client::where('user_id', auth()->id())->first();
+
+        $proximas = $client
+            ? Booking::where('client_id', $client->id)
+                ->where('status', 'completed')
+                ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'))
+                ->with('court.arena', 'payments', 'paymentMethod')
+                ->orderBy('date', 'desc')
+                ->orderBy('start_time', 'desc')
+                ->get()
+            : collect();
+
+        return view('client.bookings.index', [
+            'proximas' => $proximas,
+            'titulo' => 'Pagamentos pendentes',
+            'subtitulo' => 'Reservas já realizadas que ainda não foram pagas — você pode pagá-las aqui.',
+            'mensagemVazia' => 'Você não tem pagamentos pendentes. 🎉',
+        ]);
+    }
+
+    /**
      * Formulário para alterar a data e o horário de uma reserva.
      */
     public function edit(Request $request, Booking $booking)
@@ -380,8 +409,9 @@ class BookingController extends Controller
 
         $formas = $booking->court->arena->paymentMethods->where('active', true);
         $numeroReserva = $booking->numeroDoCliente();
+        $origem = $this->rotaVoltaPagamento(request('origem'));
 
-        return view('client.bookings.pay', compact('booking', 'formas', 'numeroReserva'));
+        return view('client.bookings.pay', compact('booking', 'formas', 'numeroReserva', 'origem'));
     }
 
     /**
@@ -400,6 +430,7 @@ class BookingController extends Controller
 
         $arena = $booking->court->arena;
         $tipos = $arena->paymentMethods->pluck('type')->all();
+        $rotaVolta = $this->rotaVoltaPagamento($request->input('origem'));
 
         $validated = $request->validate([
             'payment_method' => ['required', Rule::in($tipos)],
@@ -414,7 +445,7 @@ class BookingController extends Controller
 
         // Dinheiro: não paga online, acerta na arena.
         if ($metodo->type === 'cash') {
-            return redirect()->route('client.bookings.index')
+            return redirect()->route($rotaVolta)
                 ->with('status', 'Forma alterada para dinheiro — você paga na arena ao usar o horário.');
         }
 
@@ -422,8 +453,26 @@ class BookingController extends Controller
         // é interna; o cliente só precisa saber que foi pago).
         PaymentService::registrar($booking, $metodo, (float) $booking->total_amount, 'online', auth()->id());
 
-        return redirect()->route('client.bookings.index')
+        return redirect()->route($rotaVolta)
             ->with('status', 'Pagamento confirmado! Sua reserva está paga. ✅');
+    }
+
+    /**
+     * Decide para onde voltar depois de pagar, conforme a tela de origem.
+     * Ex.: se veio de "Pagamentos pendentes", a mensagem de sucesso aparece
+     * na própria tela de pendentes (e não em "Próximos agendamentos").
+     * Faz whitelist do nome da rota para evitar redirecionamento indevido.
+     */
+    private function rotaVoltaPagamento(?string $origem): string
+    {
+        $validas = [
+            'client.bookings.unpaid',
+            'client.bookings.pending',
+            'client.bookings.today',
+            'client.bookings.index',
+        ];
+
+        return in_array($origem, $validas, true) ? $origem : 'client.bookings.index';
     }
 
     /**

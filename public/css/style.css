@@ -387,3 +387,23 @@ body{
     .dashboard-icon{ display: none; }
     .dashboard-box{ padding: 14px; }
 }
+
+/* ===== Tabelas roláveis no celular / tablet =====
+   Tabelas dentro de .table-responsive espremiam as colunas em telas
+   estreitas, quebrando o texto letra a letra (dado "cortado"). Aqui as
+   células não quebram no celular: a tabela assume a largura natural do
+   conteúdo e rola na horizontal, com os dados inteiros e legíveis.
+   As tabelas de layout fixo (telas do sistema, que já escondem colunas
+   secundárias e mostram "Ver detalhes") ficam de fora graças ao
+   :not([style*="table-layout"]) — elas cuidam da própria responsividade. */
+@media (max-width: 767.98px){
+    .table-responsive table:not([style*="table-layout"]) th,
+    .table-responsive table:not([style*="table-layout"]) td{
+        white-space: nowrap;
+    }
+}
+
+/* Evita que qualquer conteúdo vaze a largura da tela (scroll horizontal
+   indesejado na página). Tabelas largas continuam rolando dentro do
+   próprio .table-responsive, não na página. */
+main img{ max-width: 100%; height: auto; }

@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Client;
 use App\Models\Court;
 use App\Models\Employee;
+use App\Models\Feedback;
 use App\Models\Owner;
 use App\Models\SystemAdmin;
 use App\Models\User;
@@ -60,8 +61,12 @@ class DashboardController extends Controller
             'faturamento_bruto' => (float) $faturamentoPorArena->sum(),
         ];
 
+        // Sugestões/bugs ainda não vistos pelo admin (badge no botão).
+        $feedbacksNaoLidos = Feedback::whereNull('read_at')->count();
+
         return view('admin.dashboard', compact(
-            'resumo'
+            'resumo',
+            'feedbacksNaoLidos'
         ));
     }
 
@@ -556,6 +561,14 @@ class DashboardController extends Controller
         DB::transaction(function () use ($user) {
             $user->update(['active' => false]);
 
+            // Cliente bloqueado: cancela as reservas futuras (libera os horários).
+            if ($user->client) {
+                $this->cancelarReservasFuturasDoCliente(
+                    $user->client->id,
+                    'Cliente bloqueado pelo administrador geral.'
+                );
+            }
+
             if (Schema::hasTable('sessions')) {
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
@@ -583,6 +596,15 @@ class DashboardController extends Controller
 
         DB::transaction(function () use ($user) {
             $user->update(['active' => false]);
+
+            // Cliente excluído: cancela as reservas futuras (libera os horários).
+            if ($user->client) {
+                $this->cancelarReservasFuturasDoCliente(
+                    $user->client->id,
+                    'Cliente excluído pelo administrador geral.'
+                );
+            }
+
             $employee = $user->employee;
             $employee?->update(['active' => false]);
             $user->systemAdmin?->delete();
@@ -600,6 +622,41 @@ class DashboardController extends Controller
         });
 
         return back()->with('msg', 'Usuário excluído com sucesso. O histórico foi preservado.');
+    }
+
+    /**
+     * Cancela as reservas ativas (pendentes/confirmadas) das quadras informadas.
+     * Usado quando o admin desativa/exclui uma empresa (todas as arenas dela),
+     * mantendo a agenda coerente — mesma regra de desativar uma arena.
+     */
+    private function cancelarReservasAtivasDasQuadras($courtIds, string $motivo): void
+    {
+        Booking::whereIn('court_id', $courtIds)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->update([
+                'status' => 'cancelled',
+                'cancelled_by' => auth()->id(),
+                'cancelled_at' => now(),
+                'cancellation_reason' => $motivo,
+            ]);
+    }
+
+    /**
+     * Cancela as reservas FUTURAS (a partir de hoje) de um cliente, liberando os
+     * horários na agenda. Usado ao bloquear/excluir o cliente. O histórico passado
+     * é preservado.
+     */
+    private function cancelarReservasFuturasDoCliente(int $clientId, string $motivo): void
+    {
+        Booking::where('client_id', $clientId)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereDate('date', '>=', now()->toDateString())
+            ->update([
+                'status' => 'cancelled',
+                'cancelled_by' => auth()->id(),
+                'cancelled_at' => now(),
+                'cancellation_reason' => $motivo,
+            ]);
     }
 
     public function owners()
@@ -825,6 +882,12 @@ class DashboardController extends Controller
                 'deactivated_at' => now(),
             ]);
             $owner->user?->update(['active' => false]);
+
+            // Cancela as reservas ativas de TODAS as arenas da empresa (mesma regra
+            // de desativar uma arena) — antes de desativar as quadras.
+            $courtIds = Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))->pluck('id');
+            $this->cancelarReservasAtivasDasQuadras($courtIds, 'Empresa desativada pelo administrador geral.');
+
             $owner->arenas()->update(['active' => false]);
 
             Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))
@@ -839,7 +902,7 @@ class DashboardController extends Controller
         });
 
         return redirect()->route('admin.owners.index')
-            ->with('msg', 'Empresa desativada com sucesso.');
+            ->with('msg', 'Empresa desativada e reservas ativas canceladas.');
     }
 
     public function activateOwner(Owner $owner)
@@ -865,6 +928,11 @@ class DashboardController extends Controller
     {
         DB::transaction(function () use ($owner) {
             $owner->load('user');
+
+            // Cancela as reservas ativas de TODAS as arenas da empresa antes de excluir.
+            $courtIds = Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))->pluck('id');
+            $this->cancelarReservasAtivasDasQuadras($courtIds, 'Empresa excluída pelo administrador geral.');
+
             $owner->arenas()->update(['active' => false]);
             Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))
                 ->update(['active' => false]);

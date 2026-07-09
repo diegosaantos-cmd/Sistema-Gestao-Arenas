@@ -29,7 +29,13 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
         ->withCount([
             'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
         ])
-        ->orderBy('name')
+        // Sem pesquisa: ordem aleatória a cada carregamento, para não
+        // beneficiar nenhuma arena. Com pesquisa: ordem alfabética (previsível).
+        ->when(
+            $busca === '',
+            fn ($query) => $query->inRandomOrder(),
+            fn ($query) => $query->orderBy('name'),
+        )
         ->get();
     return view('welcome', compact('arenas', 'busca'));
 });
@@ -51,7 +57,43 @@ Route::middleware([
         $employee = \App\Models\Employee::where('user_id', auth()->id())->first();
         $arena = $employee?->arena;
 
-        return view('employees.dashboard', compact('employee', 'arena'));
+        $hoje = collect();
+        $semana = collect();
+        $pendentes = 0;
+
+        if ($arena) {
+            $idsQuadras = $arena->courts()->pluck('id')->all();
+
+            if (! empty($idsQuadras)) {
+                \App\Models\Booking::autoConfirmarExpiradas($idsQuadras);
+                \App\Models\Booking::autoCompletarRealizadas($idsQuadras);
+
+                $hoje = \App\Models\Booking::with(['court', 'client.user'])
+                    ->whereIn('court_id', $idsQuadras)
+                    ->whereDate('date', now()->toDateString())
+                    ->where('status', 'confirmed')
+                    ->orderBy('start_time')
+                    ->get();
+
+                $semana = \App\Models\Booking::with(['court', 'client.user'])
+                    ->whereIn('court_id', $idsQuadras)
+                    ->whereBetween('date', [
+                        now()->startOfWeek()->toDateString(),
+                        now()->endOfWeek()->toDateString(),
+                    ])
+                    ->where('status', 'confirmed')
+                    ->orderBy('date')
+                    ->orderBy('start_time')
+                    ->get();
+
+                $pendentes = \App\Models\Booking::whereIn('court_id', $idsQuadras)
+                    ->where('status', 'pending')
+                    ->whereDate('date', '>=', now()->toDateString())
+                    ->count();
+            }
+        }
+
+        return view('employees.dashboard', compact('employee', 'arena', 'hoje', 'semana', 'pendentes'));
     })->name('employees.dashboard');
 });
 
@@ -429,6 +471,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/client/reservas/pendentes', [ClientBookingController::class, 'pending'])
         ->name('client.bookings.pending');
+
+    Route::get('/client/pagamentos-pendentes', [ClientBookingController::class, 'unpaidPayments'])
+        ->name('client.bookings.unpaid');
 
     Route::get('/client/reservas/{booking}/editar', [ClientBookingController::class, 'edit'])
         ->name('client.bookings.edit');

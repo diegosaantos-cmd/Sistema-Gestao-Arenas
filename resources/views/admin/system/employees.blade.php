@@ -69,18 +69,26 @@
 
                                     @if ($funcionario->user)
                                         @if ($acessoAtivo)
-                                            <form method="POST" action="{{ route('admin.users.block', $funcionario->user) }}"
-                                                  onsubmit="return confirm('Deseja bloquear este funcionário? Ele perderá imediatamente o acesso ao sistema.')">
+                                            <form method="POST" action="{{ route('admin.users.block', $funcionario->user) }}">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button class="btn btn-warning btn-sm">Bloquear</button>
+                                                <button type="button" class="btn btn-warning btn-sm"
+                                                        data-confirm
+                                                        data-confirm-title="Bloquear funcionário"
+                                                        data-confirm-message="Deseja bloquear {{ $funcionario->user?->name }}? Ele perderá imediatamente o acesso ao sistema."
+                                                        data-confirm-label="Sim, bloquear"
+                                                        data-confirm-variant="warning">Bloquear</button>
                                             </form>
                                         @else
-                                            <form method="POST" action="{{ route('admin.users.unblock', $funcionario->user) }}"
-                                                  onsubmit="return confirm('Deseja desbloquear este funcionário?')">
+                                            <form method="POST" action="{{ route('admin.users.unblock', $funcionario->user) }}">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button class="btn btn-success btn-sm">Desbloquear</button>
+                                                <button type="button" class="btn btn-success btn-sm"
+                                                        data-confirm
+                                                        data-confirm-title="Desbloquear funcionário"
+                                                        data-confirm-message="Deseja desbloquear {{ $funcionario->user?->name }}?"
+                                                        data-confirm-label="Sim, desbloquear"
+                                                        data-confirm-variant="success">Desbloquear</button>
                                             </form>
                                         @endif
                                     @endif
@@ -171,27 +179,33 @@
                                         <div class="col-12" data-mobile-delete-action>
                                             @if ($funcionario->user)
                                                 @if ($acessoAtivo)
-                                                    <form method="POST" action="{{ route('admin.users.block', $funcionario->user) }}"
-                                                          class="mb-2"
-                                                          onsubmit="return confirm('Deseja bloquear este funcionário? Ele perderá imediatamente o acesso ao sistema.')">
+                                                    <form method="POST" action="{{ route('admin.users.block', $funcionario->user) }}" class="mb-2">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button class="btn btn-warning btn-sm w-100">Bloquear funcionário</button>
+                                                        <button type="button" class="btn btn-warning btn-sm w-100"
+                                                                data-confirm
+                                                                data-confirm-title="Bloquear funcionário"
+                                                                data-confirm-message="Deseja bloquear {{ $funcionario->user?->name }}? Ele perderá imediatamente o acesso ao sistema."
+                                                                data-confirm-label="Sim, bloquear"
+                                                                data-confirm-variant="warning">Bloquear funcionário</button>
                                                     </form>
                                                 @else
-                                                    <form method="POST" action="{{ route('admin.users.unblock', $funcionario->user) }}"
-                                                          class="mb-2"
-                                                          onsubmit="return confirm('Deseja desbloquear este funcionário?')">
+                                                    <form method="POST" action="{{ route('admin.users.unblock', $funcionario->user) }}" class="mb-2">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button class="btn btn-success btn-sm w-100">Desbloquear funcionário</button>
+                                                        <button type="button" class="btn btn-success btn-sm w-100"
+                                                                data-confirm
+                                                                data-confirm-title="Desbloquear funcionário"
+                                                                data-confirm-message="Deseja desbloquear {{ $funcionario->user?->name }}?"
+                                                                data-confirm-label="Sim, desbloquear"
+                                                                data-confirm-variant="success">Desbloquear funcionário</button>
                                                     </form>
                                                 @endif
                                             @endif
 
                                             <form method="POST"
                                                   action="{{ route('admin.arenas.employees.destroy', [$funcionario->arena, $funcionario]) }}"
-                                                  onsubmit="return confirm('Deseja excluir este funcionário? Ele perderá o acesso ao sistema.')">
+                                                  data-employee-delete-form>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button class="btn btn-danger btn-sm w-100">Excluir funcionário</button>
@@ -416,5 +430,63 @@
             noResults.classList.toggle('d-none', visible > 0);
         });
     });
+</script>
+
+{{-- Modal de confirmação para Bloquear / Desbloquear (substitui o confirm() do
+     navegador). A exclusão continua usando o modal próprio com AJAX acima. --}}
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-confirm-modal-title>Confirmar ação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body" data-confirm-modal-message>Tem certeza?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" data-confirm-modal-ok>Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var modalEl = document.getElementById('confirmActionModal');
+        if (!modalEl) return;
+
+        var titleEl = modalEl.querySelector('[data-confirm-modal-title]');
+        var messageEl = modalEl.querySelector('[data-confirm-modal-message]');
+        var okBtn = modalEl.querySelector('[data-confirm-modal-ok]');
+        var variantes = ['btn-danger', 'btn-warning', 'btn-success', 'btn-primary'];
+        var formPendente = null;
+
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('[data-confirm]');
+            if (!trigger) return;
+
+            e.preventDefault();
+            formPendente = trigger.closest('form');
+
+            titleEl.textContent = trigger.getAttribute('data-confirm-title') || 'Confirmar ação';
+            messageEl.textContent = trigger.getAttribute('data-confirm-message') || 'Tem certeza?';
+            okBtn.textContent = trigger.getAttribute('data-confirm-label') || 'Confirmar';
+
+            variantes.forEach(function (v) { okBtn.classList.remove(v); });
+            okBtn.classList.add('btn-' + (trigger.getAttribute('data-confirm-variant') || 'danger'));
+
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+
+        okBtn.addEventListener('click', function () {
+            if (!formPendente) return;
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            formPendente.submit();
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            formPendente = null;
+        });
+    })();
 </script>
 @endsection

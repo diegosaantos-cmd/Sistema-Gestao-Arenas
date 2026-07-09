@@ -63,7 +63,7 @@
                 <div>
                     <h5 class="fw-bold text-dark">Arenas</h5>
                     <h2>{{ $totais['arenas'] }}</h2>
-                    <small class="text-muted">Todas as arenas</small>
+                    <small class="text-muted">Todas as arenas da empresa</small>
                 </div>
                 <i class="bi bi-buildings dashboard-icon text-primary"></i>
             </button>
@@ -75,7 +75,7 @@
                 <div>
                     <h5 class="fw-bold text-dark">Clientes</h5>
                     <h2>{{ $clientesEmpresa->total() }}</h2>
-                    <small class="text-muted">Com reservas nas arenas</small>
+                    <small class="text-muted">Clientes de todas as arenas da empresa</small>
                 </div>
                 <i class="bi bi-people dashboard-icon text-primary"></i>
             </a>
@@ -87,7 +87,7 @@
                 <div>
                     <h5 class="fw-bold text-dark">Quadras</h5>
                     <h2>{{ $totais['quadras'] }}</h2>
-                    <small class="text-muted">Em todas as arenas</small>
+                    <small class="text-muted">Todas as quadras das arenas da empresa</small>
                 </div>
                 <i class="bi bi-grid-3x3-gap dashboard-icon text-info"></i>
             </button>
@@ -99,7 +99,7 @@
                 <div>
                     <h5 class="fw-bold text-dark">Funcionários</h5>
                     <h2>{{ $totais['funcionarios'] }}</h2>
-                    <small class="text-muted">Em todas as arenas</small>
+                    <small class="text-muted">Todos os funcionários das arenas da empresa</small>
                 </div>
                 <i class="bi bi-person-badge dashboard-icon text-secondary"></i>
             </button>
@@ -497,16 +497,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalArenasEmpresa')).show();
-        });
-    </script>
-@endif
-
-@include('admin.clients._infinite-script')
-
-@if (request()->boolean('clientes_modal'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalClientesEmpresa')).show();
         });
     </script>
 @endif

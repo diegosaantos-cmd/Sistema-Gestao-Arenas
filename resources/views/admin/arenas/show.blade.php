@@ -73,7 +73,7 @@
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Funcionários</h5>
                     <h2>{{ $arena->employees_count }}</h2>
-                    <small class="text-muted">{{ $funcionariosAtivos }} ativos</small>
+                    <small class="text-muted">{{ $funcionariosAtivos }} ativos · {{ $arena->employees_count - $funcionariosAtivos }} inativos</small>
                 </div>
                 <i class="bi bi-person-badge dashboard-icon text-secondary"></i>
             </button>
@@ -87,14 +87,14 @@
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Quadras</h5>
                     <h2>{{ $arena->courts_count }}</h2>
-                    <small class="text-muted">{{ $quadrasAtivas }} ativas</small>
+                    <small class="text-muted">{{ $quadrasAtivas }} ativas · {{ $arena->courts_count - $quadrasAtivas }} inativas</small>
                 </div>
                 <i class="bi bi-grid-3x3-gap dashboard-icon text-primary"></i>
             </button>
         </div>
 
         <div class="col-6 col-lg-4">
-            <a href="{{ route('admin.arenas.reservas', $arena) }}"
+            <a href="{{ route('admin.arenas.reservas', [$arena, 'origem' => request('origem')]) }}"
                class="dashboard-card h-100 w-100 border-0 text-start text-decoration-none text-reset">
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Reservas da arena</h5>
@@ -122,12 +122,12 @@
         </div>
 
         <div class="col-6 col-lg-4">
-            <a href="{{ route('admin.arenas.clients.page', $arena) }}"
+            <a href="{{ route('admin.arenas.clients.page', [$arena, 'origem' => request('origem')]) }}"
                class="dashboard-card h-100 w-100 border-0 text-start text-decoration-none text-reset">
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Clientes</h5>
                     <h2>{{ $clientesArena->total() }}</h2>
-                    <small class="text-muted">Com reservas na arena</small>
+                    <small class="text-muted">Clientes da arena</small>
                 </div>
                 <i class="bi bi-people dashboard-icon text-primary"></i>
             </a>
@@ -918,28 +918,6 @@
         </div>
     </div>
 </div>
-
-@if (request()->boolean('reservas_modal'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            bootstrap.Modal.getOrCreateInstance(
-                document.getElementById('modalReservasArena')
-            ).show();
-        });
-    </script>
-@endif
-
-@include('admin.clients._infinite-script')
-
-@if (request()->boolean('clientes_modal'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            bootstrap.Modal.getOrCreateInstance(
-                document.getElementById('modalClientesArena')
-            ).show();
-        });
-    </script>
-@endif
 
 @if (request()->boolean('quadras_modal'))
     <script>

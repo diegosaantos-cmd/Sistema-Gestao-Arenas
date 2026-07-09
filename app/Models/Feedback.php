@@ -9,7 +9,11 @@ class Feedback extends Model
     protected $table = 'feedbacks';
 
     protected $fillable = [
-        'user_id', 'tipo', 'assunto', 'mensagem', 'status',
+        'user_id', 'tipo', 'assunto', 'mensagem', 'status', 'read_at',
+    ];
+
+    protected $casts = [
+        'read_at' => 'datetime',
     ];
 
     public function user()

@@ -166,9 +166,15 @@
                 </button>
             </div>
             <div class="col-12 quick-action-cell">
-                <a href="{{ route('admin.feedbacks') }}" class="btn btn-outline-dark btn-lg w-100">
+                <a href="{{ route('admin.feedbacks') }}" class="btn btn-outline-dark btn-lg w-100 position-relative">
                     <i class="bi bi-chat-left-dots me-1"></i>
                     Sugestões e bugs
+                    @if (($feedbacksNaoLidos ?? 0) > 0)
+                        <span class="badge rounded-pill bg-danger ms-2">
+                            {{ $feedbacksNaoLidos > 99 ? '99+' : $feedbacksNaoLidos }}
+                            <span class="visually-hidden">não lidos</span>
+                        </span>
+                    @endif
                 </a>
             </div>
                 </div>

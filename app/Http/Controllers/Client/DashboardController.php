@@ -34,6 +34,7 @@ class DashboardController extends Controller
         $hojeCount = 0;
         $pendentes = 0;
         $confirmados = 0;
+        $pagamentosPendentes = 0;
         $arenas = Arena::where('active', true)
             ->with('owner.user')
             ->withCount([
@@ -67,6 +68,12 @@ class DashboardController extends Controller
                 ->orderBy('start_time')
                 ->limit(4)
                 ->get();
+
+            // Reservas realizadas e ainda não pagas (o cliente pode pagar).
+            $pagamentosPendentes = Booking::where('client_id', $client->id)
+                ->where('status', 'completed')
+                ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'))
+                ->count();
         }
 
         return view('dashboard', compact(
@@ -75,6 +82,7 @@ class DashboardController extends Controller
             'hojeCount',
             'proximosCount',
             'proximos',
+            'pagamentosPendentes',
             'arenas'
         ));
     }

@@ -52,6 +52,9 @@ class FeedbackController extends Controller
         $tipo = $request->query('tipo');
         $status = $request->query('status');
 
+        // Abrir a tela zera o contador de "não lidos" do painel.
+        Feedback::whereNull('read_at')->update(['read_at' => now()]);
+
         $feedbacks = Feedback::with('user')
             ->when(in_array($tipo, ['sugestao', 'bug']), fn ($q) => $q->where('tipo', $tipo))
             ->when(in_array($status, ['aberto', 'em_andamento', 'resolvido']), fn ($q) => $q->where('status', $status))

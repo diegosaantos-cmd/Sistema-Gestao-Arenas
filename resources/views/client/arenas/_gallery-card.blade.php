@@ -8,13 +8,8 @@
         <h3 class="h5 fw-bold">{{ $arena->name }}</h3>
 
         <p class="small mb-2">
-            <i class="bi bi-person-badge me-1"></i>
-            <span class="text-muted">Responsável:</span>
-            {{ $arena->owner?->company_name ?: ($arena->owner?->user?->name ?? 'Não informado') }}
-        </p>
-
-        <p class="text-muted small mb-2">
             <i class="bi bi-geo-alt me-1"></i>
+            <span class="text-muted">Endereço:</span>
             {{ $arena->address_rua }}, {{ $arena->address_numero }}
             — {{ $arena->address_bairro }}
         </p>

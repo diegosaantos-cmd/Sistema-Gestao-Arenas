@@ -6,8 +6,8 @@
 
 <div class="container py-4">
 
-    <a href="{{ route('client.bookings.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar aos agendamentos
+    <a href="{{ route($origem ?? 'client.bookings.index') }}" class="btn btn-dark btn-sm mb-3">
+        ← Voltar
     </a>
 
     <h1 class="fw-bold mb-1">Pagar reserva #{{ $numeroReserva ?? $booking->id }}</h1>
@@ -38,6 +38,7 @@
 
             <form method="POST" action="{{ route('client.bookings.pay.confirm', $booking) }}">
                 @csrf
+                <input type="hidden" name="origem" value="{{ $origem ?? '' }}">
                 @php $atual = old('payment_method', $booking->paymentMethod?->type); @endphp
 
                 <div class="mb-3">
@@ -82,7 +83,7 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <a href="{{ route('client.bookings.index') }}" class="btn btn-secondary">Voltar</a>
+                    <a href="{{ route($origem ?? 'client.bookings.index') }}" class="btn btn-secondary">Voltar</a>
                     <button type="submit" class="btn btn-success" id="btnPagar">Confirmar pagamento</button>
                 </div>
             </form>

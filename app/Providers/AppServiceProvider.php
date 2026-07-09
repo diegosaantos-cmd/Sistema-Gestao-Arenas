@@ -18,6 +18,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
+        // Datas (meses, dias) em português: translatedFormat usa o locale do Carbon.
+        \Carbon\Carbon::setLocale('pt_BR');
+
         // Contador de notificações não lidas do cliente logado, para o sino na navbar.
         View::composer('layouts.main', function ($view) {
             $notifUnreadCount = 0;

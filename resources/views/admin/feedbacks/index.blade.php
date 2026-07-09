@@ -70,7 +70,7 @@
                                         <option value="em_andamento" @selected($f->status === 'em_andamento')>Em andamento</option>
                                         <option value="resolvido" @selected($f->status === 'resolvido')>Resolvido</option>
                                     </select>
-                                    <button class="btn btn-sm btn-primary">OK</button>
+                                    <button class="btn btn-sm btn-success">OK</button>
                                 </form>
                             </td>
                         </tr>

@@ -39,11 +39,12 @@
     </h2>
 
     <form method="GET" action="{{ url('/') }}"
-          class="arena-search-form arena-search-box shadow-sm mb-4" data-update-url="true">
+          class="arena-search-form arena-search-box shadow-sm mb-4 mx-auto" style="max-width: 480px;"
+          data-update-url="true">
         <div class="input-group">
             <input type="search" name="busca" class="form-control border-end-0"
                    value="{{ $busca }}"
-                   placeholder="Pesquisar pelo nome da arena ou do proprietário"
+                   placeholder="Pesquisar pelo nome da arena"
                    aria-label="Pesquisar arena">
             <button type="submit" class="btn bg-white text-secondary border border-start-0"
                     aria-label="Pesquisar" title="Pesquisar">

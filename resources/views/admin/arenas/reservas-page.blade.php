@@ -13,7 +13,7 @@
 @endphp
 
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.arenas.show', $arena) }}" class="btn btn-dark btn-sm mb-3">← Voltar à arena</a>
+    <a href="{{ route('admin.arenas.show', [$arena, 'origem' => request('origem')]) }}" class="btn btn-dark btn-sm mb-3">← Voltar à arena</a>
 
     <div class="mb-4">
         <div class="text-muted text-uppercase fw-semibold small" style="letter-spacing:.05em;">Arena {{ $arena->name }}</div>
@@ -22,12 +22,13 @@
     </div>
 
     <form method="GET" class="mb-3 d-flex gap-2 flex-wrap" style="max-width: 520px;">
+        <input type="hidden" name="origem" value="{{ request('origem') }}">
         <input type="hidden" name="aba_reservas" value="{{ $aba }}">
         <input type="text" name="busca_reserva" value="{{ $busca }}"
                class="form-control" placeholder="Nome do cliente ou data (dd/mm/aaaa)">
         <button class="btn btn-primary">Buscar</button>
         @if ($busca)
-            <a href="{{ route('admin.arenas.reservas', $arena) }}" class="btn btn-outline-secondary">Limpar</a>
+            <a href="{{ route('admin.arenas.reservas', [$arena, 'origem' => request('origem')]) }}" class="btn btn-outline-secondary">Limpar</a>
         @endif
     </form>
 

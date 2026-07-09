@@ -139,4 +139,66 @@
 </style>
 
 @include('admin.clients._infinite-script')
+
+{{-- Modal de confirmação compartilhado (substitui o confirm() do navegador).
+     As ações Bloquear / Desbloquear / Excluir abrem este modal via data-attributes;
+     ao confirmar, o formulário correspondente é enviado. Funciona também para as
+     linhas carregadas por scroll infinito, pois o clique é tratado por delegação. --}}
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-confirm-modal-title>Confirmar ação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body" data-confirm-modal-message>Tem certeza?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" data-confirm-modal-ok>Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var modalEl = document.getElementById('confirmActionModal');
+        if (!modalEl) return;
+
+        var titleEl = modalEl.querySelector('[data-confirm-modal-title]');
+        var messageEl = modalEl.querySelector('[data-confirm-modal-message]');
+        var okBtn = modalEl.querySelector('[data-confirm-modal-ok]');
+        var variantes = ['btn-danger', 'btn-warning', 'btn-success', 'btn-primary'];
+        var formPendente = null;
+
+        // Clique delegado: pega qualquer botão [data-confirm], inclusive os que
+        // vierem por AJAX (scroll infinito).
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('[data-confirm]');
+            if (!trigger) return;
+
+            e.preventDefault();
+            formPendente = trigger.closest('form');
+
+            titleEl.textContent = trigger.getAttribute('data-confirm-title') || 'Confirmar ação';
+            messageEl.textContent = trigger.getAttribute('data-confirm-message') || 'Tem certeza?';
+            okBtn.textContent = trigger.getAttribute('data-confirm-label') || 'Confirmar';
+
+            variantes.forEach(function (v) { okBtn.classList.remove(v); });
+            okBtn.classList.add('btn-' + (trigger.getAttribute('data-confirm-variant') || 'danger'));
+
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+
+        okBtn.addEventListener('click', function () {
+            if (!formPendente) return;
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            formPendente.submit();
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            formPendente = null;
+        });
+    })();
+</script>
 @endsection
