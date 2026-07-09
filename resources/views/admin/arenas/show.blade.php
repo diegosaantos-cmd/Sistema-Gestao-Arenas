@@ -496,10 +496,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3">
+                <div class="row g-3 align-items-start">
                     @forelse ($arena->courts->sortBy('name') as $quadra)
                         <div class="col-6">
-                            <div class="border rounded p-3 h-100 d-flex flex-column" data-arena-court-card>
+                            <div class="border rounded p-3 d-flex flex-column" data-arena-court-card>
                                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                                     <h6 class="fw-bold mb-0">{{ $quadra->name }}</h6>
                                     <span class="badge {{ $quadra->active ? 'bg-success' : 'bg-warning text-dark' }}">
@@ -581,7 +581,7 @@
                                     </div>
                                 </div>
 
-                                <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-auto court-details-toggle"
+                                <button type="button" class="btn btn-outline-primary btn-sm w-100 court-details-toggle"
                                         data-bs-toggle="collapse"
                                         data-bs-target="#detalhesQuadraArena{{ $quadra->id }}"
                                         aria-controls="detalhesQuadraArena{{ $quadra->id }}"
