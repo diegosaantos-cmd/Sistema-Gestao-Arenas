@@ -97,11 +97,24 @@
     </tr>
     <tr>
         <td><strong>Tailwind + componentes Jetstream</strong></td>
-        <td>Telas de autenticação (login, register, registerArenaOwners) que usam <code>&lt;x-guest-layout&gt;</code></td>
+        <td>Telas que <strong>vieram prontas do Jetstream</strong> e nunca foram reescritas: recuperar senha, redefinir senha, verificar e-mail, confirmar senha, autenticação em duas etapas, termos de uso, política de privacidade e o perfil do Jetstream. Usam <code>&lt;x-guest-layout&gt;</code> ou <code>&lt;x-app-layout&gt;</code>.</td>
         <td>Classes do Tailwind (<code>mt-4</code>, <code>w-full</code>...) direto no HTML + componentes <code>&lt;x-input&gt;</code>, <code>&lt;x-button&gt;</code></td>
     </tr>
 </table>
 <div class="box"><strong>Regra de ouro:</strong> olhe a primeira linha da view. Se começa com <code>@extends('layouts.main')</code> &rarr; é <strong>Bootstrap</strong>. Se começa com <code>&lt;x-guest-layout&gt;</code> ou <code>&lt;x-app-layout&gt;</code> &rarr; é <strong>Tailwind</strong>.</div>
+
+<div class="box tip">
+    <strong>Isto mudou.</strong> As telas de <strong>login</strong>, <strong>cadastro de cliente</strong>
+    (<code>register</code>) e <strong>cadastro de arena</strong> (<code>registerArenaOwners</code>) eram Tailwind e
+    <strong>hoje são Bootstrap</strong> (<code>@extends('layouts.main')</code>). O projeto está migrando para
+    Bootstrap: ao criar uma tela nova, use <strong>Bootstrap</strong>, mesmo sendo de autenticação.
+</div>
+
+<div class="box warn">
+    <strong>Por que o Tailwind ainda não pode ser removido:</strong> as telas da linha acima dependem dele, e o
+    Tailwind é compilado pelo <strong>Vite</strong>. Por isso o <code>npm run build</code> continua obrigatório na
+    instalação — sem ele, essas telas quebram com <em>"Vite manifest not found"</em>.
+</div>
 
 <h2>2. Mapa dos arquivos de frontend</h2>
 <table>
@@ -109,7 +122,10 @@
     <tr><td><code>resources/views/layouts/main.blade.php</code></td><td>Layout base das páginas públicas (navbar, &lt;head&gt;, onde entra o conteúdo)</td></tr>
     <tr><td><code>public/css/style.css</code></td><td>Seus estilos customizados (cores, cards, botões, navbar)</td></tr>
     <tr><td><code>public/js/script.js</code></td><td>JavaScript próprio das páginas públicas</td></tr>
-    <tr><td><code>resources/views/components/</code></td><td>Componentes Blade reutilizáveis (<code>x-input</code>, <code>x-button</code>, <code>x-label</code>...)</td></tr>
+    <tr><td><code>public/js/masks.js</code></td><td>Máscaras de digitação: telefone, CPF/CNPJ, moeda e percentual</td></tr>
+    <tr><td><code>public/js/form-wizard.js</code></td><td>Formulário dividido em etapas (usado no cadastro de arena)</td></tr>
+    <tr><td><code>public/css/business-hours.css</code> · <code>courts.css</code> · <code>payment-methods.css</code></td><td>Estilo dos blocos reutilizáveis de horários, quadras e formas de pagamento</td></tr>
+    <tr><td><code>resources/views/components/</code></td><td>Componentes Blade reutilizáveis (<code>x-input</code>, <code>x-button</code>, <code>x-label</code>...) — usados <strong>apenas</strong> pelas telas Tailwind restantes</td></tr>
     <tr><td><code>tailwind.config.js</code></td><td>Configuração do Tailwind (fontes, cores do tema)</td></tr>
     <tr><td><code>resources/views/&lt;pasta&gt;/*.blade.php</code></td><td>As telas em si (o HTML de cada página)</td></tr>
 </table>
@@ -124,7 +140,11 @@
     <tr><td><code>.btn-register</code></td><td>Botão amarelo "CADASTRAR"</td></tr>
     <tr><td><code>.dashboard-card</code></td><td>Cartões dos painéis</td></tr>
     <tr><td><code>.dashboard-btn-primary</code></td><td>Botão principal dos painéis</td></tr>
-    <tr><td><code>.auth-card</code> / <code>.auth-input</code> / <code>.auth-btn</code></td><td>Caixa, campos e botão das telas de login/cadastro</td></tr>
+    <tr><td><code>.logo-marca</code></td><td>"ArenaPlay" em fundo claro (cards de login e cadastro). A <code>.logo</code> é branca e só serve na navbar escura.</td></tr>
+    <tr><td><code>.wz-passos</code> / <code>.wz-passo</code></td><td>Indicador de etapas do cadastro de arena (1 a 4)</td></tr>
+    <tr><td><code>.slide-legenda</code></td><td>Título e subtítulo sobre a foto do carrossel da tela inicial</td></tr>
+    <tr><td><code>.min-w-0</code></td><td>Utilitário que o Bootstrap não tem: libera um item de flex/grid a encolher. Sem ele, textos longos estouram o container em telas estreitas.</td></tr>
+    <tr><td><code>.auth-box</code> / <code>.auth-container</code> / <code>.auth-card</code> / <code>.auth-title</code> / <code>.auth-input</code> / <code>.auth-btn</code></td><td><strong>CSS morto.</strong> Existem em <code>style.css</code>, mas nenhuma view as usa desde que login e cadastro passaram a usar o card padrão do Bootstrap. Podem ser removidas.</td></tr>
 </table>
 <h3>Paleta de cores do projeto</h3>
 <table>
@@ -183,8 +203,13 @@
 </table>
 <div class="box tip"><strong>Para mudar a navbar de todas as páginas de uma vez</strong>, edite <code>layouts/main.blade.php</code> — a alteração reflete em toda página que usa <code>@extends('layouts.main')</code>.</div>
 
-<h2>5. Componentes Blade (telas de auth — Tailwind)</h2>
-<p>As telas de login/cadastro usam <strong>componentes reutilizáveis</strong> (começam com <code>x-</code>). Eles ficam em <code>resources/views/components/</code>. Em vez de escrever um <code>&lt;input&gt;</code> com 10 classes, você escreve:</p>
+<h2>5. Componentes Blade (telas do Jetstream — Tailwind)</h2>
+<div class="box warn">
+    <strong>Não use isto em telas novas.</strong> Estes componentes servem apenas às telas que ainda são Tailwind
+    (recuperar senha, verificar e-mail, termos, política...). O <strong>login e os cadastros já não os usam</strong> —
+    eles são Bootstrap e escrevem os campos direto no HTML, com <code>&lt;label&gt;</code> e <code>class="form-control"</code>.
+</div>
+<p>Essas telas usam <strong>componentes reutilizáveis</strong> (começam com <code>x-</code>). Eles ficam em <code>resources/views/components/</code>. Em vez de escrever um <code>&lt;input&gt;</code> com 10 classes, você escreve:</p>
 <pre><code>&lt;x-label for="email" value="Email" /&gt;
 &lt;x-input id="email" type="email" name="email" class="block mt-1 w-full" required /&gt;
 &lt;x-button&gt;Salvar&lt;/x-button&gt;</code></pre>
@@ -255,8 +280,10 @@ php artisan migrate</code></pre>
 
 <h2>8. Checklist rápido de frontend</h2>
 <ol>
-    <li>É página pública? Use <code>@extends('layouts.main')</code> + classes Bootstrap.</li>
-    <li>É tela de auth? Use <code>&lt;x-guest-layout&gt;</code> + componentes <code>x-</code> + Tailwind.</li>
+    <li><strong>Tela nova (qualquer uma, inclusive de autenticação)?</strong> Use <code>@extends('layouts.main')</code> + classes Bootstrap. Não crie telas novas em Tailwind.</li>
+    <li>Vai <strong>mexer</strong> numa tela Tailwind que já existe (recuperar senha, termos...)? Aí sim use <code>&lt;x-guest-layout&gt;</code> + componentes <code>x-</code>.</li>
+    <li>Campo de telefone, CPF/CNPJ, dinheiro ou porcentagem? Adicione <code>data-mask="telefone"</code> (ou <code>cpfcnpj</code>, <code>moeda</code>, <code>percentual</code>) e carregue <code>/js/masks.js</code>.</li>
+    <li>Algo estourando a largura no celular? Quase sempre é item de flex/grid sem <code>min-width: 0</code>. Use a classe <code>.min-w-0</code>.</li>
     <li>Quer mudar cor/estilo global das páginas públicas? Edite <code>public/css/style.css</code>.</li>
     <li>Quer mudar a navbar de todas as páginas? Edite <code>layouts/main.blade.php</code>.</li>
     <li>Novo campo no form? View &rarr; Controller (validar) &rarr; Model (<code>$fillable</code>) &rarr; Migration.</li>
@@ -264,7 +291,7 @@ php artisan migrate</code></pre>
     <li>Para exibir dados, use o nome <strong>real</strong> da coluna (inglês), não o do formulário.</li>
 </ol>
 
-<div class="footer">Guia de Frontend gerado para o projeto ArenaPlay · Bootstrap 5 + Tailwind/Jetstream · Referência de estudo</div>
+<div class="footer">Guia de Frontend gerado para o projeto ArenaPlay · Bootstrap 5 (padrão) + Tailwind/Jetstream (telas legadas) · Referência de estudo</div>
 
 </body>
 </html>
