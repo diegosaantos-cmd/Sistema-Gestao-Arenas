@@ -19,6 +19,7 @@ use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\Owner\ProfileController as OwnerProfileController;
 use App\Http\Controllers\Owner\CashRegisterController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\HomeSlideController;
 
 Route::get('/', function (\Illuminate\Http\Request $request) {
     $busca = trim((string) $request->query('busca'));
@@ -37,7 +38,11 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
             fn ($query) => $query->orderBy('name'),
         )
         ->get();
-    return view('welcome', compact('arenas', 'busca'));
+
+    // Fotos/textos do cabeçalho, gerenciados pelo admin em /admin/aparencia.
+    $slides = \App\Models\HomeSlide::paraHome();
+
+    return view('welcome', compact('arenas', 'busca', 'slides'));
 });
 
 Route::get('/registerArenaOwners', [RegisterArenaOwnerController::class, 'create'])
@@ -104,12 +109,28 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('admin.administrators.store');
     Route::get('/admin/administradores', [AdminDashboardController::class, 'systemAdmins'])
         ->name('admin.system.administrators');
+    Route::patch('/admin/perfil', [AdminDashboardController::class, 'updateAdminProfile'])
+        ->name('admin.profile.update');
     Route::put('/admin/perfil/senha', [AdminDashboardController::class, 'updateAdminPassword'])
         ->name('admin.profile.password');
     Route::delete('/admin/perfil', [AdminDashboardController::class, 'destroyAdminAccount'])
         ->name('admin.profile.destroy');
     Route::get('/admin/pesquisa-rapida', [AdminDashboardController::class, 'quickSearch'])
         ->name('admin.quick-search');
+
+    // Aparência da tela inicial (fotos e textos do carrossel).
+    Route::get('/admin/aparencia', [HomeSlideController::class, 'index'])
+        ->name('admin.aparencia');
+    Route::post('/admin/aparencia', [HomeSlideController::class, 'store'])
+        ->name('admin.aparencia.store');
+    Route::patch('/admin/aparencia/{slide}', [HomeSlideController::class, 'update'])
+        ->name('admin.aparencia.update');
+    Route::patch('/admin/aparencia/{slide}/situacao', [HomeSlideController::class, 'toggle'])
+        ->name('admin.aparencia.toggle');
+    Route::patch('/admin/aparencia/{slide}/mover/{direcao}', [HomeSlideController::class, 'move'])
+        ->name('admin.aparencia.move');
+    Route::delete('/admin/aparencia/{slide}', [HomeSlideController::class, 'destroy'])
+        ->name('admin.aparencia.destroy');
     Route::get('/admin/arenas', [AdminDashboardController::class, 'systemArenas'])
         ->name('admin.system.arenas');
     Route::get('/admin/quadras', [AdminDashboardController::class, 'systemCourts'])

@@ -166,6 +166,12 @@
                 </button>
             </div>
             <div class="col-12 quick-action-cell">
+                <a href="{{ route('admin.aparencia') }}" class="btn btn-outline-dark btn-lg w-100">
+                    <i class="bi bi-image me-1"></i>
+                    Aparência da tela inicial
+                </a>
+            </div>
+            <div class="col-12 quick-action-cell">
                 <a href="{{ route('admin.feedbacks') }}" class="btn btn-outline-dark btn-lg w-100 position-relative">
                     <i class="bi bi-chat-left-dots me-1"></i>
                     Sugestões e bugs
@@ -225,16 +231,63 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-outline-warning btn-sm"
-                        data-bs-toggle="modal" data-bs-target="#adminPasswordModal">
-                    Trocar senha
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm"
+            <div class="modal-footer justify-content-between flex-wrap gap-2">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-warning btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#adminProfileEditModal">
+                        <i class="bi bi-pencil me-1"></i> Editar perfil
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#adminPasswordModal">
+                        Trocar senha
+                    </button>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm"
                         data-bs-toggle="modal" data-bs-target="#deleteAdminModal">
                     Excluir conta
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adminProfileEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.profile.update') }}">
+                @csrf
+                @method('PATCH')
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar perfil</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="adminProfileName">Nome</label>
+                        <input type="text" class="form-control" id="adminProfileName"
+                               name="name" maxlength="255" required
+                               value="{{ old('name', auth()->user()->name) }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="adminProfileEmail">E-mail</label>
+                        <input type="email" class="form-control" id="adminProfileEmail"
+                               name="email" maxlength="255" required
+                               value="{{ old('email', auth()->user()->email) }}">
+                    </div>
+                    <div>
+                        <label class="form-label" for="adminProfilePhone">
+                            Telefone <span class="text-muted fw-normal">(opcional)</span>
+                        </label>
+                        <input type="text" class="form-control" id="adminProfilePhone"
+                               name="phone" maxlength="30"
+                               value="{{ old('phone', auth()->user()->phone) }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-success">Salvar</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -268,7 +321,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="btn btn-warning">Alterar senha</button>
+                    <button class="btn btn-success">Alterar senha</button>
                 </div>
             </form>
         </div>
@@ -278,8 +331,7 @@
 <div class="modal fade" id="deleteAdminModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="POST" action="{{ route('admin.profile.destroy') }}"
-                  onsubmit="return confirm('Esta exclusão é definitiva. Deseja realmente excluir sua conta de administrador?')">
+            <form method="POST" action="{{ route('admin.profile.destroy') }}">
                 @csrf
                 @method('DELETE')
                 <div class="modal-header">
@@ -346,7 +398,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="btn btn-primary" data-save-admin>Cadastrar administrador</button>
+                    <button class="btn btn-success" data-save-admin>Cadastrar administrador</button>
                 </div>
             </form>
         </div>

@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class DashboardController extends Controller
@@ -44,7 +46,11 @@ class DashboardController extends Controller
             'quadras' => Court::count(),
             'quadras_ativas' => Court::where('active', true)->count(),
             'quadras_inativas' => Court::where('active', false)->count(),
-            'clientes' => Client::count(),
+            // Conta só clientes cujo usuário ainda existe. Ao excluir um cliente o
+            // usuário fica soft-deleted, mas a linha em `clients` permanece (as reservas
+            // apontam para ela — é assim que o histórico é preservado). Sem o
+            // whereHas('user'), o total não fecharia com ativos + inativos.
+            'clientes' => Client::whereHas('user')->count(),
             'clientes_ativos' => Client::whereHas('user', fn ($q) => $q->where('active', true))->count(),
             'clientes_inativos' => Client::whereHas('user', fn ($q) => $q->where('active', false))->count(),
             'funcionarios' => Employee::count(),
@@ -260,6 +266,50 @@ class DashboardController extends Controller
             ->get();
 
         return view('admin.system.administrators', compact('administradores'));
+    }
+
+    /**
+     * O admin edita os próprios dados (nome, e-mail e telefone).
+     *
+     * A validação é manual porque a tela é um modal do painel: um erro de
+     * validação padrão redirecionaria de volta sem nada visível (o layout mostra
+     * `msg`/`aviso`, não a bag de erros). Assim a mensagem aparece no topo.
+     */
+    public function updateAdminProfile(Request $request)
+    {
+        $request->merge([
+            'email' => mb_strtolower(trim((string) $request->input('email'))),
+            'phone' => trim((string) $request->input('phone')),
+        ]);
+
+        $admin = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($admin->id)],
+            'phone' => ['nullable', 'string', 'max:30'],
+        ], [
+            'name.required' => 'Informe o nome.',
+            'email.required' => 'Informe o e-mail.',
+            'email.email' => 'Informe um e-mail válido.',
+            'email.unique' => 'Este e-mail já está em uso por outra conta.',
+            'phone.max' => 'O telefone deve ter no máximo 30 caracteres.',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->with('aviso', $validator->errors()->first());
+        }
+
+        $dados = $validator->validated();
+
+        $admin->update([
+            'name' => $dados['name'],
+            'email' => $dados['email'],
+            'phone' => $dados['phone'] ?? null,
+        ]);
+
+        return redirect()->route('admin.dashboard')
+            ->with('msg', 'Perfil atualizado com sucesso.');
     }
 
     public function updateAdminPassword(Request $request)
@@ -558,6 +608,13 @@ class DashboardController extends Controller
             return back()->with('msg', 'Você não pode bloquear o próprio usuário administrador.');
         }
 
+        // Bloquear só o usuário deixaria a empresa e as arenas ativas (estado
+        // incoerente: owner.active = 1 com user.active = 0). A desativação de uma
+        // empresa tem regra própria — inclui arenas, quadras e cancelamento de reservas.
+        if ($user->owner) {
+            return back()->with('aviso', 'Este usuário é proprietário. Use a tela de Proprietários para desativar a empresa — isso também trata as arenas, as quadras e as reservas.');
+        }
+
         DB::transaction(function () use ($user) {
             $user->update(['active' => false]);
 
@@ -592,6 +649,12 @@ class DashboardController extends Controller
     {
         if ($user->is(auth()->user())) {
             return back()->with('msg', 'Você não pode excluir o próprio usuário administrador.');
+        }
+
+        // Excluir só o usuário deixaria a empresa e as arenas órfãs e ativas.
+        // A exclusão de empresa tem regra própria (arenas, quadras e reservas).
+        if ($user->owner) {
+            return back()->with('aviso', 'Este usuário é proprietário. Use a tela de Proprietários para excluir a empresa — isso também trata as arenas, as quadras e as reservas.');
         }
 
         DB::transaction(function () use ($user) {

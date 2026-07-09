@@ -407,3 +407,35 @@ body{
    indesejado na página). Tabelas largas continuam rolando dentro do
    próprio .table-responsive, não na página. */
 main img{ max-width: 100%; height: auto; }
+
+/* ===== Legenda do carrossel da tela inicial =====
+   O .carousel-caption do Bootstrap força texto branco, que some em fotos claras.
+   O admin escolhe a cor livremente; a cor e a faixa de contraste vêm por style
+   inline (HomeSlide::corTexto() e ::fundoLegenda()), pois dependem do registro.
+   Aqui fica só a forma. */
+.slide-legenda{
+    display: inline-block;
+    max-width: 100%;
+    padding: .85rem 1.35rem;
+    border-radius: .75rem;
+    text-align: center;
+}
+
+.slide-legenda h1{
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+}
+
+.slide-legenda p{
+    margin-bottom: 0;
+    font-size: 1.1rem;
+}
+
+/* No celular o texto agora aparece (antes era d-none), então precisa encolher
+   para não cobrir a foto inteira. */
+@media (max-width: 767.98px){
+    .slide-legenda{ padding: .5rem .8rem; border-radius: .5rem; }
+    .slide-legenda h1{ font-size: 1.15rem; }
+    .slide-legenda p{ font-size: .8rem; }
+}

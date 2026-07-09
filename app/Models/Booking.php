@@ -312,25 +312,28 @@ class Booking extends Model
 
     /**
      * Marca como realizadas (completed) as reservas confirmadas cujo horário
-     * de término já passou. Chamada de forma "preguiçosa" ao abrir as telas.
+     * de término já passou.
+     *
+     * O filtro do horário é feito no SQL (antes carregava TODAS as confirmadas,
+     * inclusive as futuras, para descartar no PHP) e os pagamentos vêm em eager
+     * loading, porque isPaga() consultaria o banco uma vez por reserva (N+1).
      */
     public static function autoCompletarRealizadas(?array $courtIds = null): void
     {
-        $query = static::where('status', 'confirmed');
+        $query = static::where('status', 'confirmed')
+            // TIMESTAMP(date, end_time) junta data + hora de término (MySQL).
+            ->whereRaw('TIMESTAMP(`date`, `end_time`) < ?', [now()])
+            ->with('payments');
 
         if ($courtIds !== null) {
             $query->whereIn('court_id', $courtIds);
         }
 
         foreach ($query->get() as $booking) {
-            $fim = Carbon::parse($booking->date->toDateString() . ' ' . $booking->end_time);
+            $booking->update(['status' => 'completed']);
 
-            if (now()->greaterThan($fim)) {
-                $booking->update(['status' => 'completed']);
-
-                if (! $booking->isPaga()) {
-                    $booking->notificarClienteNaoPaga();
-                }
+            if (! $booking->isPaga()) {
+                $booking->notificarClienteNaoPaga();
             }
         }
     }

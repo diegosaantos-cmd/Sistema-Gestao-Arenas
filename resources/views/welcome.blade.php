@@ -1,36 +1,62 @@
 @extends('layouts.main')
 @section('title', 'ArenaPlay')
 @section('content')
-      <div id="carouselExample" class="carousel slide">
-  <div class="carousel-inner">
-    <img src="{{ asset('img/img1.jpg') }}" 
+{{--
+    Carrossel do cabeçalho. As fotos e os textos vêm do banco (home_slides),
+    gerenciados pelo admin em /admin/aparencia. Sem nenhuma foto cadastrada,
+    cai no slide padrão do sistema.
 
-                 class="d-block w-100"
+    O `px-0` é necessário: o layout injeta o conteúdo dentro de um `.row`, e o
+    Bootstrap dá 0.75rem de padding a todo filho direto de `.row` (`.row > *`).
+    Sem anular isso, sobrava uma faixa branca de 12px em cada lado da foto.
+--}}
+<div id="carouselExample" class="carousel slide px-0" data-bs-ride="carousel">
+    <div class="carousel-inner">
+        @forelse ($slides as $slide)
+            <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
+                <img src="{{ $slide->url() }}" class="d-block w-100"
+                     style="height: 500px; object-fit: cover;"
+                     alt="{{ $slide->titulo ?: 'ArenaPlay' }}">
 
-                 style="height: 500px; object-fit: cover;">
-
-            <div class="carousel-caption d-none d-md-block">
-
-                <h1>Bem-vindo à ArenaPlay</h1>
-
-                <p>Os melhores jogos e campeonatos.</p>
-
+                @if ($slide->titulo || $slide->subtitulo)
+                    <div class="carousel-caption">
+                        <div class="slide-legenda"
+                             style="color: {{ $slide->corTexto() }}; background-color: {{ $slide->fundoLegenda() }};">
+                            @if ($slide->titulo)
+                                <h1>{{ $slide->titulo }}</h1>
+                            @endif
+                            @if ($slide->subtitulo)
+                                <p>{{ $slide->subtitulo }}</p>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
-    <div class="carousel-item">
-      <img src="{{ asset('img/img2.jpg') }}" class="d-block w-100" alt="...">
+        @empty
+            <div class="carousel-item active">
+                <img src="{{ asset(\App\Models\HomeSlide::IMAGEM_PADRAO) }}" class="d-block w-100"
+                     style="height: 500px; object-fit: cover;" alt="ArenaPlay">
+                <div class="carousel-caption">
+                    <div class="slide-legenda" style="color: #FFFFFF; background-color: rgba(0, 0, 0, .45);">
+                        <h1>Bem-vindo à ArenaPlay</h1>
+                        <p>Os melhores jogos e campeonatos.</p>
+                    </div>
+                </div>
+            </div>
+        @endforelse
     </div>
-    <div class="carousel-item">
-      <img src="{{ asset('img/img3.jpg') }}" class="d-block w-100" alt="...">
-    </div>
-  </div>
-  <button class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev">
-    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-    <span class="visually-hidden">Previous</span>
-  </button>
-  <button class="carousel-control-next" type="button" data-bs-target="#carouselExample" data-bs-slide="next">
-    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-    <span class="visually-hidden">Next</span>
-  </button>
+
+    {{-- Setas só fazem sentido com mais de uma foto. --}}
+    @if ($slides->count() > 1)
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExample" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Próxima</span>
+        </button>
+    @endif
 </div>
 <div class="container py-5">
 

@@ -482,7 +482,7 @@ class BookingController extends Controller
     {
         $this->guard($arena, $court);
 
-        $arena->load('paymentMethods');
+        $arena->load(['paymentMethods', 'businessHours']);
         $validated = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
             'horarios' => ['required', 'array', 'min:1'],
@@ -500,36 +500,62 @@ class BookingController extends Controller
             ['date_of_birth' => null]
         );
 
-        // A forma de pagamento NÃO é escolhida aqui — o cliente escolhe ao pagar,
-        // depois de a reserva ser confirmada.
-        foreach ($validated['horarios'] as $horario) {
-            [$startTime, $endTime] = explode('-', $horario);
+        // O mesmo bloco pode vir repetido no POST — cada bloco vale uma reserva só.
+        $horarios = array_values(array_unique($validated['horarios']));
 
-            $conflito = Booking::where('court_id', $court->id)
-                ->where('date', $validated['date'])
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->where('start_time', '<', $endTime)
-                ->where('end_time', '>', $startTime)
-                ->exists();
+        try {
+            // Tudo ou nada: ou todas as reservas são criadas, ou nenhuma.
+            DB::transaction(function () use ($horarios, $validated, $arena, $court, $client, $user) {
+                // Serializa pedidos concorrentes para a MESMA quadra: sem isso, duas
+                // requisições simultâneas passariam pela checagem e criariam a mesma reserva.
+                Court::whereKey($court->id)->lockForUpdate()->first();
 
-            if ($conflito) {
-                return back()
-                    ->withErrors(['horarios' => 'Um dos horários selecionados já foi reservado. Escolha outro.'])
-                    ->withInput();
+                // Grade oficial do dia, recalculada DENTRO do lock. Ela já respeita o
+                // horário de funcionamento, os blocos de 1h, os horários que já passaram
+                // e os que estão ocupados — então validar contra ela cobre tudo isso.
+                $slots = CourtScheduleService::slotsDoDia($court, $arena, $validated['date']);
+
+                // 1) Valida TODOS os horários antes de criar qualquer reserva.
+                foreach ($horarios as $horario) {
+                    [$startTime, $endTime] = explode('-', $horario);
+
+                    $livre = $slots->contains(fn ($slot) => ! $slot['ocupado']
+                        && $slot['start'] === $startTime
+                        && $slot['end'] === $endTime
+                    );
+
+                    if (! $livre) {
+                        throw new \RuntimeException('slot-indisponivel');
+                    }
+                }
+
+                // 2) Só então cria. A forma de pagamento NÃO é escolhida aqui — o
+                // cliente escolhe ao pagar, depois de a reserva ser confirmada.
+                foreach ($horarios as $horario) {
+                    [$startTime, $endTime] = explode('-', $horario);
+
+                    Booking::create([
+                        'court_id' => $court->id,
+                        'client_id' => $client->id,
+                        'employee_id' => null,
+                        'date' => $validated['date'],
+                        'start_time' => $startTime,
+                        'end_time' => $endTime,
+                        'total_amount' => $court->hourly_rate,
+                        'status' => 'pending',
+                        'notes' => 'Responsável: ' . $user->name
+                            . ' | Telefone: ' . ($user->phone ?: '—'),
+                    ]);
+                }
+            });
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() !== 'slot-indisponivel') {
+                throw $e;
             }
 
-            Booking::create([
-                'court_id' => $court->id,
-                'client_id' => $client->id,
-                'employee_id' => null,
-                'date' => $validated['date'],
-                'start_time' => $startTime,
-                'end_time' => $endTime,
-                'total_amount' => $court->hourly_rate,
-                'status' => 'pending',
-                'notes' => 'Responsável: ' . $user->name
-                    . ' | Telefone: ' . ($user->phone ?: '—'),
-            ]);
+            return back()
+                ->withErrors(['horarios' => 'Um dos horários selecionados não está mais disponível. Escolha outro.'])
+                ->withInput();
         }
 
         return redirect()->route('client.bookings.success');
