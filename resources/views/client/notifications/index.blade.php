@@ -25,8 +25,8 @@
     @forelse ($notifications as $n)
         <a href="{{ route('notifications.show', $n) }}" class="text-decoration-none text-reset">
             <div class="card shadow-sm border-0 mb-2 card-hover {{ $n->read_at ? '' : 'border-start border-4 border-primary' }}">
-                <div class="card-body d-flex justify-content-between align-items-start gap-3">
-                    <div>
+                <div class="card-body d-flex flex-wrap justify-content-between align-items-start gap-3">
+                    <div class="min-w-0">
                         <div class="fw-bold">
                             {{ $n->title }}
                             @if (! $n->read_at)

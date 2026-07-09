@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Laravel\Fortify\Features;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -13,7 +14,7 @@ use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Arena;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use SoftDeletes;
 
@@ -107,4 +108,24 @@ class User extends Authenticatable
    {
     return $this->password_hash;
    }
+
+    /**
+     * O usuário conta como verificado?
+     *
+     * A classe implementa MustVerifyEmail para o recurso ficar PRONTO, mas ele só
+     * passa a valer quando `EMAIL_VERIFICATION_ENABLED=true` no .env (que liga o
+     * Features::emailVerification() do Fortify).
+     *
+     * Sem esta checagem, ligar apenas o `implements` já faria o middleware
+     * `verified` das rotas bloquear todo mundo que se cadastrasse — pois o
+     * Fortify não estaria enviando o e-mail de verificação.
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        if (! Features::enabled(Features::emailVerification())) {
+            return true;
+        }
+
+        return ! is_null($this->email_verified_at);
+    }
 }

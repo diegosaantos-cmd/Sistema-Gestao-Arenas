@@ -86,7 +86,7 @@ class QuadraController extends Controller
         $arenaId = $arena->id;
 
         $request->merge([
-            'quadras' => ArenaController::normalizarNomesQuadras($request->input('quadras', [])),
+            'quadras' => ArenaController::normalizarQuadras($request->input('quadras', [])),
         ]);
 
         $validated = $request->validate([

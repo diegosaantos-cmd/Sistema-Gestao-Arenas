@@ -44,7 +44,7 @@ class ArenaController extends Controller
         $request->merge([
             'nome' => self::normalizarTexto($request->input('nome')),
             'email_contato' => self::normalizarEmail($request->input('email_contato')),
-            'quadras' => self::normalizarNomesQuadras($request->input('quadras', [])),
+            'quadras' => self::normalizarQuadras($request->input('quadras', [])),
         ]);
 
         $validated = $request->validate([
@@ -374,6 +374,13 @@ class ArenaController extends Controller
                 'cancellation_fee_window_hours' => null,
             ];
         }
+
+        // O campo chega mascarado do formulário ("1.234,56"); a regra `numeric`
+        // não entenderia. Normalizar aqui cobre todos os controllers que usam
+        // este método (cadastro de proprietário, nova arena e edição).
+        $request->merge([
+            'cancellation_fee_value' => self::normalizarDecimal($request->input('cancellation_fee_value')),
+        ]);
 
         $request->validate([
             'cancellation_fee_type' => ['required', Rule::in(['fixed', 'percent'])],
@@ -907,16 +914,50 @@ class ArenaController extends Controller
     }
 
     /**
-     * Normaliza os nomes das quadras (aplica normalizarTexto em cada nome).
+     * Normaliza as quadras: o nome (espaços) e o valor por hora (máscara).
      */
-    public static function normalizarNomesQuadras(array $quadras): array
+    public static function normalizarQuadras(array $quadras): array
     {
         foreach ($quadras as $i => $dados) {
             if (isset($dados['nome'])) {
                 $quadras[$i]['nome'] = self::normalizarTexto($dados['nome']);
             }
+
+            if (isset($dados['valor_hora'])) {
+                $quadras[$i]['valor_hora'] = self::normalizarDecimal($dados['valor_hora']);
+            }
         }
 
         return $quadras;
+    }
+
+    /**
+     * Converte um número escrito por humano ("1.234,56", "R$ 20,00") no formato
+     * que o banco e a regra `numeric` entendem ("1234.56").
+     *
+     * Os formulários usam máscara, mas ela é só do navegador: sem esta
+     * normalização, um valor mascarado (ou digitado com vírgula por alguém sem
+     * JavaScript) seria recusado pela validação.
+     *
+     * Regra: havendo vírgula, ela é o separador decimal e os pontos são milhar.
+     * Sem vírgula, o ponto é tratado como separador decimal ("20.00").
+     */
+    public static function normalizarDecimal($valor): ?string
+    {
+        if ($valor === null) {
+            return null;
+        }
+
+        $limpo = preg_replace('/[^\d.,]/', '', (string) $valor);
+
+        if ($limpo === '') {
+            return null;
+        }
+
+        if (str_contains($limpo, ',')) {
+            $limpo = str_replace(',', '.', str_replace('.', '', $limpo));
+        }
+
+        return $limpo;
     }
 }

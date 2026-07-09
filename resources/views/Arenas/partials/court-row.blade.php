@@ -35,12 +35,14 @@
                value="{{ $q['nome'] ?? '' }}"
                required>
 
-        <input type="number"
+        {{-- Texto (e não number) porque a máscara insere ponto de milhar e vírgula,
+             que um input[type=number] rejeita. O servidor normaliza o que chega. --}}
+        <input type="text"
+               inputmode="decimal"
                class="ct__input ct__input--price"
                name="quadras[{{ $index }}][valor_hora]"
                placeholder="Valor/hora (R$)"
-               step="0.01"
-               min="0"
+               data-mask="moeda"
                value="{{ $q['valor_hora'] ?? '' }}"
                required>
 

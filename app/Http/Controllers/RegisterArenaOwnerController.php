@@ -32,14 +32,18 @@ class RegisterArenaOwnerController extends Controller
             'name_arena' => ArenaController::normalizarTexto($request->input('name_arena')),
             'email' => ArenaController::normalizarEmail($request->input('email')),
             'email_arena' => ArenaController::normalizarEmail($request->input('email_arena')),
+            'owner_phone' => trim((string) $request->input('owner_phone')),
             // CPF/CNPJ: guarda só os dígitos (123.456.789-00 -> 12345678900).
             'tax_id' => preg_replace('/\D/', '', (string) $request->input('tax_id')),
-            'quadras' => ArenaController::normalizarNomesQuadras($request->input('quadras', [])),
+            'quadras' => ArenaController::normalizarQuadras($request->input('quadras', [])),
         ]);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
+            // Telefone pessoal do proprietário (users.phone). É diferente do
+            // `phone`, que é o telefone de contato da arena.
+            'owner_phone' => ['required', 'string', 'max:20'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
             'terms' => ['required', 'accepted'],
             'company_name' => ['required', 'string', 'max:150', function ($attribute, $value, $fail) {
@@ -97,6 +101,19 @@ class RegisterArenaOwnerController extends Controller
             'quadras.*.esportes' => ['required', 'array', 'min:1'],
             'quadras.*.esportes.*' => [Rule::in(array_keys(Court::SPORTS))],
         ], [
+            'name.required' => 'Informe seu nome completo.',
+            'email.required' => 'Informe seu e-mail.',
+            'email.unique' => 'Este e-mail já está cadastrado.',
+            'owner_phone.required' => 'Informe seu telefone.',
+            'password.required' => 'Crie uma senha.',
+            'password.min' => 'A senha deve ter ao menos 8 caracteres.',
+            'password.confirmed' => 'A confirmação da senha não confere.',
+            'terms.required' => 'É preciso aceitar os termos de uso.',
+            'terms.accepted' => 'É preciso aceitar os termos de uso.',
+            'company_name.required' => 'Informe o nome da empresa.',
+            'name_arena.required' => 'Informe o nome da arena.',
+            'email_arena.required' => 'Informe o e-mail da arena.',
+            'phone.required' => 'Informe o telefone de contato da arena.',
             'tax_id.regex' => 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.',
             'horarios.required' => 'Marque ao menos um dia de funcionamento.',
             'horarios.*.p1_abre.required_with' => 'Informe o horário de abertura do dia marcado.',
@@ -121,6 +138,7 @@ class RegisterArenaOwnerController extends Controller
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
+                'phone' => $validated['owner_phone'],
                 'password_hash' => Hash::make($validated['password']),
                 'terms_accepted_at' => now(),
                 'type' => 'owner',

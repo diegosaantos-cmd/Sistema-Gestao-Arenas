@@ -64,10 +64,12 @@
 
             @if ($arenasCount > 1)
                 <form action="{{ route('owners.arena.select') }}" method="POST"
-                      class="d-flex align-items-center gap-2 mb-0">
+                      class="d-flex flex-wrap align-items-center gap-2 mb-0">
                     @csrf
                     <label class="mb-0 small text-nowrap">Trocar de arena:</label>
-                    <select name="arena_id" class="form-select form-select-sm"
+                    {{-- min-w-0: sem isso o <select> não encolhe abaixo do nome de
+                         arena mais longo e estoura a linha em telas estreitas. --}}
+                    <select name="arena_id" class="form-select form-select-sm min-w-0"
                             onchange="this.form.submit()">
                         @foreach ($arenas as $a)
                             <option value="{{ $a->id }}"

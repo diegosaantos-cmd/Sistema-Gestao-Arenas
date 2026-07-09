@@ -53,5 +53,6 @@
 </div>
 
 @once
+    <script src="/js/masks.js" defer></script>
     <script src="/js/courts.js" defer></script>
 @endonce

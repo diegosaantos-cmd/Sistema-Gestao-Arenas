@@ -61,6 +61,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: .5rem 1rem;
+    max-width: 100%;
 }
 
 .bh__row.is-open .bh__times {
@@ -71,6 +72,9 @@
     display: flex;
     align-items: center;
     gap: .4rem;
+    /* Sem isto o 2º período (rótulo + hora + "às" + hora = 4 itens numa linha
+       que não quebra) estoura a largura do card em telas estreitas. */
+    flex-wrap: wrap;
 }
 
 .bh__period input[type="time"] {
@@ -78,6 +82,8 @@
     border: 1px solid #d1d5db;
     border-radius: .375rem;
     font-size: .9rem;
+    /* Permite que o campo encolha; por padrão o input tem largura mínima própria. */
+    min-width: 0;
 }
 
 .bh__sep {
@@ -101,9 +107,37 @@
     color: #dc2626;
 }
 
-@media (max-width: 575px) {
+@media (max-width: 575.98px) {
+    /* O nome do dia ocupa a linha inteira; os horários vêm abaixo dele. */
+    .bh__day {
+        min-width: 100%;
+    }
+
+    .bh__times {
+        width: 100%;
+    }
+
+    /* Cada período ocupa a linha toda, um sob o outro. */
+    .bh__period {
+        width: 100%;
+    }
+
     .bh__period--second {
         border-left: none;
         padding-left: 0;
+        border-top: 1px dashed #d1d5db;
+        padding-top: .5rem;
+    }
+
+    /* "Após o almoço" vira um rótulo acima dos campos, em vez de disputar
+       espaço na mesma linha. */
+    .bh__period-label {
+        flex-basis: 100%;
+        margin-bottom: .15rem;
+    }
+
+    /* Os dois campos de hora dividem a largura disponível, com o "às" no meio. */
+    .bh__period input[type="time"] {
+        flex: 1 1 0;
     }
 }

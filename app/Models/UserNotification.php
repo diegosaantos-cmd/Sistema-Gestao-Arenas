@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Notifications\AvisoDoSistema;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserNotification extends Model
 {
@@ -15,6 +18,54 @@ class UserNotification extends Model
     protected $casts = [
         'read_at' => 'datetime',
     ];
+
+    /**
+     * Toda notificação criada também vira e-mail. Fica aqui, e não em cada lugar
+     * que cria a notificação, para nenhum aviso novo esquecer de mandar e-mail.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (self $notificacao) {
+            $notificacao->enviarPorEmail();
+        });
+    }
+
+    /**
+     * Envia o aviso por e-mail ao destinatário.
+     *
+     * Duas proteções importantes:
+     *
+     * 1. `DB::afterCommit`: dentro de uma transação, o e-mail só sai depois do
+     *    commit. Sem isso, um rollback (ex.: falha ao cancelar a reserva) deixaria
+     *    o cliente com um e-mail sobre algo que nunca aconteceu.
+     *
+     * 2. try/catch: um SMTP fora do ar NÃO pode derrubar a confirmação de uma
+     *    reserva. A falha é registrada no log e a operação principal continua.
+     */
+    public function enviarPorEmail(): void
+    {
+        $usuario = $this->user()->first();
+
+        if (! $usuario || ! filter_var($usuario->email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $titulo = $this->title;
+        $corpo = $this->body;
+        $id = $this->id;
+
+        DB::afterCommit(function () use ($usuario, $titulo, $corpo, $id) {
+            try {
+                $usuario->notify(new AvisoDoSistema($titulo, $corpo));
+            } catch (\Throwable $e) {
+                Log::warning('Falha ao enviar aviso por e-mail.', [
+                    'notificacao_id' => $id,
+                    'user_id' => $usuario->id,
+                    'erro' => $e->getMessage(),
+                ]);
+            }
+        });
+    }
 
     public function user()
     {

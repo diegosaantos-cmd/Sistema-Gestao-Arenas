@@ -161,10 +161,17 @@ return [
     |
     */
 
-    'features' => [
+    /*
+     * A verificação de e-mail fica PRONTA, mas desligada por padrão: sem um SMTP
+     * configurado, ligá-la impediria qualquer cadastro novo de entrar no sistema
+     * (o e-mail de confirmação nunca chegaria).
+     *
+     * Para ligar: configure o MAIL_* no .env e defina EMAIL_VERIFICATION_ENABLED=true.
+     */
+    'features' => array_filter([
         Features::registration(),
         Features::resetPasswords(),
-        // Features::emailVerification(),
+        env('EMAIL_VERIFICATION_ENABLED', false) ? Features::emailVerification() : null,
         Features::updateProfileInformation(),
         Features::updatePasswords(),
         Features::twoFactorAuthentication([
@@ -175,6 +182,6 @@ return [
         Features::passkeys([
             'confirmPassword' => true,
         ]),
-    ],
+    ]),
 
 ];

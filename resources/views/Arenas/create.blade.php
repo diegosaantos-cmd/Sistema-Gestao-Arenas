@@ -7,7 +7,8 @@
     <div class="card shadow mx-auto" style="max-width: 900px;">
         <div class="card-body p-4">
 
-            <h2 class="mb-4">Nova Arena</h2>
+            <h1 class="h3 fw-bold mb-1">Nova arena</h1>
+            <p class="text-muted">Preencha os dados, o funcionamento e as quadras da sua nova arena.</p>
 
             @if ($errors->any())
                 <div class="alert alert-danger">
@@ -23,74 +24,50 @@
             <form action="{{ route('arenas.store') }}" method="POST">
                 @csrf
 
-                <div class="mb-3">
-                    <input
-                        type="text"
-                        name="nome"
-                        class="form-control form-control-lg"
-                        placeholder="Nome da Arena"
-                        required>
-                </div>
-
-                <div class="mb-3">
-                    <textarea
-                        name="descricao"
-                        class="form-control"
-                        rows="4"
-                        placeholder="Descrição"></textarea>
-                </div>
-
-                <div class="mb-3">
-                    <input
-                        type="text"
-                        name="rua"
-                        class="form-control"
-                        placeholder="Rua"
-                        value="{{ old('rua') }}"
-                        required>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-8 mb-3">
-                        <input
-                            type="text"
-                            name="bairro"
-                            class="form-control"
-                            placeholder="Bairro"
-                            value="{{ old('bairro') }}"
-                            required>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="nome">Nome da arena</label>
+                        <input type="text" class="form-control" id="nome" name="nome"
+                               value="{{ old('nome') }}" maxlength="120" required>
                     </div>
 
-                    <div class="col-md-4 mb-3">
-                        <input
-                            type="text"
-                            name="numero"
-                            class="form-control"
-                            placeholder="Número"
-                            value="{{ old('numero') }}"
-                            required>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <input
-                            type="text"
-                            name="telefone"
-                            class="form-control"
-                            placeholder="Telefone"
-                            value="{{ old('telefone') }}"
-                            required>
+                    <div class="col-12">
+                        <label class="form-label" for="descricao">
+                            Descrição <span class="text-muted fw-normal">(opcional)</span>
+                        </label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="3"
+                                  placeholder="Conte o que sua arena tem de melhor.">{{ old('descricao') }}</textarea>
                     </div>
 
-                    <div class="col-md-6 mb-3">
-                        <input
-                            type="email"
-                            name="email_contato"
-                            class="form-control"
-                            placeholder="Email de Contato"
-                            value="{{ old('email_contato') }}"
-                            required>
+                    <div class="col-12 col-md-7">
+                        <label class="form-label" for="rua">Rua</label>
+                        <input type="text" class="form-control" id="rua" name="rua"
+                               value="{{ old('rua') }}" maxlength="120" required>
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <label class="form-label" for="numero">Número</label>
+                        <input type="text" class="form-control" id="numero" name="numero"
+                               value="{{ old('numero') }}" maxlength="15" required>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label" for="bairro">Bairro</label>
+                        <input type="text" class="form-control" id="bairro" name="bairro"
+                               value="{{ old('bairro') }}" maxlength="100" required>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="telefone">Telefone de contato</label>
+                        <input type="text" class="form-control" id="telefone" name="telefone"
+                               value="{{ old('telefone') }}" data-mask="telefone" inputmode="numeric"
+                               placeholder="(11) 3456-7890" maxlength="20" required>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="email_contato">E-mail de contato</label>
+                        <input type="email" class="form-control" id="email_contato" name="email_contato"
+                               value="{{ old('email_contato') }}" maxlength="150" required>
                     </div>
                 </div>
 
@@ -103,15 +80,13 @@
                 <hr class="my-4">
                 @include('arenas.partials.cancellation-fee')
 
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ route('arenas.index') }}"
-                       class="btn btn-secondary">
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+                    <a href="{{ route('arenas.index') }}" class="btn btn-secondary">
                         Cancelar
                     </a>
 
-                    <button type="submit"
-                            class="btn btn-success">
-                        Salvar
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i> Salvar
                     </button>
                 </div>
 

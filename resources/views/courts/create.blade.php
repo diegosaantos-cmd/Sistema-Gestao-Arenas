@@ -9,7 +9,8 @@
     <div class="card shadow mx-auto" style="max-width: 900px;">
         <div class="card-body p-4">
 
-            <h2 class="mb-4">Nova Quadra</h2>
+            <h1 class="h3 fw-bold mb-1">Nova quadra</h1>
+            <p class="text-muted">Cadastre uma ou várias quadras de uma vez.</p>
 
             @if ($errors->any())
                 <div class="alert alert-danger">
@@ -25,21 +26,20 @@
             <form action="{{ route('quadras.store') }}" method="POST">
                 @csrf
 
-                <p class="fs-5 mb-3">
-                    🏟 Adicionando quadra(s) à arena:
-                    <strong>{{ $arena->name }}</strong>
-                </p>
+                <div class="alert alert-light border">
+                    <i class="bi bi-building me-1"></i>
+                    Adicionando quadra(s) à arena <strong>{{ $arena->name }}</strong>
+                </div>
 
                 @include('arenas.partials.courts')
 
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <a href="{{ route('owners.dashboard') }}"
-                       class="btn btn-secondary">
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+                    <a href="{{ route('owners.dashboard') }}" class="btn btn-secondary">
                         Cancelar
                     </a>
 
                     <button type="submit" class="btn btn-success">
-                        Salvar
+                        <i class="bi bi-check-circle me-1"></i> Salvar
                     </button>
                 </div>
 

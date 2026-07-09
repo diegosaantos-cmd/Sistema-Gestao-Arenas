@@ -69,14 +69,20 @@
     border: 1px solid #d1d5db;
     border-radius: .375rem;
     font-size: .9rem;
+    /* Um <input> tem largura mínima própria (min-width:auto como item de flex):
+       sem isto ele não encolhe e estoura o card em telas estreitas. */
+    max-width: 100%;
+    min-width: 0;
 }
 
 .ct__input--name {
     flex: 1 1 12rem;
 }
 
+/* Antes era `width: 9rem` fixo — não encolhia. Agora tem base de 9rem, mas pode
+   diminuir quando falta espaço. */
 .ct__input--price {
-    width: 9rem;
+    flex: 1 1 9rem;
 }
 
 .ct__textarea {

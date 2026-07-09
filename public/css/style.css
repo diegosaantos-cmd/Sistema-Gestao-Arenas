@@ -14,6 +14,21 @@
     letter-spacing: 1px;
 }
 
+/* Mesma marca da navbar, mas para fundo claro (cards de formulário).
+   A .logo é branca com !important — não dá para reaproveitá-la aqui. */
+.logo-marca{
+    display: inline-block;
+    color: #021B35;
+    font-size: 1.75rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-decoration: none;
+}
+
+.logo-marca:hover{
+    color: #021B35;
+}
+
 .custom-navbar .nav-link{
     color: white !important;
     font-size: 1.2rem;
@@ -408,6 +423,20 @@ body{
    próprio .table-responsive, não na página. */
 main img{ max-width: 100%; height: auto; }
 
+/* O bloco de texto do card é item de flex e, por padrão, não encolhe abaixo da
+   sua palavra mais longa (min-width:auto). Títulos como "Agendamentos
+   pendentes" empurrariam a largura do card em telas estreitas. */
+.dashboard-card > div{
+    min-width: 0;
+}
+
+/* Utilitário que falta no Bootstrap: libera um item de flex/grid a encolher.
+   Sem ele, o item nunca fica menor que seu conteúdo (min-width:auto) e o
+   container estoura em telas estreitas — a causa mais comum de "vazamento". */
+.min-w-0{
+    min-width: 0 !important;
+}
+
 /* ===== Legenda do carrossel da tela inicial =====
    O .carousel-caption do Bootstrap força texto branco, que some em fotos claras.
    O admin escolhe a cor livremente; a cor e a faixa de contraste vêm por style
@@ -430,6 +459,66 @@ main img{ max-width: 100%; height: auto; }
 .slide-legenda p{
     margin-bottom: 0;
     font-size: 1.1rem;
+}
+
+/* ===== Indicador de etapas (cadastro de arena) ===== */
+.wz-passos{
+    display: flex;
+    gap: .5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.75rem;
+}
+
+.wz-passo{
+    flex: 1;
+    text-align: center;
+    padding-top: .5rem;
+    border-top: 4px solid #dee2e6;
+    color: #6c757d;
+    font-size: .8rem;
+    line-height: 1.2;
+    /* Item de flex tem min-width:auto: sem isto, palavras como "Funcionamento"
+       impedem a coluna de encolher e o indicador estoura em telas estreitas. */
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.wz-passo__num{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #dee2e6;
+    color: #495057;
+    font-weight: 700;
+    margin-bottom: .25rem;
+}
+
+.wz-passo--ativo{
+    border-top-color: #021B35;
+    color: #021B35;
+    font-weight: 600;
+}
+.wz-passo--ativo .wz-passo__num{
+    background: #021B35;
+    color: #fff;
+}
+
+.wz-passo--feito{
+    border-top-color: #198754;
+    color: #198754;
+}
+.wz-passo--feito .wz-passo__num{
+    background: #198754;
+    color: #fff;
+}
+
+@media (max-width: 575.98px){
+    .wz-passo{ font-size: .68rem; }
+    .wz-passo__num{ width: 22px; height: 22px; font-size: .75rem; }
 }
 
 /* No celular o texto agora aparece (antes era d-none), então precisa encolher
