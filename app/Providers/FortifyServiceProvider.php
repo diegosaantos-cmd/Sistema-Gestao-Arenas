@@ -58,13 +58,7 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
 
-        RateLimiter::for('passkeys', function (Request $request) {
-            $credentialId = $request->input('credential.id');
-
-            return Limit::perMinute(10)->by(
-                ($credentialId ?: $request->session()->getId()) . '|' . $request->ip()
-            );
-        });
+        // O limitador 'passkeys' foi removido junto com o recurso (ver config/fortify.php).
 
         $this->app->instance(LoginResponse::class, new class implements LoginResponse {
 

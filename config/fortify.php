@@ -117,7 +117,6 @@ return [
     'limiters' => [
         'login' => 'login',
         'two-factor' => 'two-factor',
-        'passkeys' => 'passkeys',
     ],
 
     /*
@@ -132,23 +131,6 @@ return [
     */
 
     'views' => true,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Passkeys
-    |--------------------------------------------------------------------------
-    |
-    | These settings configure Fortify's passkey (WebAuthn) support. Passkeys
-    | allow users to sign in without needing to remember credentials since
-    | they use public-key cryptography - making them immune to breaches.
-    |
-    */
-
-    'passkeys' => [
-        'relying_party_id' => parse_url(config('app.url'), PHP_URL_HOST),
-        'allowed_origins' => [config('app.url')],
-        'timeout' => 60000,
-    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -179,9 +161,17 @@ return [
             'confirmPassword' => true,
             // 'window' => 0,
         ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
+        /*
+         * Passkeys (login por WebAuthn) foi REMOVIDO em 2026-07-09.
+         *
+         * Motivo: a cadeia laravel/passkeys -> webauthn-lib -> pki-framework
+         * trava o brick/math em ^0.17, enquanto o Laravel atual exige ^0.18.
+         * Isso impedia o `composer install` de resolver e derrubava o
+         * laravel/fortify para uma versão sem `Features::passkeys()`, causando
+         * erro fatal em TODO comando artisan.
+         *
+         * O recurso nunca foi usado: não havia botão de passkey em tela nenhuma.
+         */
     ]),
 
 ];

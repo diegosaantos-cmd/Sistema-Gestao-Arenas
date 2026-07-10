@@ -44,7 +44,11 @@
         color: #e5e7eb;
         padding: 12px 14px;
         border-radius: 6px;
-        overflow-x: auto;
+        /* Quebra a linha em vez de rolar: no papel/PDF não existe barra de
+           rolagem, e o resto do comando ficaria invisível. */
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
         font-family: "Consolas", "Courier New", monospace;
         font-size: 10.5px;
         line-height: 1.45;
@@ -152,8 +156,17 @@
     <tr><td><code>tokenizer</code>, <code>xml</code>, <code>ctype</code>, <code>json</code>, <code>curl</code>, <code>bcmath</code>, <code>zip</code></td><td>Exigências padrão do Laravel.</td></tr>
 </table>
 
-<p>Para conferir todas de uma vez, rode na pasta do projeto:</p>
-<pre><code>php -r "foreach(['pdo_mysql','mbstring','openssl','tokenizer','xml','ctype','json','curl','fileinfo','bcmath','gd','zip'] as $e){printf('%-12s %s'.PHP_EOL,$e,extension_loaded($e)?'ok':'FALTANDO');}"</code></pre>
+<p>Para ver <strong>todas as extensões ativas</strong>, rode:</p>
+<pre><code>php -m</code></pre>
+
+<p>Para conferir se <strong>uma</strong> específica está ativa (troque <code>gd</code> pelo nome da extensão):</p>
+<table>
+    <tr><th style="width:32%">Terminal</th><th>Comando</th></tr>
+    <tr><td>Windows (PowerShell)</td><td><code>php -m | Select-String gd</code></td></tr>
+    <tr><td>Windows (Prompt / cmd)</td><td><code>php -m | findstr gd</code></td></tr>
+    <tr><td>Linux</td><td><code>php -m | grep gd</code></td></tr>
+</table>
+<p>Se o nome aparecer na saída, a extensão está ativa. Se não aparecer, siga a caixa abaixo.</p>
 
 <div class="box tip">
     <strong>Como habilitar uma extensão:</strong> abra o <code>php.ini</code>, encontre a linha
@@ -228,6 +241,22 @@ cd trabalhoprogweb</code></pre>
 <h3><span class="step">2</span> Instalar as dependências do PHP</h3>
 <pre><code>composer install</code></pre>
 <p>Cria a pasta <code>vendor/</code>. Demora alguns minutos na primeira vez.</p>
+
+<div class="box warn">
+    <strong>Não rode <code>composer update</code> antes.</strong> É um erro comum e pode quebrar o projeto.<br><br>
+    O arquivo <code>composer.lock</code> vem no repositório e guarda a <strong>versão exata</strong> de cada
+    biblioteca que foi testada com este código. O <code>composer install</code> lê esse arquivo e instala
+    <strong>exatamente</strong> essas versões — é o que garante que o projeto funcione igual na sua máquina.<br><br>
+    Já o <code>composer update</code> <strong>ignora</strong> o que está travado, busca as versões mais novas
+    disponíveis e <strong>reescreve o <code>composer.lock</code></strong>. Uma biblioteca atualizada pode ter mudado
+    de comportamento e o sistema passa a apresentar erros que não têm nada a ver com a sua instalação.<br><br>
+    <strong>Regra:</strong> <code>install</code> para <em>usar</em> o projeto · <code>update</code> só quando você
+    quiser <em>deliberadamente</em> atualizar uma biblioteca — e aí o <code>composer.lock</code> novo deve ser
+    testado e commitado.<br><br>
+    <strong>Se o <code>composer install</code> falhar</strong> dizendo <em>"Your lock file does not contain a
+    compatible set of packages. Please run composer update"</em>, <u>não obedeça a essa sugestão</u>.
+    Veja a seção 8 — obedecê-la já quebrou o projeto uma vez.
+</div>
 
 <h3><span class="step">3</span> Criar o arquivo de configuração</h3>
 <pre><code>Windows:  copy .env.example .env
@@ -428,7 +457,44 @@ post_max_size = 12M</code></pre>
         <td>Configuração em cache.</td>
         <td><code>php artisan config:clear</code></td>
     </tr>
+    <tr>
+        <td>Erros estranhos logo após instalar (classe não encontrada, método inexistente)</td>
+        <td>Foi executado <code>composer update</code>, que instalou versões diferentes das testadas.</td>
+        <td>Restaure o arquivo travado e reinstale:<br><code>git checkout composer.lock</code><br><code>composer install</code></td>
+    </tr>
+    <tr>
+        <td><em>Your lock file does not contain a compatible set of packages. Please run composer update.</em><br>
+            (seguido de vários <em>"requires php &gt;= 8.4 — your php version (8.3.x) does not satisfy"</em>)</td>
+        <td>O <code>composer.lock</code> foi gerado numa máquina com PHP mais novo que o seu. Ele travou versões
+            de bibliotecas que a sua versão do PHP não suporta.</td>
+        <td>
+            <strong>Não rode <code>composer update</code></strong> — é o que o Composer sugere, mas ele instala
+            versões diferentes das testadas e pode quebrar o projeto.<br>
+            1. Confira sua versão: <code>php -v</code> (precisa ser <strong>8.3 ou superior</strong>).<br>
+            2. Se estiver certa, avise quem mantém o projeto: o <code>composer.lock</code> precisa ser regerado
+            na versão mínima suportada e commitado.
+        </td>
+    </tr>
+    <tr>
+        <td><em>Call to undefined method Laravel\Fortify\Features::passkeys()</em><br>
+            (aparece em <strong>todo</strong> comando <code>artisan</code>, inclusive no <code>key:generate</code>)</td>
+        <td>Foi executado <code>composer update</code>, que rebaixou o <code>laravel/fortify</code> para uma versão
+            sem esse recurso. Como o <code>config/fortify.php</code> é lido por qualquer comando, tudo para.</td>
+        <td>Atualize o projeto e restaure as versões travadas:<br>
+            <code>git pull</code><br>
+            <code>git checkout composer.lock</code><br>
+            <code>composer install</code>
+        </td>
+    </tr>
 </table>
+
+<div class="box tip">
+    <strong>Por que esses dois erros aparecem juntos:</strong> o primeiro leva ao segundo. O Composer sugere
+    <code>composer update</code>, a pessoa obedece, o update resolve as dependências de outro jeito e derruba um
+    pacote de que a configuração do projeto depende. O resultado é que <strong>nenhum comando <code>artisan</code>
+    funciona mais</strong> — nem o <code>key:generate</code> do passo 4. A saída é sempre voltar ao
+    <code>composer.lock</code> do repositório, nunca gerar um novo por conta própria.
+</div>
 
 <div class="pagebreak"></div>
 
