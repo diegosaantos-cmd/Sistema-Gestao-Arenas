@@ -21,8 +21,19 @@ class CourtScheduleService
      * que já passaram não entram. $ignoreBookingId permite ignorar a própria
      * reserva (ao reagendar, ela não deve contar como ocupada).
      */
-    public static function slotsDoDia(Court $court, Arena $arena, string $date, ?int $ignoreBookingId = null): Collection
-    {
+    /**
+     * @param  bool  $incluirEmCurso  Inclui o bloco de hoje que JÁ começou mas ainda
+     *                                não terminou. Usado só no balcão da arena: o
+     *                                cliente chega 20h10 e quer o bloco 20h–21h.
+     *                                Blocos já encerrados continuam de fora.
+     */
+    public static function slotsDoDia(
+        Court $court,
+        Arena $arena,
+        string $date,
+        ?int $ignoreBookingId = null,
+        bool $incluirEmCurso = false
+    ): Collection {
         $dia = Carbon::parse($date);
         $weekday = $dia->dayOfWeek;            // 0 = Domingo ... 6 = Sábado
         $isHoje = $dia->isToday();
@@ -53,7 +64,12 @@ class CourtScheduleService
 
                 $inicio->addHour();
 
-                if ($isHoje && $blocoInicio <= $agora) {
+                // Bloco de hoje que já começou.
+                $emCurso = $isHoje && $blocoInicio <= $agora && $blocoFim > $agora;
+
+                // Já começou: some por padrão. No balcão, o bloco AINDA EM CURSO
+                // é oferecido; o que já terminou continua fora, sempre.
+                if ($isHoje && $blocoInicio <= $agora && ! ($incluirEmCurso && $emCurso)) {
                     continue;
                 }
 
@@ -66,6 +82,7 @@ class CourtScheduleService
                     'start' => $blocoInicio,
                     'end' => $blocoFim,
                     'ocupado' => $ocupado,
+                    'em_curso' => $emCurso,
                 ]);
             }
         }

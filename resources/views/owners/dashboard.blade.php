@@ -304,6 +304,13 @@
                             💰 Caixa
                         </a>
 
+                        @unless ($arenaInativa)
+                            <a href="{{ route('bookings.presencial.create') }}"
+                                class="btn btn-outline-dark btn-lg">
+                                📅 Registrar reserva
+                            </a>
+                        @endunless
+
                         <a href="{{ route('caixa.balance') }}"
                             class="btn btn-outline-dark btn-lg">
                             📊 Balanço financeiro
@@ -373,7 +380,7 @@
 
                             @forelse ($proximosAgendamentos as $booking)
                                 <tr>
-                                    <td>{{ $booking->client->user->name }}</td>
+                                    <td>{{ $booking->nomeCliente() }}</td>
                                     <td>{{ $booking->court->name }}</td>
                                     <td>
                                         {{ $booking->date->format('d/m/Y') }}

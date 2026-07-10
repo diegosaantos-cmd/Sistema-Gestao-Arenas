@@ -78,7 +78,7 @@
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body">
                         <h5 class="fw-bold mb-3">Reserva #{{ $numeroReserva ?? $b->id }}</h5>
-                        <p class="mb-1"><strong>Cliente (dono da reserva):</strong> {{ $b->client->user->name ?? '—' }}</p>
+                        <p class="mb-1"><strong>Cliente (dono da reserva):</strong> {{ $b->nomeCliente() }}</p>
                         <p class="mb-1"><strong>Quadra:</strong> {{ $b->court->name ?? '—' }}</p>
                         <p class="mb-1">
                             <strong>Data/horário:</strong>

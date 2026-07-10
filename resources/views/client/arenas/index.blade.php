@@ -36,6 +36,7 @@
                 @include('client.arenas._gallery-card', [
                     'arenaUrl' => route('client.arenas.show', $arena),
                     'botaoTexto' => 'Ver arena',
+                    'favoritasIds' => $favoritasIds ?? [],
                 ])
             </div>
         @empty

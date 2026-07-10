@@ -4,10 +4,28 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Arena;
+use App\Models\Client;
 use Illuminate\Http\Request;
 
 class ArenaController extends Controller
 {
+    /**
+     * IDs das arenas favoritas do cliente logado — usados pelo card para
+     * desenhar o coração preenchido. Vazio para quem não é cliente.
+     */
+    private function favoritasIds(): array
+    {
+        $usuario = auth()->user();
+
+        if (! $usuario || $usuario->type !== 'client') {
+            return [];
+        }
+
+        $cliente = Client::where('user_id', $usuario->id)->first();
+
+        return $cliente ? $cliente->favoritas()->pluck('arenas.id')->all() : [];
+    }
+
     /**
      * Lista as arenas ativas para o cliente navegar.
      */
@@ -21,10 +39,18 @@ class ArenaController extends Controller
             ->withCount([
                 'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
             ])
-            ->orderBy('name')
+            // Sem pesquisa: ordem aleatória a cada carregamento, para não
+            // beneficiar nenhuma arena. Com pesquisa: alfabética (previsível).
+            ->when(
+                $busca === '',
+                fn ($query) => $query->inRandomOrder(),
+                fn ($query) => $query->orderBy('name'),
+            )
             ->get();
 
-        return view('client.arenas.index', compact('arenas', 'busca'));
+        $favoritasIds = $this->favoritasIds();
+
+        return view('client.arenas.index', compact('arenas', 'busca', 'favoritasIds'));
     }
 
     /**
@@ -43,6 +69,8 @@ class ArenaController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('client.arenas.show', compact('arena', 'courts'));
+        $ehFavorita = in_array($arena->id, $this->favoritasIds(), true);
+
+        return view('client.arenas.show', compact('arena', 'courts', 'ehFavorita'));
     }
 }

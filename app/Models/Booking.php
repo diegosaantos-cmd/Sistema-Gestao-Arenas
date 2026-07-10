@@ -9,10 +9,18 @@ class Booking extends Model
 {
     protected $table = 'bookings';
 
+    /** Reserva feita pelo cliente no site. */
+    public const ORIGEM_SITE = 'site';
+
+    /** Reserva registrada no balcão da arena pelo dono, gerente ou atendente. */
+    public const ORIGEM_PRESENCIAL = 'presencial';
+
     protected $fillable = [
-        'court_id', 'client_id', 'employee_id', 'date',
+        'court_id', 'client_id', 'date',
         'start_time', 'end_time', 'total_amount', 'payment_method_id', 'status', 'notes',
         'cancelled_by', 'cancellation_reason', 'cancelled_at', 'cancellation_fee_amount',
+        // Reserva presencial: cliente sem cadastro + quem registrou.
+        'guest_name', 'guest_phone', 'guest_email', 'created_by', 'origin',
     ];
 
     protected $casts = [
@@ -37,12 +45,59 @@ class Booking extends Model
     }
 
     /**
+     * Quem registrou a reserva: dono, gerente ou atendente.
+     * Nulo nas reservas feitas pelo próprio cliente no site.
+     */
+    public function criadoPor()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * A reserva foi registrada no balcão da arena?
+     */
+    public function ehPresencial(): bool
+    {
+        return $this->origin === self::ORIGEM_PRESENCIAL;
+    }
+
+    /**
+     * Nome de quem vai jogar — venha ele do cadastro ou do balcão.
+     *
+     * Existe para as telas não precisarem saber se a reserva tem cliente
+     * cadastrado. Sem isto, cada uma das ~65 telas que mostram o nome teria
+     * que repetir a mesma verificação.
+     */
+    public function nomeCliente(): string
+    {
+        return $this->client?->user?->name
+            ?? $this->guest_name
+            ?? '—';
+    }
+
+    public function telefoneCliente(): ?string
+    {
+        return $this->client?->user?->phone ?: $this->guest_phone;
+    }
+
+    public function emailCliente(): ?string
+    {
+        return $this->client?->user?->email ?: $this->guest_email;
+    }
+
+    /**
      * Número da reserva na sequência do CLIENTE dono dela (1, 2, 3...), na
      * ordem em que ele reservou. Evita expor o id global do banco, que
      * "pularia" (ex.: a 2ª reserva do cliente aparecer como #10).
      */
     public function numeroDoCliente(): int
     {
+        // Reserva presencial não pertence a um cliente cadastrado: não há
+        // sequência dele. Sem esta guarda, contaria TODAS as presenciais juntas.
+        if ($this->client_id === null) {
+            return $this->id;
+        }
+
         return static::where('client_id', $this->client_id)
             ->where('id', '<=', $this->id)
             ->count();

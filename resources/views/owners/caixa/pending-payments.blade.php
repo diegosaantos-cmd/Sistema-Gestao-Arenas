@@ -50,7 +50,7 @@
                     <tbody>
                         @forelse ($pagamentos as $p)
                             <tr>
-                                <td>{{ $p->booking->client->user->name ?? '—' }}</td>
+                                <td>{{ $p->booking->nomeCliente() }}</td>
                                 <td class="text-nowrap">
                                     {{ $p->booking->court->name ?? '—' }} —
                                     {{ optional($p->booking->date)->format('d/m/Y') }}

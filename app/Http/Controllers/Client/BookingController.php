@@ -537,7 +537,6 @@ class BookingController extends Controller
                     Booking::create([
                         'court_id' => $court->id,
                         'client_id' => $client->id,
-                        'employee_id' => null,
                         'date' => $validated['date'],
                         'start_time' => $startTime,
                         'end_time' => $endTime,

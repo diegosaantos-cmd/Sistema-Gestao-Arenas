@@ -36,8 +36,13 @@
             <option value="pagas" @selected(request('situacao') === 'pagas')>Pagas</option>
             <option value="atrasadas" @selected(request('situacao') === 'atrasadas')>Atrasadas</option>
         </select>
+        <select name="origem" class="form-select" style="max-width: 170px;">
+            <option value="" @selected(request('origem', '') === '')>Toda origem</option>
+            <option value="site" @selected(request('origem') === 'site')>Online</option>
+            <option value="presencial" @selected(request('origem') === 'presencial')>Na arena</option>
+        </select>
         <button class="btn btn-primary">Filtrar</button>
-        @if (request('q') || request('situacao'))
+        @if (request('q') || request('situacao') || request('origem'))
             <a href="{{ route('bookings.history') }}" class="btn btn-outline-secondary">Limpar</a>
         @endif
     </form>
@@ -75,6 +80,7 @@
                 <thead>
                     <tr>
                         <th>Cliente</th>
+                        <th>Origem</th>
                         <th>Quadra</th>
                         <th>Data</th>
                         <th>Status</th>
@@ -85,7 +91,8 @@
                 <tbody>
                     @forelse ($bookings as $booking)
                         <tr>
-                            <td>{{ $booking->client->user->name }}</td>
+                            <td>{{ $booking->nomeCliente() }}</td>
+                            <td>@include('partials.origin-badge', ['booking' => $booking])</td>
                             <td>{{ $booking->court->name }}</td>
                             <td>
                                 {{ \Carbon\Carbon::parse($booking->date)->format('d/m/Y') }}
@@ -112,7 +119,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">
+                            <td colspan="7" class="text-center text-muted">
                                 @if (request('q') || request('situacao'))
                                     Nenhum agendamento encontrado para o filtro.
                                 @else

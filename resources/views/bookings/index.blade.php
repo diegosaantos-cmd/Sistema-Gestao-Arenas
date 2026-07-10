@@ -68,6 +68,7 @@
                 <thead>
                     <tr>
                         <th>Cliente</th>
+                        <th>Origem</th>
                         <th>Quadra</th>
                         <th>Data</th>
                         <th>Status</th>
@@ -78,7 +79,8 @@
                 <tbody>
                     @forelse ($bookings as $booking)
                         <tr>
-                            <td>{{ $booking->client->user->name }}</td>
+                            <td>{{ $booking->nomeCliente() }}</td>
+                            <td>@include('partials.origin-badge', ['booking' => $booking])</td>
                             <td>{{ $booking->court->name }}</td>
                             <td>
                                 {{ \Carbon\Carbon::parse($booking->date)->format('d/m/Y') }}
@@ -113,7 +115,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">
+                            <td colspan="7" class="text-center text-muted">
                                 Nenhum agendamento por enquanto
                             </td>
                         </tr>
@@ -140,7 +142,7 @@
                     </div>
                     <div class="modal-body">
                         <p class="text-muted small mb-3">
-                            {{ $booking->client->user->name ?? '—' }} ·
+                            {{ $booking->nomeCliente() }} ·
                             {{ $booking->court->name ?? '—' }} ·
                             {{ $booking->date->format('d/m/Y') }}
                             {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}

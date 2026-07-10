@@ -51,7 +51,7 @@
                 <tbody>
                     @foreach ($afetados as $b)
                         <tr>
-                            <td>{{ $b->client->user->name ?? '—' }}</td>
+                            <td>{{ $b->nomeCliente() }}</td>
                             <td>{{ $dias[$b->date->dayOfWeek] }}, {{ $b->date->format('d/m/Y') }}</td>
                             <td>{{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}</td>
                             <td>

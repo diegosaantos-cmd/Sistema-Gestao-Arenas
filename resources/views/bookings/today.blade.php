@@ -28,6 +28,7 @@
                     <tr>
                         <th>Horário</th>
                         <th>Cliente</th>
+                        <th>Origem</th>
                         <th>Quadra</th>
                         <th>Status</th>
                         <th>Pagamento</th>
@@ -40,7 +41,8 @@
                             <td class="text-nowrap">
                                 {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
                             </td>
-                            <td>{{ $booking->client->user->name }}</td>
+                            <td>{{ $booking->nomeCliente() }}</td>
+                            <td>@include('partials.origin-badge', ['booking' => $booking])</td>
                             <td>{{ $booking->court->name }}</td>
                             <td>
                                 @if ($booking->estaEmAndamento())
@@ -70,7 +72,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">
+                            <td colspan="7" class="text-center text-muted">
                                 Nenhuma reserva confirmada para hoje.
                             </td>
                         </tr>
@@ -97,7 +99,7 @@
                     </div>
                     <div class="modal-body">
                         <p class="text-muted small mb-3">
-                            {{ $booking->client->user->name ?? '—' }} ·
+                            {{ $booking->nomeCliente() }} ·
                             {{ $booking->court->name ?? '—' }} ·
                             {{ $booking->date->format('d/m/Y') }}
                             {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}

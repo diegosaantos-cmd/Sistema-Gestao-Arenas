@@ -35,36 +35,48 @@ class BookingDetailController extends Controller
             abort(403);
         }
 
-        // Quem registrou (se foi um funcionário).
-        $funcionario = $booking->employee_id
-            ? Employee::with('user')->find($booking->employee_id)
-            : null;
+        // Quem registrou a reserva (dono, gerente, atendente ou admin). Vem do
+        // created_by — nas reservas feitas pelo próprio cliente no site é nulo.
+        $registradaPor = $this->descreverUsuario($booking->created_by);
 
-        // Quem cancelou, com o tipo (Cliente / Dono / Gerente / Atendente).
-        $canceladoPor = null;
-        if ($booking->cancelled_by) {
-            $u = User::find($booking->cancelled_by);
-            if ($u) {
-                $tipo = match ($u->type) {
-                    'client' => 'Cliente',
-                    'owner' => 'Dono',
-                    'admin' => 'Administrador',
-                    default => null,
-                };
-
-                if ($u->type === 'employee') {
-                    $emp = Employee::where('user_id', $u->id)->first();
-                    $tipo = ($emp && $emp->access_level === 'managerial') ? 'Gerente' : 'Atendente';
-                }
-
-                $canceladoPor = ($tipo ? $tipo . ': ' : '') . $u->name;
-            }
-        }
+        // Quem cancelou, no mesmo formato.
+        $canceladoPor = $this->descreverUsuario($booking->cancelled_by);
 
         // Número da reserva no contexto de quem está vendo: o cliente vê a
         // sequência dele; dono/funcionário veem a sequência da arena.
         $numeroReserva = $ehCliente ? $booking->numeroDoCliente() : $booking->numeroNaArena();
 
-        return view('bookings.details', compact('booking', 'funcionario', 'canceladoPor', 'numeroReserva'));
+        return view('bookings.details', compact('booking', 'registradaPor', 'canceladoPor', 'numeroReserva'));
+    }
+
+    /**
+     * "Tipo: Nome" de um usuário pelo id (Cliente / Dono / Gerente / Atendente /
+     * Administrador). Para funcionário, distingue gerente de atendente pelo
+     * nível de acesso. Nulo quando não há usuário.
+     */
+    private function descreverUsuario(?int $userId): ?string
+    {
+        if (! $userId) {
+            return null;
+        }
+
+        $u = User::find($userId);
+        if (! $u) {
+            return null;
+        }
+
+        $tipo = match ($u->type) {
+            'client' => 'Cliente',
+            'owner' => 'Dono',
+            'admin' => 'Administrador',
+            default => null,
+        };
+
+        if ($u->type === 'employee') {
+            $emp = Employee::where('user_id', $u->id)->first();
+            $tipo = ($emp && $emp->access_level === 'managerial') ? 'Gerente' : 'Atendente';
+        }
+
+        return ($tipo ? $tipo . ': ' : '') . $u->name;
     }
 }

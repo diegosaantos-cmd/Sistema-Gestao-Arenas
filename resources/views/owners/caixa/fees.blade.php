@@ -48,7 +48,7 @@
                     <tbody>
                         @forelse ($taxasAReceber as $t)
                             <tr>
-                                <td>{{ $t->client->user->name ?? '—' }}</td>
+                                <td>{{ $t->nomeCliente() }}</td>
                                 <td>{{ $t->court->name ?? '—' }}</td>
                                 <td class="text-nowrap">
                                     {{ $t->date->format('d/m/Y') }}
@@ -89,7 +89,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-1"><strong>Cliente:</strong> {{ $t->client->user->name ?? '—' }}</p>
+                    <p class="mb-1"><strong>Cliente:</strong> {{ $t->nomeCliente() }}</p>
                     <p class="mb-3">
                         <strong>Reserva cancelada:</strong> {{ $t->court->name ?? '—' }} —
                         {{ $t->date->format('d/m/Y') }}

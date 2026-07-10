@@ -52,7 +52,7 @@
                                 $jaPassou = now()->greaterThan($fimReserva);
                             @endphp
                             <tr>
-                                <td>{{ $reserva->client->user->name ?? '—' }}</td>
+                                <td>{{ $reserva->nomeCliente() }}</td>
                                 <td>{{ $reserva->court->name ?? '—' }}</td>
                                 <td>
                                     {{ $reserva->date->format('d/m/Y') }}
@@ -99,7 +99,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-1"><strong>Cliente:</strong> {{ $reserva->client->user->name ?? '—' }}</p>
+                    <p class="mb-1"><strong>Cliente:</strong> {{ $reserva->nomeCliente() }}</p>
                     <p class="mb-3">
                         <strong>Quadra:</strong> {{ $reserva->court->name ?? '—' }} —
                         {{ $reserva->date->format('d/m/Y') }}

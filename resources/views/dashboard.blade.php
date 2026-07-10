@@ -171,6 +171,11 @@
                         NOVA RESERVA
                     </a>
 
+                    <a href="{{ route('client.arenas.favoritas') }}" class="btn dashboard-btn-outline">
+                        <i class="bi bi-heart me-2"></i>
+                        ARENAS FAVORITAS
+                    </a>
+
                     <a href="{{ route('client.bookings.history') }}" class="btn dashboard-btn-outline">
                         <i class="bi bi-clock-history me-2"></i>
                         HISTÓRICO

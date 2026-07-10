@@ -12,12 +12,25 @@
         </a>
     </div>
 
-    <div class="mb-4">
-        <h1 class="dashboard-title">{{ $arena->name }}</h1>
-        <p class="dashboard-subtitle">
-            <i class="bi bi-geo-alt me-1"></i>
-            {{ $arena->address_rua }}, {{ $arena->address_numero }} - {{ $arena->address_bairro }}
-        </p>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div class="min-w-0">
+            <h1 class="dashboard-title">{{ $arena->name }}</h1>
+            <p class="dashboard-subtitle mb-0">
+                <i class="bi bi-geo-alt me-1"></i>
+                {{ $arena->address_rua }}, {{ $arena->address_numero }} - {{ $arena->address_bairro }}
+            </p>
+        </div>
+
+        @if (auth()->check() && auth()->user()->type === 'client')
+            <form method="POST" action="{{ route('client.arenas.favoritar', $arena) }}" data-favorite-form>
+                @csrf
+                <button type="submit" data-fav-btn data-fav-style="button"
+                        class="btn {{ $ehFavorita ? 'btn-danger' : 'btn-outline-danger' }}">
+                    <i class="bi {{ $ehFavorita ? 'bi-heart-fill' : 'bi-heart' }} me-1"></i>
+                    <span data-fav-label>{{ $ehFavorita ? 'Nas favoritas' : 'Favoritar' }}</span>
+                </button>
+            </form>
+        @endif
     </div>
 
     <!-- Quadras (destaque para a reserva) -->

@@ -11,6 +11,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Client\ArenaController as ClientArenaController;
 use App\Http\Controllers\Client\BookingController as ClientBookingController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\Client\FavoriteController as ClientFavoriteController;
 use App\Http\Controllers\Client\ProfileController as ClientProfileController;
 use App\Models\Arena;
 use App\Http\Controllers\OwnersController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\RegisterArenaOwnerController;
 use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\Owner\ProfileController as OwnerProfileController;
 use App\Http\Controllers\Owner\CashRegisterController;
+use App\Http\Controllers\Owner\PresencialBookingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\HomeSlideController;
 
@@ -42,7 +44,17 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     // Fotos/textos do cabeçalho, gerenciados pelo admin em /admin/aparencia.
     $slides = \App\Models\HomeSlide::paraHome();
 
-    return view('welcome', compact('arenas', 'busca', 'slides'));
+    // Para o coração do card já aparecer preenchido nas arenas que o cliente
+    // logado favoritou. Visitante não autenticado: lista vazia.
+    $favoritasIds = [];
+    $usuario = auth()->user();
+
+    if ($usuario && $usuario->type === 'client') {
+        $cliente = \App\Models\Client::where('user_id', $usuario->id)->first();
+        $favoritasIds = $cliente ? $cliente->favoritas()->pluck('arenas.id')->all() : [];
+    }
+
+    return view('welcome', compact('arenas', 'busca', 'slides', 'favoritasIds'));
 });
 
 Route::get('/registerArenaOwners', [RegisterArenaOwnerController::class, 'create'])
@@ -396,6 +408,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/owners/bookings/today', [BookingController::class, 'today'])
         ->name('bookings.today');
 
+    // Reserva registrada no balcão da arena (cliente que chega na hora).
+    Route::get('/owners/bookings/presencial', [PresencialBookingController::class, 'create'])
+        ->name('bookings.presencial.create');
+    Route::post('/owners/bookings/presencial', [PresencialBookingController::class, 'store'])
+        ->name('bookings.presencial.store');
+
     // Reservas aguardando confirmação (pendentes) + ações do dono.
     Route::get('/owners/bookings/pendentes', [BookingController::class, 'pending'])
         ->name('bookings.pending');
@@ -450,6 +468,14 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/client/arenas', [ClientArenaController::class, 'index'])
         ->name('client.arenas.index');
+
+    // Favoritas: a listagem vem antes de /{arena} para "favoritas" não ser
+    // interpretado como o parâmetro {arena} da rota de detalhes.
+    Route::get('/client/arenas/favoritas', [ClientFavoriteController::class, 'index'])
+        ->name('client.arenas.favoritas');
+
+    Route::post('/client/arenas/{arena}/favoritar', [ClientFavoriteController::class, 'toggle'])
+        ->name('client.arenas.favoritar');
 
     Route::get('/client/arenas/{arena}', [ClientArenaController::class, 'show'])
         ->name('client.arenas.show');

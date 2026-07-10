@@ -49,7 +49,11 @@ class BookingController extends Controller
                     // Data exata escolhida no calendário (aaaa-mm-dd).
                     $qb->whereDate('date', $q);
                 } else {
-                    $qb->whereHas('client.user', fn ($u) => $u->where('name', 'like', "%{$q}%"));
+                    // A reserva presencial não tem cliente cadastrado: o nome de quem
+                    // vai jogar fica em guest_name. Sem este orWhere, ela nunca
+                    // apareceria numa busca por nome.
+                    $qb->whereHas('client.user', fn ($u) => $u->where('name', 'like', "%{$q}%"))
+                        ->orWhere('guest_name', 'like', "%{$q}%");
                 }
             });
         }
@@ -87,6 +91,12 @@ class BookingController extends Controller
                     ->orWhereIn('status', ['cancelled', 'completed']);
             });
 
+        // Filtro por origem: online (site) ou registrada no balcão (presencial).
+        $origem = request('origem');
+        if (in_array($origem, [Booking::ORIGEM_SITE, Booking::ORIGEM_PRESENCIAL], true)) {
+            $query->where('origin', $origem);
+        }
+
         if ($q !== '') {
             $query->where(function ($qb) use ($campo, $q) {
                 if ($campo === 'quadra') {
@@ -94,7 +104,11 @@ class BookingController extends Controller
                 } elseif ($campo === 'data') {
                     $qb->whereDate('date', $q);
                 } else {
-                    $qb->whereHas('client.user', fn ($u) => $u->where('name', 'like', "%{$q}%"));
+                    // A reserva presencial não tem cliente cadastrado: o nome de quem
+                    // vai jogar fica em guest_name. Sem este orWhere, ela nunca
+                    // apareceria numa busca por nome.
+                    $qb->whereHas('client.user', fn ($u) => $u->where('name', 'like', "%{$q}%"))
+                        ->orWhere('guest_name', 'like', "%{$q}%");
                 }
             });
         }
@@ -111,7 +125,7 @@ class BookingController extends Controller
             default      => $bookings,
         };
 
-        return view('bookings.history', compact('arena', 'bookings', 'situacao'));
+        return view('bookings.history', compact('arena', 'bookings', 'situacao', 'origem'));
     }
 
     /**

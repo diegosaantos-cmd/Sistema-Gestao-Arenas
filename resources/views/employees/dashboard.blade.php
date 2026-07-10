@@ -99,7 +99,7 @@
                                 @forelse ($hoje as $booking)
                                     <tr>
                                         <td class="ps-3">{{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}</td>
-                                        <td>{{ $booking->client->user->name ?? '—' }}</td>
+                                        <td>{{ $booking->nomeCliente() }}</td>
                                         <td>{{ $booking->court->name ?? '—' }}</td>
                                         <td>R$ {{ number_format($booking->total_amount, 2, ',', '.') }}</td>
                                         <td>
@@ -143,7 +143,7 @@
                                     <tr>
                                         <td class="ps-3">{{ $booking->date->format('d/m') }}</td>
                                         <td>{{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}</td>
-                                        <td>{{ $booking->client->user->name ?? '—' }}</td>
+                                        <td>{{ $booking->nomeCliente() }}</td>
                                         <td>{{ $booking->court->name ?? '—' }}</td>
                                         <td>R$ {{ number_format($booking->total_amount, 2, ',', '.') }}</td>
                                         <td>

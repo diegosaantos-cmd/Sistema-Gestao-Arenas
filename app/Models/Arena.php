@@ -91,6 +91,16 @@ class Arena extends Model
         return $this->hasMany(Court::class);
     }
 
+    /**
+     * Clientes que marcaram esta arena como favorita.
+     * Permite, por exemplo, contar quantos favoritaram (withCount).
+     */
+    public function favoritadaPor()
+    {
+        return $this->belongsToMany(Client::class, 'arena_favorites', 'arena_id', 'client_id')
+            ->withPivot('created_at');
+    }
+
     public function employees()
     {
         return $this->hasMany(Employee::class);

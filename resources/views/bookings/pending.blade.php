@@ -52,7 +52,7 @@
                         @forelse ($bookings as $booking)
                             @php $naoPagas = $naoPagasPorCliente[$booking->client_id] ?? 0; @endphp
                             <tr>
-                                <td>{{ $booking->client->user->name ?? '—' }}</td>
+                                <td>{{ $booking->nomeCliente() }}</td>
                                 <td class="text-center">
                                     @if ($naoPagas > 0)
                                         <span class="badge bg-danger"
@@ -117,7 +117,7 @@
                     </div>
                     <div class="modal-body">
                         <p class="text-muted small mb-3">
-                            {{ $booking->client->user->name ?? '—' }} ·
+                            {{ $booking->nomeCliente() }} ·
                             {{ $booking->court->name ?? '—' }} ·
                             {{ $booking->date->format('d/m/Y') }}
                             {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
