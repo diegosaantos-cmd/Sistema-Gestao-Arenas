@@ -342,8 +342,15 @@ npm run build</code></pre>
     <tr><td><code>QUEUE_CONNECTION</code></td><td><code>sync</code></td><td>Envia os e-mails na hora, sem precisar de processo em segundo plano.</td></tr>
     <tr><td><code>MAIL_MAILER</code></td><td><code>log</code></td><td>Os e-mails <strong>não são enviados</strong>: são gravados em <code>storage/logs/laravel.log</code>. Ideal para desenvolver sem disparar e-mail real a um cliente.</td></tr>
     <tr><td><code>EMAIL_VERIFICATION_ENABLED</code></td><td><code>false</code></td><td>Não exige confirmar o e-mail no cadastro. <strong>Só ligue depois</strong> de configurar o envio real (seção 6.3).</td></tr>
-    <tr><td><code>SESSION_DRIVER</code></td><td><code>file</code></td><td>Sessões em arquivo. Não exige configuração.</td></tr>
+    <tr><td><code>SESSION_DRIVER</code></td><td><code>file</code></td><td>Sessões em arquivo. Não exige tabela no banco.</td></tr>
+    <tr><td><code>CACHE_STORE</code></td><td><code>file</code></td><td>Cache em arquivo. Se trocar para <code>database</code>, as tabelas <code>cache</code> e <code>cache_locks</code> precisam existir — elas são criadas pelas migrations, mas o <code>.env</code> precisa ser ajustado <strong>depois</strong> de rodá-las.</td></tr>
 </table>
+
+<div class="box tip">
+    <strong>O <code>.env.example</code> já vem com os valores testados.</strong> Ele é a configuração que
+    funciona sem passos extras: cache e sessões em arquivo, fila em <code>sync</code>. Copie-o e altere apenas
+    o que a seção 6.1 pede.
+</div>
 
 <h3>6.3 Opcional: enviar e-mails de verdade</h3>
 <p>Com <code>MAIL_MAILER=log</code>, nada é enviado. Para enviar mesmo (avisos de reserva, "esqueci minha senha"):</p>
@@ -456,6 +463,16 @@ post_max_size = 12M</code></pre>
         <td>Mudei o <code>.env</code> e nada mudou</td>
         <td>Configuração em cache.</td>
         <td><code>php artisan config:clear</code></td>
+    </tr>
+    <tr>
+        <td>Erro <strong>500</strong> ao tentar entrar:<br>
+            <em>SQLSTATE[42S02] ... Tabela 'arena_play.cache' não existe</em></td>
+        <td>O <code>.env</code> está com <code>CACHE_STORE=database</code>, mas as tabelas de cache não foram criadas.
+            A tela de login usa o cache para limitar tentativas (<code>throttle:login</code>).</td>
+        <td>Use <code>CACHE_STORE=file</code> (é o padrão do <code>.env.example</code>) — não depende de tabela.<br>
+            Se quiser mesmo usar o banco, rode <code>php artisan migrate</code> antes, que cria as tabelas
+            <code>cache</code> e <code>cache_locks</code>.<br>
+            Depois: <code>php artisan config:clear</code>.</td>
     </tr>
     <tr>
         <td>Erros estranhos logo após instalar (classe não encontrada, método inexistente)</td>
