@@ -8,7 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="/css/style.css">
+    {{-- ?v=timestamp: o navegador busca a versão nova sempre que o CSS muda,
+         sem depender de Ctrl+F5. --}}
+    <link rel="stylesheet" href="/css/style.css?v={{ @filemtime(public_path('css/style.css')) }}">
     <script src="/js/script.js"></script>
 
 </head>
@@ -51,32 +53,32 @@
 
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('register.arena.owners') }}">
-                                    CADASTRAR ARENA
+                                    CADASTRAR UMA ARENA
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="btn btn-register" href="/register">
-                                    CADASTRAR
+                                    CRIAR CONTA
                                 </a>
                             </li>
                         @endguest
 
                         @auth
                             @php
+                                $tipo = auth()->user()->type;
                                 $route = '/dashboard';
 
-                                if (auth()->user()->type == 'admin') {
+                                if ($tipo === 'admin') {
                                     $route = '/admin';
-                                }
-                                if (auth()->user()->type == 'cliente') {
-                                    $route = '/dashboard';
-                                }
-                                if (auth()->user()->type == 'funcionario') {
-                                    $route = '/funcionario';
-                                }
-                                if (auth()->user()->type == 'owner') {
-                                     $route = '/owners/dashboard';
+                                } elseif ($tipo === 'owner') {
+                                    $route = '/owners/dashboard';
+                                } elseif ($tipo === 'employee') {
+                                    // Gerente cai no painel do dono (reaproveitado);
+                                    // atendente, no painel próprio via /dashboard.
+                                    $route = \App\Support\ArenaAtual::ehGerente()
+                                        ? '/owners/dashboard'
+                                        : '/dashboard';
                                 }
                             @endphp
                             <li class="nav-item">
@@ -90,6 +92,22 @@
                                     <a class="nav-link" href="{{ route('owner.profile.edit') }}">
                                         <i class="bi bi-person-gear"></i>
                                         MINHA CONTA
+                                    </a>
+                                </li>
+                            @elseif (\App\Support\ArenaAtual::ehGerente())
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('employee.profile.edit') }}">
+                                        <i class="bi bi-person-gear"></i>
+                                        MINHA CONTA
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if (auth()->user()->type !== 'admin')
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('feedback.create') }}" title="Sugestões e bugs">
+                                        <i class="bi bi-chat-left-dots"></i>
+                                        SUGESTÕES
                                     </a>
                                 </li>
                             @endif
@@ -108,15 +126,6 @@
                                     @endif
                                 </a>
                             </li>
-
-                            @if (auth()->user()->type !== 'admin')
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('feedback.create') }}" title="Sugestões e bugs">
-                                        <i class="bi bi-chat-left-dots"></i>
-                                        SUGESTÕES
-                                    </a>
-                                </li>
-                            @endif
 
 
                             <li class="nav-item">

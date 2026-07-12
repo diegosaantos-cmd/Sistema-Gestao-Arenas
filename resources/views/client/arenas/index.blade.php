@@ -7,9 +7,7 @@
 <div class="dashboard-container container-fluid py-4">
 
     <div class="d-flex flex-wrap gap-2 mb-3">
-        <a href="{{ route('dashboard') }}" class="btn btn-dark btn-sm">
-            ← Voltar ao painel
-        </a>
+        <x-back :href="route('dashboard')" class="mb-0" />
     </div>
 
     <div class="mb-4">
@@ -34,7 +32,7 @@
         @forelse ($arenas as $arena)
             <div class="col-6 col-lg-3">
                 @include('client.arenas._gallery-card', [
-                    'arenaUrl' => route('client.arenas.show', $arena),
+                    'arenaUrl' => route('client.arenas.show', [$arena, 'origem' => 'lista']),
                     'botaoTexto' => 'Ver arena',
                     'favoritasIds' => $favoritasIds ?? [],
                 ])

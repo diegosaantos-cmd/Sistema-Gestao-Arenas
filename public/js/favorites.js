@@ -6,8 +6,11 @@
  * lugar — a página não recarrega nem sobe ao topo. Se o fetch falhar (ou o JS
  * não rodar), o formulário é enviado do jeito tradicional.
  *
+ * A tela de Favoritos NÃO usa isto (o form lá não tem data-favorite-form): ela
+ * envia normal e recarrega, para o contador e o estado vazio se atualizarem.
+ *
  * Marcação esperada:
- *   <form data-favorite-form [data-favorite-remove]>  (remove = tela de favoritas)
+ *   <form data-favorite-form>
  *     <button data-fav-btn data-fav-style="card|button"> ...
  */
 (function () {
@@ -44,13 +47,6 @@
     });
 
     function aplicar(form, btn, favorito) {
-        // Tela de favoritas: ao desfavoritar, some com o card em vez de deixar
-        // um coração vazio numa página de "favoritas".
-        if (! favorito && form.hasAttribute('data-favorite-remove')) {
-            var card = form.closest('[data-favorite-card]');
-            if (card) { card.remove(); return; }
-        }
-
         if (! btn) return;
         var icone = btn.querySelector('i');
         var estilo = btn.getAttribute('data-fav-style');

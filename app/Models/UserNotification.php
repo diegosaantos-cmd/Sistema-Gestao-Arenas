@@ -102,4 +102,45 @@ class UserNotification extends Model
             'body'     => $body,
         ]);
     }
+
+    /**
+     * Avisa o STAFF de uma arena (o dono + os gerentes ativos). Usado quando o
+     * próprio cliente age (cria ou cancela uma reserva) e o staff precisa saber.
+     * `sent_by` fica nulo: o gatilho é uma ação do cliente, não um envio manual.
+     */
+    public static function paraStaffDaArena(Arena $arena, string $title, string $body): void
+    {
+        foreach (static::idsStaffDaArena($arena) as $userId) {
+            static::create([
+                'user_id'  => $userId,
+                'arena_id' => $arena->id,
+                'sent_by'  => null,
+                'title'    => $title,
+                'body'     => $body,
+            ]);
+        }
+    }
+
+    /**
+     * IDs de usuário do staff da arena: o dono e os gerentes ativos. Sem repetir
+     * (caso raro de o dono também ter vínculo de funcionário na própria arena).
+     */
+    private static function idsStaffDaArena(Arena $arena): array
+    {
+        $arena->loadMissing('owner');
+
+        $ids = [];
+        if ($arena->owner?->user_id) {
+            $ids[] = $arena->owner->user_id;
+        }
+
+        $gerentes = Employee::where('arena_id', $arena->id)
+            ->where('access_level', 'managerial')
+            ->where('active', true)
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->all();
+
+        return array_values(array_unique([...$ids, ...$gerentes]));
+    }
 }

@@ -84,7 +84,12 @@ class DashboardController extends Controller
     {
         $q = trim((string) request('q'));
 
+        // Filtro por tipo: cliente, funcionário ou proprietário (admin já é excluído).
+        $tipo = request('tipo');
+        $tiposValidos = ['client', 'employee', 'owner'];
+
         $usuarios = User::where('type', '!=', 'admin')
+            ->when(in_array($tipo, $tiposValidos, true), fn ($query) => $query->where('type', $tipo))
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($w) use ($q) {
                     $w->where('name', 'like', "%{$q}%")
@@ -95,7 +100,7 @@ class DashboardController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        return view('admin.system.usuarios', compact('usuarios'));
+        return view('admin.system.usuarios', compact('usuarios', 'tipo'));
     }
 
     /**

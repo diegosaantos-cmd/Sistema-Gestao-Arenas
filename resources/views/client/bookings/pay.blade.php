@@ -6,9 +6,7 @@
 
 <div class="container py-4">
 
-    <a href="{{ route($origem ?? 'client.bookings.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar
-    </a>
+    <x-back :href="route($origem ?? 'client.bookings.index')" />
 
     <h1 class="fw-bold mb-1">Pagar reserva #{{ $numeroReserva ?? $booking->id }}</h1>
     <p class="text-muted">

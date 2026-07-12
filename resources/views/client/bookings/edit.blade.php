@@ -11,9 +11,7 @@
         $origem = in_array(request('from'), $origensValidas) ? request('from') : 'client.bookings.index';
     @endphp
 
-    <a href="{{ route($origem) }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar aos agendamentos
-    </a>
+    <x-back :href="route($origem)" />
 
     <h1 class="fw-bold mb-1">Editar agendamento #{{ $numeroReserva ?? $booking->id }}</h1>
     <p class="text-muted">

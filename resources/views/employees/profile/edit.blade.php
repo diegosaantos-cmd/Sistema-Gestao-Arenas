@@ -6,10 +6,10 @@
 
 <div class="container py-4">
 
-    <x-back :href="route('owners.dashboard')" />
+    <x-back :href="\App\Support\ArenaAtual::ehGerente() ? route('owners.dashboard') : route('employees.dashboard')" />
 
     <h1 class="fw-bold mb-1">Minha Conta</h1>
-    <p class="text-muted">Gerencie seus dados pessoais, da empresa e sua senha.</p>
+    <p class="text-muted">Gerencie seus dados pessoais e sua senha.</p>
 
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
@@ -45,7 +45,7 @@
                         <p class="mb-0"><strong>Telefone:</strong> {{ $user->phone ?: '—' }}</p>
                     </div>
 
-                    <form method="POST" action="{{ route('owner.profile.personal') }}" id="pessoaisForm" class="d-none">
+                    <form method="POST" action="{{ route('employee.profile.personal') }}" id="pessoaisForm" class="d-none">
                         @csrf
                         @method('PATCH')
 
@@ -74,43 +74,22 @@
             </div>
         </div>
 
-        {{-- Empresa --}}
+        {{-- Vínculo (somente leitura): arena e cargo são definidos pelo dono --}}
         <div class="col-lg-6">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold mb-0">Empresa</h5>
-                        <button type="button" class="btn btn-sm btn-warning" id="btnEditarEmpresa">
-                            ✏️ Editar
-                        </button>
-                    </div>
+                    <h5 class="fw-bold mb-3">Meu vínculo</h5>
 
-                    <div id="empresaView">
-                        <p class="mb-1"><strong>Nome da empresa:</strong> {{ $owner->company_name }}</p>
-                        <p class="mb-0"><strong>CPF/CNPJ:</strong> {{ $owner->tax_id }}</p>
-                    </div>
+                    <p class="mb-1"><strong>Arena:</strong> {{ $employee->arena?->name ?? '—' }}</p>
+                    <p class="mb-1"><strong>Cargo:</strong> {{ $employee->position ?: '—' }}</p>
+                    <p class="mb-0">
+                        <strong>Nível de acesso:</strong>
+                        {{ $employee->access_level === 'managerial' ? 'Gerente' : 'Atendente' }}
+                    </p>
 
-                    <form method="POST" action="{{ route('owner.profile.company') }}" id="empresaForm" class="d-none">
-                        @csrf
-                        @method('PATCH')
-
-                        <div class="mb-3">
-                            <label class="form-label">Nome da empresa</label>
-                            <input type="text" name="company_name" class="form-control"
-                                   value="{{ old('company_name', $owner->company_name) }}" maxlength="150" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">CPF / CNPJ</label>
-                            <input type="text" name="tax_id" class="form-control"
-                                   value="{{ old('tax_id', $owner->tax_id) }}"
-                                   placeholder="Só números (11 ou 14 dígitos)" required>
-                        </div>
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-success btn-sm">Salvar</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="btnCancelarEmpresa">Cancelar</button>
-                        </div>
-                    </form>
+                    <p class="text-muted small mt-3 mb-0">
+                        A arena e o cargo são definidos pelo proprietário.
+                    </p>
                 </div>
             </div>
         </div>
@@ -130,7 +109,7 @@
                         <p class="mb-0"><strong>Senha:</strong> ••••••••</p>
                     </div>
 
-                    <form method="POST" action="{{ route('owner.profile.password') }}" id="senhaForm" class="d-none">
+                    <form method="POST" action="{{ route('employee.profile.password') }}" id="senhaForm" class="d-none">
                         @csrf
                         @method('PUT')
 
@@ -163,7 +142,6 @@
 @php
     $abrirSecoes = [
         'pessoais' => $errors->hasAny(['name', 'email', 'phone']),
-        'empresa'  => $errors->hasAny(['company_name', 'tax_id']),
         'senha'    => $errors->hasAny(['current_password', 'password']),
     ];
 @endphp
@@ -189,7 +167,7 @@
             // Cancelar recarrega a página, voltando aos dados reais salvos.
             if (btnCancelar) {
                 btnCancelar.addEventListener('click', function () {
-                    window.location.href = '{{ route('owner.profile.edit') }}';
+                    window.location.href = '{{ route('employee.profile.edit') }}';
                 });
             }
 
@@ -197,7 +175,6 @@
         }
 
         secao('btnEditarPessoais', 'btnCancelarPessoais', 'pessoaisView', 'pessoaisForm', ABRIR.pessoais);
-        secao('btnEditarEmpresa', 'btnCancelarEmpresa', 'empresaView', 'empresaForm', ABRIR.empresa);
         secao('btnEditarSenha', 'btnCancelarSenha', 'senhaView', 'senhaForm', ABRIR.senha);
     });
 </script>

@@ -6,10 +6,18 @@
 
 <div class="dashboard-container container-fluid py-4">
 
+    @php
+        // Volta para de onde o cliente veio (a origem é passada no link "Ver arena").
+        $voltarUrl = match (request('origem')) {
+            'lista' => route('client.arenas.index'),
+            'favoritas' => route('client.arenas.favoritas'),
+            'inicio' => url('/'),
+            default => auth()->check() ? route('client.arenas.index') : url('/'),
+        };
+    @endphp
+
     <div class="d-flex flex-wrap gap-2 mb-3">
-        <a href="{{ route('client.arenas.index') }}" class="btn btn-dark btn-sm">
-            ← Voltar para as arenas
-        </a>
+        <x-back :href="$voltarUrl" class="mb-0" />
     </div>
 
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
@@ -53,10 +61,19 @@
                         </div>
                     </div>
 
-                    <a href="{{ route('client.bookings.create', [$arena, $court]) }}"
-                       class="btn dashboard-btn-primary mt-auto">
-                        <i class="bi bi-calendar-plus me-2"></i> Reservar
-                    </a>
+                    @auth
+                        <a href="{{ route('client.bookings.create', [$arena, $court, 'origem' => request('origem')]) }}"
+                           class="btn dashboard-btn-primary mt-auto">
+                            <i class="bi bi-calendar-plus me-2"></i> Reservar
+                        </a>
+                    @else
+                        {{-- Visitante: reservar exige conta. Manda ao login, que
+                             volta para esta tela de reserva depois de entrar. --}}
+                        <a href="{{ route('login') }}"
+                           class="btn dashboard-btn-primary mt-auto">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Entrar para reservar
+                        </a>
+                    @endauth
                 </div>
             </div>
         @empty
@@ -132,6 +149,10 @@
         </div>
 
     </div>
+
+    {{-- Política de cancelamento: o cliente já vê aqui se a arena cobra taxa,
+         sem precisar entrar em "reservar quadra". Mesmo bloco das duas telas. --}}
+    @include('partials.cancellation-policy', ['arena' => $arena])
 
 </div>
 

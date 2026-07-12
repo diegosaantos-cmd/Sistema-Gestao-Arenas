@@ -6,9 +6,7 @@
 
 <div class="container py-4">
 
-    <a href="{{ route('client.bookings.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar aos agendamentos
-    </a>
+    <x-back :href="route('client.bookings.index')" />
 
     <h1 class="fw-bold mb-1">Cancelar reserva #{{ $numeroReserva ?? $booking->id }}</h1>
     <p class="text-muted">

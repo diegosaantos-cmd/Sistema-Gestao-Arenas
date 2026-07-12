@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('clients.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar aos clientes
-    </a>
+    <x-back :href="route('clients.index')" />
 
     <h1 class="fw-bold mb-1">Enviar mensagem</h1>
     <p class="text-muted">

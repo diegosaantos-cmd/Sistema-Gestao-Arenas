@@ -15,7 +15,7 @@
 @endphp
 
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ $voltar }}" class="btn btn-dark btn-sm mb-3">← Voltar</a>
+    <x-back :href="$voltar" />
 
     <div class="mb-4">
         <div class="text-muted text-uppercase fw-semibold small" style="letter-spacing:.05em;">
@@ -74,6 +74,7 @@
                     <table class="table table-sm align-middle mb-0">
                         <thead class="table-light">
                             <tr>
+                                <th>Nº</th>
                                 <th>Data / Horário</th>
                                 <th>Arena</th>
                                 <th>Quadra</th>
@@ -84,6 +85,7 @@
                         <tbody>
                             @forelse ($reservas as $r)
                                 <tr>
+                                    <td class="fw-semibold text-nowrap">#{{ $r->numeroDoCliente() }}</td>
                                     <td class="text-nowrap">
                                         {{ $r->date->format('d/m/Y') }}
                                         {{ substr($r->start_time, 0, 5) }}–{{ substr($r->end_time, 0, 5) }}
@@ -106,7 +108,7 @@
                                     <td class="text-end">R$ {{ number_format($r->total_amount, 2, ',', '.') }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="text-center text-muted py-3">Nenhuma reserva.</td></tr>
+                                <tr><td colspan="6" class="text-center text-muted py-3">Nenhuma reserva.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

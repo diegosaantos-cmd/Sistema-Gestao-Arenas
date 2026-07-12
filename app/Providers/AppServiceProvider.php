@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
+use Illuminate\Pagination\Paginator;
 use App\Models\UserNotification;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,6 +18,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+
+        // O app é Bootstrap 5; sem isto o ->links() usa o tema Tailwind padrão do
+        // Laravel e a paginação (anterior/próximo) sai sem estilo, "bugada".
+        Paginator::useBootstrapFive();
 
         // Datas (meses, dias) em português: translatedFormat usa o locale do Carbon.
         \Carbon\Carbon::setLocale('pt_BR');

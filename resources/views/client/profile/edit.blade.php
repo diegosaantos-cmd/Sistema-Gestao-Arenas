@@ -6,9 +6,7 @@
 
 <div class="dashboard-container container-fluid py-4">
     <div class="mb-3">
-        <a href="{{ route('dashboard') }}" class="btn btn-dark btn-sm">
-            ← Voltar ao painel
-        </a>
+        <x-back :href="route('dashboard')" class="mb-0" />
     </div>
 
     <div class="mb-4">

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('admin.dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">Sugestões e bugs</h1>
@@ -37,8 +37,8 @@
     </form>
 
     <div class="dashboard-box p-0 overflow-hidden">
-        <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0 small">
+        <div class="table-responsive" style="padding-bottom: 18px;">
+            <table class="table table-sm table-hover align-middle mb-0 small" style="min-width: 940px;">
                 <thead class="table-light">
                     <tr>
                         <th class="ps-3">Usuário</th>
@@ -59,7 +59,9 @@
                                 </span>
                             </td>
                             <td class="fw-semibold">{{ $f->assunto }}</td>
-                            <td class="text-break" style="max-width: 340px;">{{ $f->mensagem }}</td>
+                            <td>
+                                <div style="width: 300px; overflow-wrap: anywhere; word-break: break-all; white-space: normal;">{{ $f->mensagem }}</div>
+                            </td>
                             <td class="text-nowrap">{{ $f->created_at->format('d/m/Y H:i') }}</td>
                             <td class="pe-3">
                                 <form method="POST" action="{{ route('admin.feedbacks.status', $f) }}" class="d-flex gap-1">

@@ -7,8 +7,8 @@ use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\Client;
 use App\Models\Court;
-use App\Models\Owner;
 use App\Services\CourtScheduleService;
+use App\Support\ArenaAtual;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -31,15 +31,8 @@ class PresencialBookingController extends Controller
      */
     private function arenaAtual(): Arena
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        abort_unless($owner, 403, 'Apenas proprietários podem registrar reservas.');
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
-
-        abort_unless($arena, 404, 'Nenhuma arena selecionada.');
-
-        return $arena;
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        return ArenaAtual::obter();
     }
 
     /**

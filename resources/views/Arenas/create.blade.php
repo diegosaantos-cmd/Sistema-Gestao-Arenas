@@ -81,7 +81,7 @@
                 @include('arenas.partials.cancellation-fee')
 
                 <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
-                    <a href="{{ route('arenas.index') }}" class="btn btn-secondary">
+                    <a href="{{ route('owners.dashboard') }}" class="btn btn-secondary">
                         Cancelar
                     </a>
 

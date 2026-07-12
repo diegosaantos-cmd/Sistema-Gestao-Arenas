@@ -11,8 +11,37 @@ use App\Models\Court;
 use App\Models\Owner;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Support\ArenaAtual;
+
 class ArenaController extends Controller
 {
+    /**
+     * A arena que o usuário pode EDITAR agora, identificada por $id.
+     *
+     * O dono edita qualquer arena dele (pela lista de arenas); o gerente edita
+     * só a arena à qual pertence. Desativar/excluir a arena NÃO passam por aqui
+     * — continuam exclusivos do dono. Ver App\Support\ArenaAtual.
+     */
+    private function arenaEditavel(string $id): Arena
+    {
+        if (ArenaAtual::ehDono()) {
+            $owner = Owner::where('user_id', auth()->id())->first();
+            $arena = $owner?->arenas()->find($id);
+            abort_unless($arena, 404);
+
+            return $arena;
+        }
+
+        if (ArenaAtual::ehGerente()) {
+            $arena = ArenaAtual::obter();
+            abort_unless((string) $arena->id === (string) $id, 404);
+
+            return $arena;
+        }
+
+        abort(403);
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -133,18 +162,9 @@ class ArenaController extends Controller
     
     public function show($id)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        // Só o dono vê os dados da própria arena.
-        $arena = $owner
-            ? $owner->arenas()
-                ->with(['courts.sports', 'businessHours', 'paymentMethods'])
-                ->find($id)
-            : null;
-
-        if (! $arena) {
-            abort(404);
-        }
+        // Dono (qualquer arena dele) ou gerente (a arena dele). Ver arenaEditavel.
+        $arena = $this->arenaEditavel($id)
+            ->load(['courts.sports', 'businessHours', 'paymentMethods']);
 
         // Todas as formas de pagamento disponíveis (para o formulário de edição).
         $todasFormasPagamento = PaymentMethod::where('active', true)->get();
@@ -183,12 +203,7 @@ class ArenaController extends Controller
      */
     public function updatePayments(Request $request, string $id)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $owner ? $owner->arenas()->find($id) : null;
-
-        if (! $arena) {
-            abort(404);
-        }
+        $arena = $this->arenaEditavel($id);
 
         $validated = $request->validate([
             'pagamentos' => ['required', 'array', 'min:1'],
@@ -210,12 +225,7 @@ class ArenaController extends Controller
      */
     public function updateName(Request $request, string $id)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $owner ? $owner->arenas()->find($id) : null;
-
-        if (! $arena) {
-            abort(404);
-        }
+        $arena = $this->arenaEditavel($id);
 
         $request->merge([
             'nome' => self::normalizarTexto($request->input('nome')),
@@ -345,12 +355,7 @@ class ArenaController extends Controller
      */
     public function updateCancellationFee(Request $request, string $id)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $owner ? $owner->arenas()->find($id) : null;
-
-        if (! $arena) {
-            abort(404);
-        }
+        $arena = $this->arenaEditavel($id);
 
         $arena->update(self::dadosTaxaCancelamento($request));
 
@@ -433,12 +438,7 @@ class ArenaController extends Controller
      */
     public function updateContact(Request $request, string $id)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $owner ? $owner->arenas()->find($id) : null;
-
-        if (! $arena) {
-            abort(404);
-        }
+        $arena = $this->arenaEditavel($id);
 
         $request->merge([
             'email_contato' => self::normalizarEmail($request->input('email_contato')),
@@ -480,12 +480,7 @@ class ArenaController extends Controller
      */
     public function updateBusinessHours(Request $request, string $id)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $owner ? $owner->arenas()->find($id) : null;
-
-        if (! $arena) {
-            abort(404);
-        }
+        $arena = $this->arenaEditavel($id);
 
         $request->validate([
             'horarios' => ['required', 'array', function ($attribute, $value, $fail) {
@@ -537,12 +532,7 @@ class ArenaController extends Controller
      */
     public function confirmBusinessHours(Request $request, string $id)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $owner ? $owner->arenas()->find($id) : null;
-
-        if (! $arena) {
-            abort(404);
-        }
+        $arena = $this->arenaEditavel($id);
 
         $horarios = $request->input('horarios', []);
         $motivo = trim((string) $request->input('motivo'));

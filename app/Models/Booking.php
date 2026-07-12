@@ -446,4 +446,46 @@ class Booking extends Model
             $sentBy
         );
     }
+
+    /**
+     * Avisa o staff da arena (dono + gerentes) de que o cliente criou uma
+     * reserva e ela está aguardando confirmação.
+     */
+    public function notificarStaffNovaReserva(): void
+    {
+        $this->loadMissing('court.arena', 'client.user');
+        $arena = $this->court?->arena;
+
+        if (! $arena) {
+            return;
+        }
+
+        UserNotification::paraStaffDaArena(
+            $arena,
+            'Nova reserva pendente',
+            'Nova reserva aguardando confirmação: ' . $this->descricaoCurta()
+                . ' (cliente: ' . $this->nomeCliente() . ').'
+        );
+    }
+
+    /**
+     * Avisa o staff da arena de que o PRÓPRIO cliente cancelou a reserva.
+     */
+    public function notificarStaffCanceladaPeloCliente(?string $motivo = null): void
+    {
+        $this->loadMissing('court.arena', 'client.user');
+        $arena = $this->court?->arena;
+
+        if (! $arena) {
+            return;
+        }
+
+        $texto = 'O cliente ' . $this->nomeCliente() . ' cancelou a reserva: '
+            . $this->descricaoCurta() . '.';
+        if ($motivo) {
+            $texto .= ' Motivo: ' . $motivo;
+        }
+
+        UserNotification::paraStaffDaArena($arena, 'Reserva cancelada pelo cliente', $texto);
+    }
 }

@@ -305,6 +305,8 @@ class BookingController extends Controller
             'cancellation_fee_amount' => null,
         ]);
 
+        $booking->notificarStaffCanceladaPeloCliente($validated['motivo']);
+
         return back()->with('status', 'Reserva cancelada. Sem taxa.');
     }
 
@@ -384,6 +386,8 @@ class BookingController extends Controller
                 'Taxa de cancelamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label
             );
         });
+
+        $booking->notificarStaffCanceladaPeloCliente($validated['motivo']);
 
         return redirect()->route('client.bookings.index')->with('status',
             'Reserva cancelada. Taxa de R$ ' . number_format($taxa, 2, ',', '.') . ' paga. ✅');
@@ -505,7 +509,7 @@ class BookingController extends Controller
 
         try {
             // Tudo ou nada: ou todas as reservas são criadas, ou nenhuma.
-            DB::transaction(function () use ($horarios, $validated, $arena, $court, $client, $user) {
+            $reservas = DB::transaction(function () use ($horarios, $validated, $arena, $court, $client, $user) {
                 // Serializa pedidos concorrentes para a MESMA quadra: sem isso, duas
                 // requisições simultâneas passariam pela checagem e criariam a mesma reserva.
                 Court::whereKey($court->id)->lockForUpdate()->first();
@@ -531,10 +535,11 @@ class BookingController extends Controller
 
                 // 2) Só então cria. A forma de pagamento NÃO é escolhida aqui — o
                 // cliente escolhe ao pagar, depois de a reserva ser confirmada.
+                $criadas = [];
                 foreach ($horarios as $horario) {
                     [$startTime, $endTime] = explode('-', $horario);
 
-                    Booking::create([
+                    $criadas[] = Booking::create([
                         'court_id' => $court->id,
                         'client_id' => $client->id,
                         'date' => $validated['date'],
@@ -546,6 +551,8 @@ class BookingController extends Controller
                             . ' | Telefone: ' . ($user->phone ?: '—'),
                     ]);
                 }
+
+                return $criadas;
             });
         } catch (\RuntimeException $e) {
             if ($e->getMessage() !== 'slot-indisponivel') {
@@ -555,6 +562,11 @@ class BookingController extends Controller
             return back()
                 ->withErrors(['horarios' => 'Um dos horários selecionados não está mais disponível. Escolha outro.'])
                 ->withInput();
+        }
+
+        // Avisa o staff da arena (dono + gerentes) de cada reserva pendente.
+        foreach ($reservas as $reserva) {
+            $reserva->notificarStaffNovaReserva();
         }
 
         return redirect()->route('client.bookings.success');

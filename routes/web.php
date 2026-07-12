@@ -18,6 +18,7 @@ use App\Http\Controllers\OwnersController;
 use App\Http\Controllers\RegisterArenaOwnerController;
 use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\Owner\ProfileController as OwnerProfileController;
+use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
 use App\Http\Controllers\Owner\CashRegisterController;
 use App\Http\Controllers\Owner\PresencialBookingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -112,6 +113,14 @@ Route::middleware([
 
         return view('employees.dashboard', compact('employee', 'arena', 'hoje', 'semana', 'pendentes'));
     })->name('employees.dashboard');
+
+    // "Minha Conta" do funcionário (dados pessoais + senha).
+    Route::get('/funcionario/perfil', [EmployeeProfileController::class, 'edit'])
+        ->name('employee.profile.edit');
+    Route::patch('/funcionario/perfil/pessoais', [EmployeeProfileController::class, 'updatePersonal'])
+        ->name('employee.profile.personal');
+    Route::put('/funcionario/perfil/senha', [EmployeeProfileController::class, 'updatePassword'])
+        ->name('employee.profile.password');
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
@@ -223,28 +232,54 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/owners/dashboard', function () {
-        $owner = \App\Models\Owner::where('user_id', auth()->id())->first();
+        // O painel é reaproveitado pelo gerente (ver App\Support\ArenaAtual):
+        //   - DONO: escolhe/troca entre as arenas dele.
+        //   - GERENTE: arena fixa, sem escolher nem trocar.
+        $ehGerente = \App\Support\ArenaAtual::ehGerente();
+        $ehDono    = \App\Support\ArenaAtual::ehDono();
 
-        $arenas = $owner ? $owner->arenas()->orderBy('name')->get() : collect();
+        // Só dono ou gerente entram aqui.
+        if (! $ehDono && ! $ehGerente) {
+            return redirect()->route('dashboard');
+        }
+
+        if ($ehGerente) {
+            $owner = null;
+            $selectedArena = \App\Support\ArenaAtual::tentar();
+
+            if (! $selectedArena) {
+                return redirect()->route('employees.dashboard');
+            }
+
+            session(['selected_arena_id' => $selectedArena->id]);
+            $arenas = collect([$selectedArena]);
+        } else {
+            $owner = \App\Models\Owner::where('user_id', auth()->id())->first();
+
+            $arenas = $owner ? $owner->arenas()->orderBy('name')->get() : collect();
+
+            // Arena que ele está gerenciando agora (guardada na sessão).
+            $selectedArena = $arenas->firstWhere('id', session('selected_arena_id'));
+
+            // Tem mais de uma e ainda não escolheu -> pergunta em qual entrar.
+            if (! $selectedArena && $arenas->count() > 1) {
+                return redirect()->route('owners.arena.choose');
+            }
+
+            // Só tem uma -> entra direto nela.
+            if (! $selectedArena && $arenas->count() === 1) {
+                $selectedArena = $arenas->first();
+            }
+
+            if ($selectedArena) {
+                session(['selected_arena_id' => $selectedArena->id]);
+            }
+        }
+
         $arenasCount = $arenas->count();
         $arenasActive = $arenas->where('active', true)->count();
 
-        // Arena que ele está gerenciando agora (guardada na sessão).
-        $selectedArena = $arenas->firstWhere('id', session('selected_arena_id'));
-
-        // Tem mais de uma e ainda não escolheu -> pergunta em qual entrar.
-        if (! $selectedArena && $arenasCount > 1) {
-            return redirect()->route('owners.arena.choose');
-        }
-
-        // Só tem uma -> entra direto nela.
-        if (! $selectedArena && $arenasCount === 1) {
-            $selectedArena = $arenas->first();
-        }
-
         if ($selectedArena) {
-            session(['selected_arena_id' => $selectedArena->id]);
-
             // Confirma automaticamente as reservas pendentes cujo prazo expirou
             // e marca como realizadas as confirmadas que já terminaram.
             $idsQuadras = $selectedArena->courts()->pluck('id')->all();
@@ -328,7 +363,7 @@ Route::middleware(['auth'])->group(function () {
         $mesAtualLabel = $nomesMes[(int) now()->month] . '/' . now()->year;
 
         return view('owners.dashboard', compact(
-            'owner', 'arenas', 'arenasCount', 'arenasActive', 'selectedArena',
+            'owner', 'ehGerente', 'arenas', 'arenasCount', 'arenasActive', 'selectedArena',
             'courtsCount', 'courtsActive', 'customersCount', 'agendamentosHoje',
             'employeesCount', 'employeesActive', 'proximosAgendamentos', 'proximosCount',
             'pendentesCount', 'lucroMes', 'entradasMes', 'saidasMes', 'mesAtualLabel'
@@ -477,8 +512,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/client/arenas/{arena}/favoritar', [ClientFavoriteController::class, 'toggle'])
         ->name('client.arenas.favoritar');
 
+    // Ver os detalhes de uma arena é PÚBLICO: o visitante olha a arena antes de
+    // criar conta. Fica aqui (depois de "favoritas") para a ordem das rotas não
+    // capturar "favoritas" como {arena}; o withoutMiddleware libera o visitante.
     Route::get('/client/arenas/{arena}', [ClientArenaController::class, 'show'])
-        ->name('client.arenas.show');
+        ->name('client.arenas.show')
+        ->withoutMiddleware(['auth']);
 
     // Reservar uma quadra.
     Route::get('/client/arenas/{arena}/quadras/{court}/reservar', [ClientBookingController::class, 'create'])

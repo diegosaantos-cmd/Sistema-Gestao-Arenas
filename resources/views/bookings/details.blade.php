@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ url()->previous() }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar
-    </a>
+    <x-back :href="url()->previous()" />
 
     @php
         $statusInfo = [

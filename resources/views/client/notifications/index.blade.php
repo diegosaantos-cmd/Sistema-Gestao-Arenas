@@ -6,9 +6,7 @@
 
 <div class="container py-4" style="max-width: 800px;">
 
-    <a href="{{ url('/dashboard') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar
-    </a>
+    <x-back :href="url('/dashboard')" />
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <h1 class="fw-bold mb-0">Notificações</h1>

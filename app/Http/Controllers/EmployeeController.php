@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
-use App\Models\Owner;
 use App\Models\User;
+use App\Support\ArenaAtual;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -14,13 +14,8 @@ class EmployeeController extends Controller
 {
     public function index()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem ver os funcionários.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -36,12 +31,7 @@ class EmployeeController extends Controller
      */
     public function toggleActive(Employee $employee)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        // Garante que o funcionário é de uma arena deste proprietário.
-        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardEmployee($employee);
 
         $employee->update(['active' => ! $employee->active]);
 
@@ -55,13 +45,8 @@ class EmployeeController extends Controller
      */
     public function create()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem cadastrar funcionários.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -80,13 +65,8 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem cadastrar funcionários.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -109,7 +89,8 @@ class EmployeeController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
             'position' => ['required', 'string', 'max:80'],
-            'access_level' => ['required', Rule::in(['basic', 'managerial'])],
+            // O gerente só cadastra atendente (basic); nunca outro gerente.
+            'access_level' => ['required', Rule::in($this->niveisPermitidos())],
         ], [
             'email.unique' => 'Já existe um usuário com esse e-mail.',
             'password.confirmed' => 'A confirmação da senha não confere.',
@@ -149,11 +130,7 @@ class EmployeeController extends Controller
      */
     public function edit(Employee $employee)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardEmployee($employee);
 
         $employee->load('user');
 
@@ -169,11 +146,7 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, Employee $employee)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardEmployee($employee);
 
         $request->merge([
             'name' => ArenaController::normalizarTexto($request->input('name')),
@@ -187,7 +160,8 @@ class EmployeeController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['nullable', 'string', 'confirmed', 'min:8'],
             'position' => ['required', 'string', 'max:80'],
-            'access_level' => ['required', Rule::in(['basic', 'managerial'])],
+            // O gerente não promove ninguém a gerente.
+            'access_level' => ['required', Rule::in($this->niveisPermitidos())],
         ], [
             'email.unique' => 'Já existe um usuário com esse e-mail.',
             'password.confirmed' => 'A confirmação da senha não confere.',
@@ -225,11 +199,7 @@ class EmployeeController extends Controller
      */
     public function destroy(Employee $employee)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner || ! $owner->arenas()->whereKey($employee->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardEmployee($employee);
 
         DB::transaction(function () use ($employee) {
             $employee->user?->delete(); // soft delete do usuário (login)
@@ -238,5 +208,30 @@ class EmployeeController extends Controller
 
         return redirect()->route('employees.index')
             ->with('msg', 'Funcionário excluído. O histórico de agendamentos foi preservado.');
+    }
+
+    /**
+     * Níveis de acesso que o usuário atual pode atribuir a um funcionário.
+     * O gerente só cadastra/edita atendente (basic); o dono, ambos.
+     */
+    private function niveisPermitidos(): array
+    {
+        return ArenaAtual::ehGerente() ? ['basic'] : ['basic', 'managerial'];
+    }
+
+    /**
+     * Garante que o funcionário é da arena que o usuário gerencia agora e que
+     * ele tem permissão para mexer nesse funcionário. O gerente só administra
+     * atendentes — quem gerencia gerentes é o dono.
+     */
+    private function guardEmployee(Employee $employee): void
+    {
+        $arena = ArenaAtual::obter();
+
+        abort_unless($employee->arena_id === $arena->id, 403);
+
+        if (ArenaAtual::ehGerente() && $employee->access_level === 'managerial') {
+            abort(403, 'Gerentes só podem administrar atendentes.');
+        }
     }
 }

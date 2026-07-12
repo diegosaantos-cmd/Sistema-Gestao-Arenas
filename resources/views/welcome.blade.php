@@ -85,9 +85,7 @@
             <div class="col-6 col-lg-3 mb-4">
                 @include('client.arenas._gallery-card', [
                     'favoritasIds' => $favoritasIds ?? [],
-                    'arenaUrl' => auth()->check()
-                        ? route('client.arenas.show', $arena)
-                        : route('login'),
+                    'arenaUrl' => route('client.arenas.show', [$arena, 'origem' => 'inicio']),
                     'botaoTexto' => 'Ver arena',
                 ])
             </div>

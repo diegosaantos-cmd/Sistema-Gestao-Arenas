@@ -6,9 +6,7 @@
 
 <div class="dashboard-container container-fluid py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <a href="{{ route('admin.owners.index') }}" class="btn btn-dark btn-sm">
-            ← Voltar às empresas
-        </a>
+        <x-back :href="route('admin.owners.index')" class="mb-0" />
         <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
             @if ($owner->active)
                 <button type="button" class="btn btn-warning btn-sm"

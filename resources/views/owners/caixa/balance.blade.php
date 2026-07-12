@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('owners.dashboard') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar ao painel
-    </a>
+    <x-back :href="route('owners.dashboard')" />
 
     <h1 class="fw-bold mb-1">Balanço financeiro</h1>
     <p class="text-muted">Total gerado pela arena <strong>{{ $arena->name }}</strong> (todo o período).</p>

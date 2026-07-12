@@ -1,9 +1,15 @@
+@php
+    // Número da reserva na sequência da arena ([id => nº]) — uma query só,
+    // em vez de contar por linha. $arena vem do escopo de quem inclui o partial.
+    $numerosArena = \App\Models\Booking::numerosNaArena($arena->id);
+@endphp
 <div class="dashboard-box p-0 overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0 admin-sticky-table">
             <thead class="table-light sticky-top">
                 <tr>
-                    <th class="ps-3">Data / horário</th>
+                    <th class="ps-3">Nº</th>
+                    <th>Data / horário</th>
                     <th>Quadra</th>
                     <th>Cliente</th>
                     <th>Status</th>
@@ -28,7 +34,8 @@
                         };
                     @endphp
                     <tr>
-                        <td class="ps-3 text-nowrap">
+                        <td class="ps-3 fw-semibold text-nowrap">#{{ $numerosArena[$reserva->id] ?? $reserva->id }}</td>
+                        <td class="text-nowrap">
                             <strong>{{ $reserva->date?->format('d/m/Y') }}</strong>
                             <div class="small text-muted">
                                 {{ substr($reserva->start_time, 0, 5) }}–{{ substr($reserva->end_time, 0, 5) }}
@@ -72,7 +79,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-5">
+                        <td colspan="8" class="text-center text-muted py-5">
                             Nenhuma reserva encontrada.
                         </td>
                     </tr>

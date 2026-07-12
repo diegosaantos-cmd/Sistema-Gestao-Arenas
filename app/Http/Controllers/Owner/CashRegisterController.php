@@ -7,9 +7,9 @@ use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\CashRegister;
 use App\Models\CashRegisterEntry;
-use App\Models\Owner;
 use App\Models\Payment;
 use App\Services\PaymentService;
+use App\Support\ArenaAtual;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -637,7 +637,7 @@ class CashRegisterController extends Controller
      */
     public function showEntry(CashRegisterEntry $entry)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
+        $arena = ArenaAtual::obter();
 
         $entry->load([
             'cashRegister.arena',
@@ -648,10 +648,8 @@ class CashRegisterController extends Controller
             'booking.payments.paymentMethod',
         ]);
 
-        $arenaId = $entry->cashRegister?->arena_id;
-        if (! $owner || ! $arenaId || ! $owner->arenas()->whereKey($arenaId)->exists()) {
-            abort(403);
-        }
+        // O lançamento tem de ser da arena que o usuário gerencia agora.
+        abort_unless($entry->cashRegister?->arena_id === $arena->id, 403);
 
         // Pagamento vinculado a esta entrada (quando é lançamento de reserva).
         $pagamento = $entry->booking
@@ -727,10 +725,8 @@ class CashRegisterController extends Controller
      */
     private function arena(): Arena
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $owner?->arenas()->find(session('selected_arena_id'));
-
-        abort_unless($arena, 403, 'Selecione uma arena para gerenciar o caixa.');
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::obter();
 
         $arena->load('paymentMethods');
 

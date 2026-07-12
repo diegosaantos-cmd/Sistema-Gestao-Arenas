@@ -4,16 +4,12 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
     @if (request('from') === 'arena')
-        <a href="{{ route('arenas.show', $arena->id) }}" class="btn btn-dark btn-sm mb-3">
-            ← Voltar para a arena
-        </a>
+        <x-back :href="route('arenas.show', $arena->id)" />
     @else
-        <a href="{{ route('owners.dashboard') }}" class="btn btn-dark btn-sm mb-3">
-            ← Voltar ao painel
-        </a>
+        <x-back :href="route('owners.dashboard')" />
     @endif
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">

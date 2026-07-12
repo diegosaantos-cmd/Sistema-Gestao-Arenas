@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('quadras.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar (não desativar)
-    </a>
+    <x-back :href="route('quadras.index')" />
 
     <h1 class="fw-bold mb-1">Desativar quadra — {{ $quadra->name }}</h1>
     <p class="text-muted">Arena: <strong>{{ $arena->name }}</strong></p>

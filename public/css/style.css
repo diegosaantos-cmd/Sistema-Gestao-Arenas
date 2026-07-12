@@ -461,6 +461,45 @@ main img{ max-width: 100%; height: auto; }
     font-size: 1.1rem;
 }
 
+/* ===== Setas do carrossel da tela inicial =====
+   A seta do Bootstrap é branca e some em foto clara. Damos um fundo circular
+   escuro atrás dela (visível em qualquer foto) e destacamos ao passar o mouse. */
+#carouselExample .carousel-control-prev,
+#carouselExample .carousel-control-next{
+    width: 8%;
+    opacity: 1;               /* padrão do Bootstrap é 0.5 (apagado) */
+}
+
+#carouselExample .carousel-control-prev-icon,
+#carouselExample .carousel-control-next-icon{
+    width: 2.6rem;
+    height: 2.6rem;
+    background-color: rgba(2, 27, 53, .85);   /* azul-marinho quase sólido: some em nenhuma foto */
+    border-radius: 50%;
+    background-size: 45% 45%;                  /* a seta menor, centralizada */
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .35);  /* separa o botão da foto atrás */
+    transition: background-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+
+/* Destaque ao aproximar o mouse: fica sólido, maior e com brilho. */
+#carouselExample .carousel-control-prev:hover .carousel-control-prev-icon,
+#carouselExample .carousel-control-next:hover .carousel-control-next-icon,
+#carouselExample .carousel-control-prev:focus .carousel-control-prev-icon,
+#carouselExample .carousel-control-next:focus .carousel-control-next-icon{
+    background-color: rgba(2, 27, 53, .95);
+    transform: scale(1.12);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, .35);
+}
+
+@media (max-width: 575.98px){
+    #carouselExample .carousel-control-prev-icon,
+    #carouselExample .carousel-control-next-icon{
+        width: 2rem;
+        height: 2rem;
+    }
+}
+
 /* ===== Indicador de etapas (cadastro de arena) ===== */
 .wz-passos{
     display: flex;
@@ -527,4 +566,127 @@ main img{ max-width: 100%; height: auto; }
     .slide-legenda{ padding: .5rem .8rem; border-radius: .5rem; }
     .slide-legenda h1{ font-size: 1.15rem; }
     .slide-legenda p{ font-size: .8rem; }
+}
+
+/* ===== Painéis de gestão (dono e funcionário gerente/atendente) =====
+   Ao contrário do painel do cliente (que usa classes próprias já responsivas),
+   estas telas usam utilitários crus do Bootstrap (h1, fs-4/fs-5, números em
+   <h1>, btn-lg) que NÃO encolhem no celular — o texto e os botões ficavam
+   grandes demais. Aqui a tipografia vira fluida com clamp(): mesmo tamanho no
+   desktop, encolhe suave no mobile. Tudo escopado a .painel, sem afetar o
+   resto do site. */
+/* Títulos grandes encolhem no mobile. Uso :where() (especificidade ZERO) de
+   propósito: um <h1 class="h3"> (título já intencionalmente menor) mantém o
+   tamanho da utilitária .h3 — esta regra encolhe só o <h1> "cru". */
+:where(.painel) h1{
+    font-size: clamp(1.5rem, 1rem + 2.2vw, 2.5rem);
+}
+:where(.painel) h2{
+    font-size: clamp(1.3rem, 1rem + 1.6vw, 2rem);
+}
+.painel .fs-4{
+    font-size: clamp(1rem, .9rem + .7vw, 1.5rem) !important;
+}
+.painel .fs-5{
+    font-size: clamp(.95rem, .9rem + .5vw, 1.25rem) !important;
+}
+
+/* Valores longos nos cards (ex.: o R$ do "Lucro do mês") quebram sem estourar. */
+:where(.painel) .card-body h1,
+:where(.painel) .card-body h2{
+    overflow-wrap: anywhere;
+}
+
+/* O rótulo "Painel do ..." ao lado do nome fica sempre pequeno (não acompanha
+   o tamanho do título) e pode quebrar linha numa tela estreita. */
+.painel h1 .badge{
+    font-size: clamp(.7rem, .6rem + .3vw, .85rem) !important;
+    white-space: normal;
+    vertical-align: middle;
+}
+
+/* Botões grandes ("Ações Rápidas") ficam proporcionais no celular. */
+@media (max-width: 575.98px){
+    .painel .btn-lg{
+        padding: .55rem .9rem;
+        font-size: 1rem;
+    }
+}
+
+/* ===== Área admin: cards e ações responsivos =====
+   As telas do admin usam <h4> (rótulo) e <h1> (número) crus nos cards e btn-lg
+   nas ações rápidas — não encolhiam no notebook/celular ("EmpresasVisualizar"
+   colado, texto estourando). Tipografia fluida (clamp: igual no desktop,
+   encolhe no mobile), escopada a .dashboard-container .card-body para não mexer
+   nos cards do painel do cliente (que usam .dashboard-card). */
+.dashboard-container .card-body h4{
+    /* !important p/ vencer o RFS do Bootstrap (.h4,h4 { calc(1.275rem+.3vw) }). */
+    font-size: clamp(.9rem, .75rem + .55vw, 1.25rem) !important;
+    overflow-wrap: anywhere;
+}
+/* Garantia final: nada (nem o "Visualizar") aparece fora do card, em nenhuma
+   largura. Combinado com o flex-wrap do cabeçalho, o conteúdo nunca "estoura". */
+.dashboard-container .card{
+    overflow: hidden;
+}
+.dashboard-container .card-body h1{
+    font-size: clamp(1.5rem, 1rem + 2vw, 2.5rem) !important;
+    overflow-wrap: anywhere;
+}
+/* Cabeçalho do card (rótulo + "Visualizar"): separa os dois e, quando o rótulo
+   é longo e não cabe, o "Visualizar" quebra para a linha de baixo em vez de
+   vazar para fora do card. */
+.dashboard-container .card-body > .d-flex.justify-content-between{
+    flex-wrap: wrap;
+    gap: .1rem .5rem;
+}
+/* o rótulo pode encolher até o necessário; o "Visualizar" não parte no meio */
+.dashboard-container .card-body > .d-flex.justify-content-between > h4{
+    min-width: 0;
+    margin-bottom: 0;
+}
+.dashboard-container .card-body > .d-flex.justify-content-between > .small{
+    white-space: nowrap;
+}
+/* botões grandes (ações rápidas) proporcionais no celular */
+@media (max-width: 575.98px){
+    .dashboard-container .btn-lg{
+        font-size: .95rem;
+        padding: .5rem .7rem;
+    }
+}
+
+/* ===== Lista de seleção de cliente (registrar reserva no balcão) =====
+   Substitui o <select size> nativo, que truncava "nome — email" e tinha
+   realce confuso no celular. Agora é rolável, com UM cliente por vez (rádio)
+   e destaque claro do selecionado. */
+.cliente-lista{
+    max-height: 260px;
+    overflow-y: auto;
+}
+.cliente-opcao{
+    cursor: pointer;
+    margin: 0;
+}
+.cliente-opcao:last-child{
+    border-bottom: 0 !important;
+}
+.cliente-opcao:hover{
+    background: #f1f3f5;
+}
+/* :has() destaca a linha do rádio marcado (suporte amplo nos navegadores atuais). */
+.cliente-opcao:has(input:checked){
+    background: #e7f1ff;
+}
+
+/* ===== Card de arena (tela inicial e listagens) =====
+   O card já é responsivo no layout (2 por linha no celular), mas o texto e o
+   botão internos herdavam tamanhos "de desktop" (nome em h5, botão 1.1rem com
+   padding 16px) e ficavam grandes demais no card estreito do mobile. Aqui só
+   encolhe o CONTEÚDO em telas pequenas; o layout não muda. */
+@media (max-width: 575.98px){
+    .arena-card .card-body{ padding: .85rem; }
+    .arena-card .card-body h3{ font-size: 1rem; overflow-wrap: anywhere; }
+    .arena-card .card-body p{ font-size: .78rem; }
+    .arena-card .dashboard-btn-primary{ padding: 10px; font-size: .9rem; }
 }

@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('caixa.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar ao caixa
-    </a>
+    <x-back :href="route('caixa.index')" />
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
         <h1 class="fw-bold mb-0">Lançamentos</h1>

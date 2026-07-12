@@ -6,9 +6,7 @@
 
 <div class="container py-4">
 
-    <a href="{{ route('arenas.show', $arena->id) }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar (não alterar)
-    </a>
+    <x-back :href="route('arenas.show', $arena->id)" />
 
     <h1 class="fw-bold mb-3">Confirmar mudança de horários — {{ $arena->name }}</h1>
 

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('admin.dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">Funcionários cadastrados nas arenas</h1>
@@ -27,17 +27,17 @@
     </div>
 
     <div class="dashboard-box p-0 overflow-hidden system-employees-box">
-        <div class="table-responsive system-employees-container" style="max-height: 72vh; overflow-y: auto;">
+        <div class="table-responsive system-employees-container" style="max-height: 72vh; overflow-y: auto; padding-bottom: 18px;">
             <table class="table table-sm table-hover align-middle mb-0 small system-employees-table admin-sticky-table"
-                   style="table-layout: fixed; width: 100%;">
+                   style="min-width: 1000px;">
                 <thead class="table-light sticky-top">
                     <tr>
-                        <th class="ps-3" style="width: 18%;">Funcionário</th>
-                        <th style="width: 14%;">Cargo</th>
-                        <th class="employee-secondary-column" style="width: 16%;">Arena</th>
-                        <th class="employee-secondary-column" style="width: 16%;">Empresa</th>
-                        <th style="width: 12%;">Situação</th>
-                        <th class="text-end pe-3" style="width: 24%;">Ações</th>
+                        <th class="ps-3">Funcionário</th>
+                        <th>Cargo</th>
+                        <th>Arena</th>
+                        <th>Empresa</th>
+                        <th>Situação</th>
+                        <th class="text-end pe-3">Ações</th>
                     </tr>
                 </thead>
                 <tbody data-employees-body>
@@ -62,9 +62,9 @@
                                 </span>
                             </td>
                             <td class="text-end pe-3 employee-main-actions">
-                                <div class="d-none d-md-flex gap-1 justify-content-end">
+                                <div class="d-flex flex-wrap gap-1 justify-content-end">
                                     @if ($funcionario->user)
-                                        <a href="{{ route('admin.users.show', $funcionario->user) }}" class="btn btn-primary btn-sm">Ver detalhes</a>
+                                        <a href="{{ route('admin.users.show', $funcionario->user) }}" class="btn btn-primary btn-sm">Detalhes</a>
                                     @endif
 
                                     @if ($funcionario->user)
@@ -103,11 +103,6 @@
                                         </form>
                                     @endif
                                 </div>
-
-                                @if ($funcionario->user)
-                                    <a href="{{ route('admin.users.show', $funcionario->user) }}"
-                                       class="btn btn-primary btn-sm d-md-none px-2 py-1 text-nowrap">Ver detalhes</a>
-                                @endif
                             </td>
                         </tr>
 
@@ -262,61 +257,16 @@
 
 <style>
     @media (max-width: 767.98px) {
+        /* Mostra TODAS as colunas e rola na horizontal (nada escondido); a
+           página rola na vertical. Cabeçalho não-fixo no celular (dentro do
+           scroller ele flutuaria sobre as linhas). */
         .system-employees-container {
             max-height: none !important;
-            overflow: visible !important;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
         }
-
-        .system-employees-box {
-            overflow: visible !important;
-        }
-
         .system-employees-table thead th {
-            top: 70px;
-        }
-
-        .system-employees-table {
-            table-layout: fixed !important;
-            font-size: .72rem;
-        }
-
-        .system-employees-table .employee-secondary-column {
-            display: none;
-        }
-
-        .system-employees-table th,
-        .system-employees-table td {
-            padding: .55rem .25rem !important;
-            vertical-align: middle;
-        }
-
-        .system-employees-table th:nth-child(1),
-        .system-employees-table td:nth-child(1) {
-            width: 34% !important;
-        }
-
-        .system-employees-table th:nth-child(2),
-        .system-employees-table td:nth-child(2) {
-            width: 23% !important;
-        }
-
-        .system-employees-table th:nth-child(5),
-        .system-employees-table td:nth-child(5) {
-            width: 18% !important;
-        }
-
-        .system-employees-table th:nth-child(6),
-        .system-employees-table td:nth-child(6) {
-            width: 25% !important;
-        }
-
-        .system-employees-table .employee-main-actions .btn {
-            font-size: .67rem;
-            padding: .3rem .15rem;
-        }
-
-        .system-employees-table .employee-mobile-details-row td {
-            padding: .85rem !important;
+            position: static !important;
         }
     }
 

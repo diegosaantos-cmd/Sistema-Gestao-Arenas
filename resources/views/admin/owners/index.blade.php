@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('admin.dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">Empresas / Proprietários</h1>
@@ -27,7 +27,7 @@
 
     <div class="row g-4">
         @forelse ($proprietarios as $proprietario)
-            <div class="col-6 col-lg-3 owner-card-shell"
+            <div class="col-12 col-sm-6 col-lg-3 owner-card-shell"
                  data-owner-card
                  data-owner-search="{{ $proprietario->company_name }} {{ $proprietario->user?->name }} {{ $proprietario->tax_id }} {{ $proprietario->user?->email }} {{ $proprietario->user?->phone }}">
                 <div class="dashboard-box p-3 d-flex flex-column h-100 owner-system-card">
@@ -52,7 +52,7 @@
                             Ver detalhes
                         </a>
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex flex-wrap gap-2">
                             @if ($proprietario->active)
                                 <form method="POST" action="{{ route('admin.owners.deactivate', $proprietario) }}"
                                       class="flex-fill"

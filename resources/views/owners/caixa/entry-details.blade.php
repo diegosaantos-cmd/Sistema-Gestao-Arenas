@@ -4,9 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ request('voltar', route('caixa.index')) }}" class="btn btn-dark btn-sm mb-3">← Voltar</a>
+    <x-back :href="request('voltar', route('caixa.index'))" />
 
     @php $entrada = $entry->type === 'income'; @endphp
 

@@ -1,13 +1,13 @@
 @extends('layouts.main')
 
-@section('title', 'Painel do Funcionário')
+@section('title', 'Painel do Atendente')
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
     <div class="mb-4">
-        <h1 class="fw-bold mb-1">Painel do Funcionário</h1>
+        <h1 class="fw-bold mb-1">Painel do Atendente</h1>
         <p class="text-muted fs-5 mb-0">
             Gerencie agendamentos e atendimento ao cliente
             @if ($arena)

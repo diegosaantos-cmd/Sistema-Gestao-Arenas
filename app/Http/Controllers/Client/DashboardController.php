@@ -22,6 +22,12 @@ class DashboardController extends Controller
         }
 
         if ($user->type === 'employee') {
+            // Gerente reaproveita o painel do dono (escopado à arena dele);
+            // atendente tem o painel próprio, mais simples.
+            if (\App\Support\ArenaAtual::ehGerente()) {
+                return redirect()->route('owners.dashboard');
+            }
+
             return redirect()->route('employees.dashboard');
         }
 

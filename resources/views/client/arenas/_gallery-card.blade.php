@@ -5,7 +5,7 @@
     $ehFavorita = in_array($arena->id, $favoritasIds ?? [], true);
 @endphp
 
-<div class="card h-100 border-0 shadow-sm overflow-hidden position-relative">
+<div class="card arena-card h-100 border-0 shadow-sm overflow-hidden position-relative">
     <div class="d-flex align-items-center justify-content-center text-white"
          style="height: 130px; background: linear-gradient(135deg, #021B35, #0d6efd);">
         <i class="bi bi-building display-3"></i>

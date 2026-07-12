@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\Booking;
 use App\Models\Court;
-use App\Models\Owner;
+use App\Support\ArenaAtual;
 
 class QuadraController extends Controller
 {
@@ -16,13 +16,8 @@ class QuadraController extends Controller
      */
     public function index()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem ver as quadras.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -38,14 +33,8 @@ class QuadraController extends Controller
      */
     public function create()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem cadastrar quadras.');
-        }
-
-        // Usa a arena que o dono está gerenciando (selecionada no dashboard).
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             // Sem arena ativa: o dashboard resolve (escolher arena ou criar uma).
@@ -65,14 +54,8 @@ class QuadraController extends Controller
      */
     public function store(Request $request)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem cadastrar quadras.');
-        }
-
-        // Arena vem da sessão (a que ele está gerenciando), não do formulário.
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -146,11 +129,7 @@ class QuadraController extends Controller
      */
     public function edit(Court $quadra)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardQuadra($quadra);
 
         $quadra->load('sports');
         $arena = $quadra->arena;
@@ -163,11 +142,7 @@ class QuadraController extends Controller
      */
     public function update(Request $request, Court $quadra)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardQuadra($quadra);
 
         $request->merge([
             'nome' => ArenaController::normalizarTexto($request->input('nome')),
@@ -226,11 +201,7 @@ class QuadraController extends Controller
      */
     public function toggleActive(Court $quadra)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardQuadra($quadra);
 
         // Reativar.
         if (! $quadra->active) {
@@ -259,11 +230,7 @@ class QuadraController extends Controller
      */
     public function confirmDeactivate(Request $request, Court $quadra)
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner || ! $owner->arenas()->whereKey($quadra->arena_id)->exists()) {
-            abort(403);
-        }
+        $this->guardQuadra($quadra);
 
         $motivo = trim((string) $request->input('motivo'));
 
@@ -305,6 +272,17 @@ class QuadraController extends Controller
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('date')->orderBy('start_time')
             ->get();
+    }
+
+    /**
+     * Garante que a quadra é da arena que o usuário gerencia agora
+     * (dono na arena selecionada, ou gerente na arena dele).
+     */
+    private function guardQuadra(Court $quadra): void
+    {
+        $arena = ArenaAtual::obter();
+
+        abort_unless($quadra->arena_id === $arena->id, 403);
     }
 
     /**

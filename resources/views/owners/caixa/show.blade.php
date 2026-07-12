@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('caixa.closed') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar aos caixas fechados
-    </a>
+    <x-back :href="route('caixa.closed')" />
 
     <div class="d-flex align-items-center gap-2 mb-1">
         <h1 class="fw-bold mb-0">Caixa #{{ $numeros[$caixa->id] ?? $caixa->id }}</h1>

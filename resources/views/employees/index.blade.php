@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('owners.dashboard') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar ao painel
-    </a>
+    <x-back :href="route('owners.dashboard')" />
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <h1 class="fw-bold mb-0">Funcionários — {{ $arena->name }}</h1>
@@ -17,13 +15,23 @@
         </a>
     </div>
 
+    @php $ehGerente = \App\Support\ArenaAtual::ehGerente(); @endphp
+
     @forelse ($employees as $employee)
+        @php
+            // O gerente só age sobre atendentes (basic); nunca sobre gerentes
+            // (nem sobre si mesmo). Espelha EmployeeController::guardEmployee.
+            $podeAgir = ! $ehGerente || $employee->access_level !== 'managerial';
+        @endphp
         <div class="card shadow-sm border-0 mb-3">
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
 
                 <div>
                     <h5 class="fw-bold mb-1">
                         {{ $employee->user->name }}
+                        @if ($employee->user_id === auth()->id())
+                            <span class="badge bg-info text-dark align-middle">Você</span>
+                        @endif
                         @if ($employee->active)
                             <span class="badge bg-success align-middle">Ativo</span>
                         @else
@@ -41,31 +49,38 @@
                     </div>
                 </div>
 
-                <div class="d-flex gap-2">
-                    <a href="{{ route('employees.edit', $employee) }}" class="btn btn-sm btn-warning">✏️ Editar perfil</a>
+                @if ($podeAgir)
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('employees.edit', $employee) }}" class="btn btn-sm btn-warning">✏️ Editar perfil</a>
 
-                    @if ($employee->active)
-                        <button type="button" class="btn btn-sm btn-secondary"
-                                data-bs-toggle="modal" data-bs-target="#desativarFuncionario{{ $employee->id }}">
-                            🚫 Desativar perfil
+                        @if ($employee->active)
+                            <button type="button" class="btn btn-sm btn-secondary"
+                                    data-bs-toggle="modal" data-bs-target="#desativarFuncionario{{ $employee->id }}">
+                                🚫 Desativar perfil
+                            </button>
+                        @else
+                            <form action="{{ route('employees.toggle', $employee) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="btn btn-sm btn-success">✅ Ativar perfil</button>
+                            </form>
+                        @endif
+
+                        <button type="button" class="btn btn-sm btn-danger"
+                                data-bs-toggle="modal" data-bs-target="#excluirFuncionario{{ $employee->id }}">
+                            🗑️ Excluir perfil
                         </button>
-                    @else
-                        <form action="{{ route('employees.toggle', $employee) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('PATCH')
-                            <button type="submit" class="btn btn-sm btn-success">✅ Ativar perfil</button>
-                        </form>
-                    @endif
-
-                    <button type="button" class="btn btn-sm btn-danger"
-                            data-bs-toggle="modal" data-bs-target="#excluirFuncionario{{ $employee->id }}">
-                        🗑️ Excluir perfil
-                    </button>
-                </div>
+                    </div>
+                @else
+                    <span class="text-muted fst-italic">
+                        <i class="bi bi-lock me-1"></i> Não tem permissão para ações
+                    </span>
+                @endif
 
             </div>
         </div>
 
+        @if ($podeAgir)
         {{-- Modal de confirmação de desativação --}}
         @if ($employee->active)
             <div class="modal fade" id="desativarFuncionario{{ $employee->id }}" tabindex="-1" aria-hidden="true">
@@ -122,6 +137,7 @@
                 </div>
             </div>
         </div>
+        @endif
     @empty
         <div class="alert alert-light border text-center text-muted">
             Nenhum funcionário cadastrado nesta arena.

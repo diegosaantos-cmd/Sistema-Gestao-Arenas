@@ -33,12 +33,11 @@
             </span>
         </td>
         <td class="text-end pe-3 client-main-actions">
-            <div class="d-none d-md-block ms-auto" style="max-width: 130px;">
-                <a href="{{ route('admin.users.show', $usuario) }}" class="btn btn-primary btn-sm w-100 mb-2">Ver detalhes</a>
+            {{-- Ações em linha (horizontal), como nas outras tabelas do admin. --}}
+            <div class="d-flex flex-wrap justify-content-end gap-1 client-actions-wrap">
+                <a href="{{ route('admin.users.show', $usuario) }}" class="btn btn-primary btn-sm">Detalhes</a>
                 @include('admin.system._client-actions', ['usuario' => $usuario])
             </div>
-            <a href="{{ route('admin.users.show', $usuario) }}"
-               class="btn btn-primary btn-sm d-md-none px-2 py-1 text-nowrap">Ver detalhes</a>
         </td>
     </tr>
 @empty

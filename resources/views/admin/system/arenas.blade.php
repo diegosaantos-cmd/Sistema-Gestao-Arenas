@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('admin.dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">Arenas cadastradas no sistema</h1>
@@ -39,7 +39,7 @@
 
     <div class="row g-4">
         @forelse ($arenas as $arena)
-            <div class="col-6 col-lg-3 arena-card-shell"
+            <div class="col-12 col-sm-6 col-lg-3 arena-card-shell"
                  data-arena-card
                  data-arena-search="{{ $arena->name }} {{ $arena->owner?->company_name }} {{ $arena->owner?->user?->name }}">
                 <div class="dashboard-box p-3 d-flex flex-column h-100 arena-system-card">
@@ -70,7 +70,7 @@
                             Ver detalhes
                         </a>
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex flex-wrap gap-2">
                             @if ($arena->active)
                                 <form method="POST" action="{{ route('admin.arenas.deactivate', $arena) }}"
                                       class="flex-fill"

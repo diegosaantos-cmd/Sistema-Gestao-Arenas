@@ -4,11 +4,9 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('caixa.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar ao caixa
-    </a>
+    <x-back :href="route('caixa.index')" />
 
     <h1 class="fw-bold mb-1">Reservas a receber</h1>
     <p class="text-muted">Reservas confirmadas desta arena ainda sem pagamento.</p>
@@ -38,6 +36,7 @@
                     <thead>
                         <tr>
                             <th>Cliente</th>
+                            <th>Origem</th>
                             <th>Quadra</th>
                             <th>Data / Horário</th>
                             <th>Situação</th>
@@ -53,6 +52,7 @@
                             @endphp
                             <tr>
                                 <td>{{ $reserva->nomeCliente() }}</td>
+                                <td>@include('partials.origin-badge', ['booking' => $reserva])</td>
                                 <td>{{ $reserva->court->name ?? '—' }}</td>
                                 <td>
                                     {{ $reserva->date->format('d/m/Y') }}
@@ -75,7 +75,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center text-muted">
+                                <td colspan="7" class="text-center text-muted">
                                     Nenhuma reserva pendente de pagamento.
                                 </td>
                             </tr>

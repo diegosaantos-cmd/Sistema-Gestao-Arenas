@@ -5,7 +5,7 @@
 @section('content')
 <div class="dashboard-container container-fluid py-4">
 
-    <a href="{{ route('dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">
@@ -29,12 +29,12 @@
     @else
         <div class="row g-4">
             @foreach ($arenas as $arena)
-                <div class="col-6 col-lg-3" data-favorite-card>
+                <div class="col-6 col-lg-3">
                     @include('client.arenas._gallery-card', [
-                        'arenaUrl' => route('client.arenas.show', $arena),
+                        'arenaUrl' => route('client.arenas.show', [$arena, 'origem' => 'favoritas']),
                         'botaoTexto' => 'Ver arena',
                         'favoritasIds' => $favoritasIds,
-                        'removerAoDesfavoritar' => true,
+                        'favoritoAjax' => false,
                     ])
                 </div>
             @endforeach

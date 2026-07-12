@@ -6,14 +6,11 @@
 
 <div class="dashboard-container container-fluid py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <a href="{{ match (request('origem')) {
+        <x-back :href="match (request('origem')) {
                 'arenas_sistema' => route('admin.system.arenas'),
                 'quadras_sistema' => route('admin.system.courts'),
                 default => route('admin.owners.show', [$arena->owner, 'arenas_modal' => 1]),
-            } }}"
-           class="btn btn-dark btn-sm">
-            ← Voltar às arenas
-        </a>
+            }" class="mb-0" />
         <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
             @if ($arena->active)
                 <button type="button" class="btn btn-warning btn-sm"
@@ -516,10 +513,6 @@
                                                     <span class="small">{{ $quadra->description }}</span>
                                                 </div>
                                             @endif
-                                            <div class="col-6">
-                                                <span class="small fw-bold text-dark">Código</span><br>
-                                                <span>#{{ $quadra->id }}</span>
-                                            </div>
                                             <div class="col-6">
                                                 <span class="small fw-bold text-dark">Arena</span><br>
                                                 <span>{{ $arena->name }}</span>

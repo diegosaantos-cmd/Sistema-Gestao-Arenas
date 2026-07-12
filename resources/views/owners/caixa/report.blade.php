@@ -4,16 +4,13 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
     @php
         $veioDoBalanco = request('from') === 'balanco';
         $voltarUrl = $veioDoBalanco ? route('caixa.balance') : route('owners.dashboard');
-        $voltarLabel = $veioDoBalanco ? '← Voltar ao balanço' : '← Voltar ao painel';
     @endphp
-    <a href="{{ $voltarUrl }}" class="btn btn-dark btn-sm mb-3">
-        {{ $voltarLabel }}
-    </a>
+    <x-back :href="$voltarUrl" />
 
     <h1 class="fw-bold mb-1">Financeiro do mês</h1>
     <p class="text-muted">Entradas, saídas e lucro da arena <strong>{{ $arena->name }}</strong>.</p>

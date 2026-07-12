@@ -4,12 +4,10 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
     <div class="d-flex flex-column align-items-start gap-2 mb-3">
-        <a href="{{ route('owners.dashboard') }}" class="btn btn-dark btn-sm">
-            ← Voltar ao painel
-        </a>
+        <x-back :href="route('owners.dashboard')" class="mb-0" />
     </div>
 
     <h1 class="fw-bold mb-1">

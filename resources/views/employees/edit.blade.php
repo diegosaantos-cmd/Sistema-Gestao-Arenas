@@ -72,9 +72,12 @@
                         <option value="basic" {{ $nivel === 'basic' ? 'selected' : '' }}>
                             Funcionário (acesso básico)
                         </option>
-                        <option value="managerial" {{ $nivel === 'managerial' ? 'selected' : '' }}>
-                            Administrador (acesso gerencial)
-                        </option>
+                        {{-- Só o dono promove a gerente; o gerente só edita atendentes. --}}
+                        @unless (\App\Support\ArenaAtual::ehGerente())
+                            <option value="managerial" {{ $nivel === 'managerial' ? 'selected' : '' }}>
+                                Administrador (acesso gerencial)
+                            </option>
+                        @endunless
                     </select>
                 </div>
 

@@ -3,9 +3,9 @@
 @section('title', 'Registrar reserva no balcão')
 
 @section('content')
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('owners.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('owners.dashboard')" />
 
     <div class="mb-4">
         <h1 class="h3 fw-bold mb-1">Registrar reserva</h1>
@@ -176,15 +176,24 @@
                     <input type="search" class="form-control mb-2" id="buscaCliente"
                            placeholder="Digite para filtrar a lista" data-filtro-cliente>
 
-                    <select name="client_id" class="form-select min-w-0" size="6" data-lista-cliente>
-                        @foreach ($clientes as $c)
-                            <option value="{{ $c->id }}"
-                                    data-busca="{{ mb_strtolower($c->user->name.' '.$c->user->email) }}"
-                                    {{ (int) old('client_id') === $c->id ? 'selected' : '' }}>
-                                {{ $c->user->name }} — {{ $c->user->email }}
-                            </option>
-                        @endforeach
-                    </select>
+                    {{-- Lista rolável, UM cliente por vez (rádio). Cada item mostra
+                         nome e e-mail inteiros (sem truncar) e rola no celular. --}}
+                    <div class="border rounded cliente-lista" data-lista-cliente>
+                        @forelse ($clientes as $c)
+                            <label class="d-flex align-items-start gap-2 p-2 border-bottom cliente-opcao"
+                                   data-busca="{{ mb_strtolower($c->user->name.' '.$c->user->email) }}">
+                                <input type="radio" name="client_id" value="{{ $c->id }}"
+                                       class="form-check-input flex-shrink-0 mt-1"
+                                       {{ (int) old('client_id') === $c->id ? 'checked' : '' }}>
+                                <span class="min-w-0">
+                                    <span class="d-block fw-semibold text-break">{{ $c->user->name }}</span>
+                                    <span class="d-block small text-muted text-break">{{ $c->user->email }}</span>
+                                </span>
+                            </label>
+                        @empty
+                            <div class="p-3 text-muted small mb-0">Nenhum cliente cadastrado ainda.</div>
+                        @endforelse
+                    </div>
 
                     <div class="form-text mt-2">
                         O cliente recebe o aviso de reserva confirmada no sino e por e-mail.
@@ -225,14 +234,34 @@
         var lista = document.querySelector('[data-lista-cliente]');
 
         if (busca && lista) {
-            var todas = Array.prototype.slice.call(lista.options);
+            var itens = Array.prototype.slice.call(lista.querySelectorAll('[data-busca]'));
 
             busca.addEventListener('input', function () {
                 var termo = busca.value.trim().toLowerCase();
 
-                todas.forEach(function (opcao) {
-                    opcao.hidden = termo !== '' && opcao.dataset.busca.indexOf(termo) === -1;
+                itens.forEach(function (item) {
+                    var achou = termo === '' || item.dataset.busca.indexOf(termo) !== -1;
+                    item.classList.toggle('d-none', !achou);
                 });
+            });
+        }
+
+        // Permite DESmarcar o cliente: clicar no rádio já selecionado limpa a
+        // escolha (o rádio nativo não desmarca sozinho). Delegação no container:
+        // pega o clique direto no rádio e o encaminhado pelo <label>, sem duplicar.
+        if (lista) {
+            var selecionado = (lista.querySelector('input[name="client_id"]:checked') || {}).value || null;
+
+            lista.addEventListener('click', function (e) {
+                var radio = e.target.closest('input[type="radio"][name="client_id"]');
+                if (!radio) return;
+
+                if (selecionado === radio.value) {
+                    radio.checked = false;       // já estava marcado -> desmarca
+                    selecionado = null;
+                } else {
+                    selecionado = radio.value;   // marcou outro cliente
+                }
             });
         }
     });

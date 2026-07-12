@@ -13,7 +13,7 @@
         $anterior = url()->previous();
         $voltarUrl = ($anterior === url()->current() || $anterior === '') ? route('dashboard') : $anterior;
     @endphp
-    <a href="{{ $voltarUrl }}" class="btn btn-dark btn-sm mb-3">← Voltar</a>
+    <x-back :href="$voltarUrl" />
 
     <h1 class="fw-bold mb-1">Sugestões e reporte de bugs</h1>
     <p class="text-muted">Ajude a melhorar o sistema: envie uma sugestão ou avise sobre um problema.</p>

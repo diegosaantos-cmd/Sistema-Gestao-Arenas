@@ -7,9 +7,7 @@
 <div class="dashboard-container container-fluid py-4">
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <a href="{{ route('dashboard') }}" class="btn btn-dark btn-sm">
-            ← Voltar ao painel
-        </a>
+        <x-back :href="route('dashboard')" class="mb-0" />
         <a href="{{ route('client.bookings.index') }}" class="btn btn-dark btn-sm">
             Ver próximos
         </a>

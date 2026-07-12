@@ -4,18 +4,27 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('admin.dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">Usuários cadastrados no sistema</h1>
         <p class="dashboard-subtitle mb-0">Clientes, funcionários e proprietários (administradores não entram nesta lista).</p>
     </div>
 
-    <form method="GET" class="mb-4 d-flex gap-2 flex-wrap" style="max-width: 480px;">
+    <form method="GET" class="mb-4 d-flex gap-2 flex-wrap align-items-center" style="max-width: 640px;">
         <input type="text" name="q" value="{{ request('q') }}"
-               class="form-control" placeholder="Pesquise por nome ou e-mail">
+               class="form-control min-w-0" style="max-width: 260px;" placeholder="Pesquise por nome ou e-mail">
+
+        <select name="tipo" class="form-select min-w-0" style="max-width: 190px;"
+                onchange="this.form.submit()">
+            <option value="">Todos os tipos</option>
+            <option value="client" @selected(request('tipo') === 'client')>Cliente</option>
+            <option value="employee" @selected(request('tipo') === 'employee')>Funcionário</option>
+            <option value="owner" @selected(request('tipo') === 'owner')>Proprietário</option>
+        </select>
+
         <button class="btn btn-primary">Buscar</button>
-        @if (request('q'))
+        @if (request('q') || request('tipo'))
             <a href="{{ route('admin.system.users') }}" class="btn btn-outline-secondary">Limpar</a>
         @endif
     </form>
@@ -56,7 +65,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center text-muted py-4">
-                                @if (request('q'))
+                                @if (request('q') || request('tipo'))
                                     Nenhum usuário encontrado.
                                 @else
                                     Nenhum usuário cadastrado.

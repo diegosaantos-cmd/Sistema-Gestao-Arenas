@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.owners.show', $owner) }}" class="btn btn-dark btn-sm mb-3">← Voltar à empresa</a>
+    <x-back :href="route('admin.owners.show', $owner)" />
 
     <div class="mb-4">
         <div class="text-muted text-uppercase fw-semibold small" style="letter-spacing:.05em;">Empresa {{ $owner->company_name }}</div>

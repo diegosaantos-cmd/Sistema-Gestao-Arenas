@@ -4,31 +4,40 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
             <h1 class="fw-bold">
                 Bem-vindo, {{ auth()->user()->name }}!
+                <span class="badge bg-primary align-middle fs-6 fw-semibold">
+                    {{ $ehGerente ? 'Painel do gerente' : 'Painel do proprietário' }}
+                </span>
             </h1>
 
             <p class="text-muted fs-4 mb-0">
-                Gerencie suas arenas, quadras, reservas e funcionários
+                @if ($ehGerente)
+                    Gerencie sua arena, quadras, reservas e funcionários
+                @else
+                    Gerencie suas arenas, quadras, reservas e funcionários
+                @endif
             </p>
         </div>
 
-        <a href="{{ route('owners.arena.choose') }}" class="text-decoration-none text-reset">
-            <div class="card shadow-sm border-0 text-center card-hover">
-                <div class="card-body">
-                    <h6 class="text-secondary mb-1">Total de Arenas</h6>
-                    <h2 class="fw-bold mb-1">{{ $arenasCount }}</h2>
-                    <div class="small">
-                        <span class="text-success">{{ $arenasActive }} ativas</span>
-                        · <span class="text-muted">{{ $arenasCount - $arenasActive }} inativas</span>
+        @unless ($ehGerente)
+            <a href="{{ route('owners.arena.choose') }}" class="text-decoration-none text-reset">
+                <div class="card shadow-sm border-0 text-center card-hover">
+                    <div class="card-body">
+                        <h6 class="text-secondary mb-1">Total de Arenas</h6>
+                        <h2 class="fw-bold mb-1">{{ $arenasCount }}</h2>
+                        <div class="small">
+                            <span class="text-success">{{ $arenasActive }} ativas</span>
+                            · <span class="text-muted">{{ $arenasCount - $arenasActive }} inativas</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </a>
+            </a>
+        @endunless
     </div>
 
     @if ($owner && ! $owner->active)
@@ -328,10 +337,12 @@
                             ⚽ Nova Quadra
                         </a>
 
-                        <a href="{{ route('arenas.create') }}"
-                            class="btn btn-outline-dark btn-lg">
-                            🏟 Nova Arena
-                        </a>
+                        @unless ($ehGerente)
+                            <a href="{{ route('arenas.create') }}"
+                                class="btn btn-outline-dark btn-lg">
+                                🏟 Nova Arena
+                            </a>
+                        @endunless
 
                     </div>
 

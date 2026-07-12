@@ -4,7 +4,7 @@
 
 @section('content')
 
-<div class="container py-5">
+<div class="container py-5 painel">
 
     <div class="card shadow mx-auto" style="max-width: 700px;">
         <div class="card-body p-4">
@@ -78,9 +78,12 @@
                             <option value="basic" {{ old('access_level') === 'basic' ? 'selected' : '' }}>
                                 Funcionário (acesso básico)
                             </option>
-                            <option value="managerial" {{ old('access_level') === 'managerial' ? 'selected' : '' }}>
-                                Administrador (acesso gerencial)
-                            </option>
+                            {{-- Só o dono cadastra gerente; o gerente só cadastra atendente. --}}
+                            @unless (\App\Support\ArenaAtual::ehGerente())
+                                <option value="managerial" {{ old('access_level') === 'managerial' ? 'selected' : '' }}>
+                                    Administrador (acesso gerencial)
+                                </option>
+                            @endunless
                         </select>
                     </div>
                 </div>

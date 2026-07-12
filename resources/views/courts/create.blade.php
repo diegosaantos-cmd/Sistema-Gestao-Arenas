@@ -4,7 +4,7 @@
 
 @section('content')
 
-<div class="container py-5">
+<div class="container py-5 painel">
 
     <div class="card shadow mx-auto" style="max-width: 900px;">
         <div class="card-body p-4">

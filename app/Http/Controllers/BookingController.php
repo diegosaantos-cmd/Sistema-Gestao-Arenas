@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\Owner;
 use App\Services\CourtScheduleService;
+use App\Support\ArenaAtual;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -16,13 +16,8 @@ class BookingController extends Controller
      */
     public function index()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem ver os agendamentos.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -69,13 +64,8 @@ class BookingController extends Controller
      */
     public function history()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem ver os agendamentos.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -133,13 +123,8 @@ class BookingController extends Controller
      */
     public function today()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem ver os agendamentos.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -166,13 +151,8 @@ class BookingController extends Controller
      */
     public function pending()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem ver os agendamentos.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        // Dono (arena selecionada) ou gerente (a arena dele). Ver ArenaAtual.
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');
@@ -337,15 +317,13 @@ class BookingController extends Controller
     }
 
     /**
-     * Garante que a reserva é de uma quadra de uma arena do dono logado.
+     * Garante que a reserva é de uma quadra da arena que o usuário gerencia agora
+     * (dono na arena selecionada, ou gerente na arena dele).
      */
     private function guardBooking(Booking $booking): void
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-        $arena = $booking->court?->arena;
+        $arena = ArenaAtual::obter();
 
-        if (! $owner || ! $arena || ! $owner->arenas()->whereKey($arena->id)->exists()) {
-            abort(403);
-        }
+        abort_unless($booking->court?->arena_id === $arena->id, 403);
     }
 }

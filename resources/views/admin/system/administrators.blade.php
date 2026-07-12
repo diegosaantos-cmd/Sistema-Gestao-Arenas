@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('admin.dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">Administradores do sistema</h1>
@@ -13,17 +13,17 @@
 
 
     <div class="dashboard-box p-0 overflow-hidden system-admins-box">
-        <div class="table-responsive system-admins-container" style="max-height: 72vh; overflow-y: auto;">
+        <div class="table-responsive system-admins-container" style="max-height: 72vh; overflow-y: auto; padding-bottom: 18px;">
             <table class="table table-sm table-hover align-middle mb-0 small system-admins-table admin-sticky-table"
-                   style="table-layout: fixed; width: 100%;">
+                   style="min-width: 920px;">
                 <thead class="table-light sticky-top">
                     <tr>
-                        <th class="ps-3" style="width: 17%;">Administrador</th>
-                        <th style="width: 21%;">E-mail</th>
-                        <th class="admin-secondary-column" style="width: 13%;">Telefone</th>
-                        <th class="admin-secondary-column" style="width: 13%;">Cadastro</th>
-                        <th style="width: 9%;">Situação</th>
-                        <th class="text-end pe-3" style="width: 14%;">Ações</th>
+                        <th class="ps-3">Administrador</th>
+                        <th>E-mail</th>
+                        <th>Telefone</th>
+                        <th>Cadastro</th>
+                        <th>Situação</th>
+                        <th class="text-end pe-3">Ações</th>
                     </tr>
                 </thead>
                 <tbody data-admins-body>
@@ -52,8 +52,8 @@
                                 </span>
                             </td>
                             <td class="text-end pe-3">
-                                <div class="d-none d-md-flex justify-content-end gap-1">
-                                    <a href="{{ route('admin.users.show', $administrador) }}" class="btn btn-primary btn-sm">Ver detalhes</a>
+                                <div class="d-flex flex-wrap justify-content-end gap-1">
+                                    <a href="{{ route('admin.users.show', $administrador) }}" class="btn btn-primary btn-sm">Detalhes</a>
                                     @if ($administrador->is(auth()->user()))
                                         <span class="small text-muted align-self-center">Conta atual</span>
                                     @else
@@ -81,9 +81,6 @@
                                         </form>
                                     @endif
                                 </div>
-
-                                <a href="{{ route('admin.users.show', $administrador) }}"
-                                   class="btn btn-primary btn-sm d-md-none px-2 py-1">Ver detalhes</a>
                             </td>
                         </tr>
                     @empty
@@ -108,51 +105,15 @@
 
 <style>
     @media (max-width: 767.98px) {
+        /* Mostra TODAS as colunas e rola na horizontal (nada escondido); a
+           página rola na vertical. Cabeçalho não-fixo no celular. */
         .system-admins-container {
             max-height: none !important;
-            overflow: visible !important;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
         }
-
-        .system-admins-box {
-            overflow: visible !important;
-        }
-
         .system-admins-table thead th {
-            top: 70px;
-        }
-
-        .system-admins-table {
-            table-layout: fixed !important;
-            font-size: .72rem;
-        }
-
-        .system-admins-table .admin-secondary-column {
-            display: none;
-        }
-
-        .system-admins-table th,
-        .system-admins-table td {
-            padding: .55rem .25rem !important;
-        }
-
-        .system-admins-table th:nth-child(1),
-        .system-admins-table td:nth-child(1) {
-            width: 27% !important;
-        }
-
-        .system-admins-table th:nth-child(2),
-        .system-admins-table td:nth-child(2) {
-            width: 38% !important;
-        }
-
-        .system-admins-table th:nth-child(6),
-        .system-admins-table td:nth-child(6) {
-            width: 17% !important;
-        }
-
-        .system-admins-table th:nth-child(7),
-        .system-admins-table td:nth-child(7) {
-            width: 18% !important;
+            position: static !important;
         }
     }
 </style>

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-dark btn-sm mb-3">← Voltar ao painel</a>
+    <x-back :href="route('admin.dashboard')" />
 
     <div class="mb-4">
         <h1 class="dashboard-title mb-1">Clientes cadastrados no sistema</h1>
@@ -32,19 +32,19 @@
     </div>
 
     <div class="dashboard-box p-0 overflow-hidden system-clients-box">
-        <div class="table-responsive system-clients-container" style="max-height: 72vh; overflow-y: auto;">
+        <div class="table-responsive system-clients-container" style="max-height: 72vh; overflow-y: auto; padding-bottom: 18px;">
             <table class="table table-sm table-hover align-middle mb-0 small system-clients-table admin-sticky-table"
-                   style="table-layout: fixed; width: 100%;">
+                   style="min-width: 1050px;">
                 <thead class="table-light sticky-top">
                     <tr>
-                        <th class="ps-3" style="width: 14%;">Cliente</th>
-                        <th style="width: 19%;">E-mail</th>
-                        <th class="client-secondary-column" style="width: 13%;">Telefone</th>
-                        <th class="client-secondary-column" style="width: 11%;">Nascimento</th>
-                        <th class="client-secondary-column" style="width: 13%;">Termos</th>
-                        <th class="client-secondary-column" style="width: 11%;">Cadastro</th>
-                        <th style="width: 8%;">Situação</th>
-                        <th class="text-end pe-3" style="width: 11%;">Ações</th>
+                        <th class="ps-3">Cliente</th>
+                        <th>E-mail</th>
+                        <th>Telefone</th>
+                        <th>Nascimento</th>
+                        <th>Termos</th>
+                        <th>Cadastro</th>
+                        <th>Situação</th>
+                        <th class="text-end pe-3">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="systemClientsBody">
@@ -69,71 +69,20 @@
 </div>
 
 <style>
+    /* No celular a tabela mostra TODAS as colunas e rola na horizontal (como as
+       outras telas de listagem de clientes). A página rola na vertical — o
+       scroll infinito usa a viewport no mobile. Nada de esconder colunas. */
     @media (max-width: 767.98px) {
         .system-clients-container {
             max-height: none !important;
-            overflow: visible !important;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
         }
-
-        .system-clients-box {
-            overflow: visible !important;
-        }
-
+        /* No celular o container vira um scroller horizontal; um cabeçalho
+           "sticky" aí dentro flutua sobre as primeiras linhas. Então no celular
+           ele NÃO é fixo — rola junto com a tabela. */
         .system-clients-table thead th {
-            top: 70px;
-        }
-
-        .system-clients-table {
-            table-layout: fixed !important;
-            font-size: .72rem;
-        }
-
-        .system-clients-table .client-secondary-column {
-            display: none;
-        }
-
-        .system-clients-table th,
-        .system-clients-table td {
-            padding: .55rem .25rem !important;
-            vertical-align: middle;
-        }
-
-        .system-clients-table th:nth-child(1),
-        .system-clients-table td:nth-child(1) {
-            width: 24% !important;
-        }
-
-        .system-clients-table th:nth-child(2),
-        .system-clients-table td:nth-child(2) {
-            width: 40% !important;
-        }
-
-        .system-clients-table th:nth-child(7),
-        .system-clients-table td:nth-child(7) {
-            width: 17% !important;
-        }
-
-        .system-clients-table th:nth-child(8),
-        .system-clients-table td:nth-child(8) {
-            width: 19% !important;
-        }
-
-        .system-clients-table .client-main-email {
-            overflow-wrap: anywhere;
-        }
-
-        .system-clients-table .client-main-actions .btn {
-            font-size: .68rem;
-            padding: .3rem .2rem;
-        }
-
-        .system-clients-table .client-mobile-details-row td {
-            padding: .85rem !important;
-        }
-
-        .system-clients-table .client-mobile-details-row .client-system-actions {
-            width: 100%;
-            grid-template-columns: 1fr 1fr;
+            position: static !important;
         }
     }
 </style>

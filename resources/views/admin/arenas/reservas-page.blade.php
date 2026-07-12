@@ -13,7 +13,7 @@
 @endphp
 
 <div class="dashboard-container container-fluid py-4">
-    <a href="{{ route('admin.arenas.show', [$arena, 'origem' => request('origem')]) }}" class="btn btn-dark btn-sm mb-3">← Voltar à arena</a>
+    <x-back :href="route('admin.arenas.show', [$arena, 'origem' => request('origem')])" />
 
     <div class="mb-4">
         <div class="text-muted text-uppercase fw-semibold small" style="letter-spacing:.05em;">Arena {{ $arena->name }}</div>

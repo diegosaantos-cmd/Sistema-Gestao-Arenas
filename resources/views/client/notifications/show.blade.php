@@ -6,9 +6,7 @@
 
 <div class="container py-4" style="max-width: 720px;">
 
-    <a href="{{ route('notifications.index') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar às notificações
-    </a>
+    <x-back :href="route('notifications.index')" />
 
     <div class="card shadow-sm border-0">
         <div class="card-body">

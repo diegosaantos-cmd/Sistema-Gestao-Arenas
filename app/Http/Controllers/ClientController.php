@@ -6,7 +6,7 @@ use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\Client;
 use App\Models\UserNotification;
-use App\Models\Owner;
+use App\Support\ArenaAtual;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -290,18 +290,12 @@ class ClientController extends Controller
     }
 
     /**
-     * Arena que o dono logado está gerenciando. Retorna a Arena, ou um redirect
-     * (sem arena selecionada) / aborta (não é dono).
+     * Arena que o usuário está gerenciando (dono na arena selecionada, ou gerente
+     * na arena dele). Retorna a Arena, ou um redirect (sem arena). Ver ArenaAtual.
      */
     private function arenaAtual()
     {
-        $owner = Owner::where('user_id', auth()->id())->first();
-
-        if (! $owner) {
-            abort(403, 'Apenas proprietários podem ver os clientes.');
-        }
-
-        $arena = $owner->arenas()->find(session('selected_arena_id'));
+        $arena = ArenaAtual::tentar();
 
         if (! $arena) {
             return redirect()->route('owners.dashboard');

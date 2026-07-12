@@ -4,11 +4,12 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 painel">
 
-    <a href="{{ route('owners.dashboard') }}" class="btn btn-dark btn-sm mb-3">
-        ← Voltar ao painel
-    </a>
+    <x-back :href="route('owners.dashboard')" />
+
+    {{-- Desativar/excluir/reativar a arena é só do dono; o gerente só edita. --}}
+    @php $ehDono = \App\Support\ArenaAtual::ehDono(); @endphp
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -56,9 +57,10 @@
             </form>
         </div>
 
+        @if ($ehDono)
         <div class="d-flex gap-2 flex-wrap">
             @if ($arena->active)
-                <button type="button" class="btn btn-secondary"
+                <button type="button" class="btn btn-sm btn-secondary"
                         data-bs-toggle="modal" data-bs-target="#desativarArenaModal">
                     🚫 Desativar
                 </button>
@@ -95,11 +97,11 @@
                 <form method="POST" action="{{ route('arenas.toggle', $arena->id) }}" class="d-inline">
                     @csrf
                     @method('PATCH')
-                    <button type="submit" class="btn btn-success">✅ Reativar</button>
+                    <button type="submit" class="btn btn-sm btn-success">✅ Reativar</button>
                 </form>
             @endif
 
-            <button type="button" class="btn btn-danger"
+            <button type="button" class="btn btn-sm btn-danger"
                     data-bs-toggle="modal" data-bs-target="#excluirArenaModal">
                 🗑️ Excluir
             </button>
@@ -133,6 +135,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
     <div class="row g-4">
