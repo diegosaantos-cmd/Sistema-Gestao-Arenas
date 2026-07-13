@@ -448,8 +448,8 @@ class Booking extends Model
     }
 
     /**
-     * Avisa o staff da arena (dono + gerentes) de que o cliente criou uma
-     * reserva e ela está aguardando confirmação.
+     * Avisa o staff da arena (dono + funcionários ativos, gerentes e atendentes)
+     * de que o cliente criou uma reserva e ela está aguardando confirmação.
      */
     public function notificarStaffNovaReserva(): void
     {

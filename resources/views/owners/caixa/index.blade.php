@@ -90,18 +90,23 @@
                     </div>
                 </a>
             </div>
+            {{-- Taxas de cancelamento: só aparece se houver taxa a receber. Hoje a
+                 taxa sempre nasce paga (o cliente paga ao cancelar), então em geral
+                 fica escondido; reaparece sozinho se algum dia sobrar taxa a receber. --}}
+            @if ($taxasCount > 0)
             <div class="col-md-3 col-sm-6">
                 <a href="{{ route('caixa.fees') }}" class="text-decoration-none text-reset">
-                    <div class="card shadow-sm border-0 h-100 card-hover text-center {{ $taxasCount > 0 ? 'border border-danger' : '' }}">
+                    <div class="card shadow-sm border-0 h-100 card-hover text-center border border-danger">
                         <div class="card-body">
                             <div class="fs-2">🚫</div>
                             <h6 class="text-secondary mb-1">Taxas de cancelamento</h6>
-                            <h2 class="fw-bold mb-1 {{ $taxasCount > 0 ? 'text-danger' : '' }}">{{ $taxasCount }}</h2>
+                            <h2 class="fw-bold mb-1 text-danger">{{ $taxasCount }}</h2>
                             <span class="small text-primary">ver todas →</span>
                         </div>
                     </div>
                 </a>
             </div>
+            @endif
             <div class="col-md-3 col-sm-6">
                 <a href="{{ route('caixa.pending-payments') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover text-center {{ $lancarCount > 0 ? 'border border-warning' : '' }}">

@@ -108,8 +108,10 @@
                     data-bs-toggle="modal" data-bs-target="#modalFaturamentoEmpresa">
                 <div>
                     <h5 class="fw-bold text-dark">Faturamento da empresa</h5>
-                    <h2 class="fs-4">R$ {{ number_format($totais['faturamento_mes'], 2, ',', '.') }}</h2>
-                    <small class="text-muted">{{ now()->translatedFormat('F/Y') }}</small>
+                    <h2 class="fs-4 {{ $fatMesEmpresa['liquido'] < 0 ? 'text-danger' : '' }}">
+                        R$ {{ number_format($fatMesEmpresa['liquido'], 2, ',', '.') }}
+                    </h2>
+                    <small class="text-muted">Líquido do mês (todas as arenas)</small>
                 </div>
                 <i class="bi bi-cash-coin dashboard-icon text-success"></i>
             </button>
@@ -328,10 +330,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3">
+                <div class="row g-3 align-items-start">
                     @forelse ($arenas->flatMap->employees->sortBy(fn ($employee) => $employee->user?->name) as $employee)
                         <div class="col-12">
-                            <div class="border rounded p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="border rounded p-3 h-100 d-flex flex-column" data-empresa-employee-card>
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                 <div>
                                     <h6 class="fw-bold mb-1">{{ $employee->user?->name ?? 'Funcionário sem usuário' }}</h6>
                                     <div class="small">
@@ -340,18 +343,62 @@
                                         {{ $employee->arena?->name ?? 'Arena não informada' }}
                                     </div>
                                 </div>
-                                <div class="d-flex gap-1">
-                                    @if ($employee->user)
-                                        <a href="{{ route('admin.users.show', $employee->user) }}" class="btn btn-primary btn-sm">Ver detalhes</a>
-                                    @endif
-                                    @if ($employee->arena)
-                                        <button type="button" class="btn btn-danger btn-sm"
-                                                data-bs-toggle="modal" data-bs-target="#modalExcluirFuncionarioEmpresa{{ $employee->id }}">
-                                            <i class="bi bi-trash me-1"></i> Excluir
-                                        </button>
-                                    @endif
+                                <span class="badge {{ $employee->active ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ $employee->active ? 'Ativo' : 'Inativo' }}
+                                </span>
+                            </div>
+
+                            <div class="collapse my-3 w-100" id="detalhesFuncionarioEmpresa{{ $employee->id }}">
+                                <div class="border-top pt-3">
+                                    <div class="row g-3">
+                                        @if ($employee->user?->email)
+                                            <div class="col-12">
+                                                <span class="small text-dark fw-bold">E-mail</span><br>
+                                                <span class="text-break">{{ $employee->user->email }}</span>
+                                            </div>
+                                        @endif
+                                        @if ($employee->user?->phone)
+                                            <div class="col-6"><span class="small text-dark fw-bold">Telefone</span><br><span>{{ $employee->user->phone }}</span></div>
+                                        @endif
+                                        <div class="col-6"><span class="small text-dark fw-bold">Cargo</span><br><span>{{ $employee->position }}</span></div>
+                                        <div class="col-6"><span class="small text-dark fw-bold">Arena</span><br><span>{{ $employee->arena?->name ?? 'Não informada' }}</span></div>
+                                        <div class="col-6">
+                                            <span class="small text-dark fw-bold">Nível de acesso</span><br>
+                                            <span>{{ $employee->access_level === 'managerial' ? 'Gerencial' : 'Básico' }}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="small text-dark fw-bold">Situação</span><br>
+                                            <span class="badge fw-normal {{ $employee->active ? 'bg-success' : 'bg-secondary' }}">
+                                                {{ $employee->active ? 'Ativo' : 'Inativo' }}
+                                            </span>
+                                        </div>
+                                        @if ($employee->created_at)
+                                            <div class="col-6"><span class="small text-dark fw-bold">Cadastrado em</span><br><span>{{ $employee->created_at->format('d/m/Y H:i') }}</span></div>
+                                        @endif
+                                        @if ($employee->updated_at)
+                                            <div class="col-6"><span class="small text-dark fw-bold">Última atualização</span><br><span>{{ $employee->updated_at->format('d/m/Y H:i') }}</span></div>
+                                        @endif
+                                        @if ($employee->arena)
+                                            <div class="col-12">
+                                                <button type="button" class="btn btn-danger btn-sm w-100"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalExcluirFuncionarioEmpresa{{ $employee->id }}">
+                                                    <i class="bi bi-trash me-1"></i> Excluir
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
+
+                            <button type="button" class="btn btn-primary btn-sm w-100 mt-auto employee-details-toggle"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#detalhesFuncionarioEmpresa{{ $employee->id }}"
+                                    aria-controls="detalhesFuncionarioEmpresa{{ $employee->id }}"
+                                    aria-expanded="false">
+                                Ver detalhes
+                            </button>
+                        </div>
                         </div>
                     @empty
                         <div class="col-12 text-center text-muted py-4">Nenhum funcionário cadastrado.</div>
@@ -398,66 +445,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <span class="text-muted">Faturamento no mês</span>
-                            <div class="fs-3 fw-bold text-success">
-                                R$ {{ number_format($totais['faturamento_mes'], 2, ',', '.') }}
-                            </div>
-                            <small class="text-muted">{{ now()->translatedFormat('F/Y') }}</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <span class="text-muted">Faturamento acumulado</span>
-                            <div class="fs-3 fw-bold text-success">
-                                R$ {{ number_format($faturamentoAcumuladoEmpresa, 2, ',', '.') }}
-                            </div>
-                            <small class="text-muted">Desde o início dos registros no sistema</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <h6 class="fw-bold mb-0">Faturamento mensal por arena</h6>
-                    <form method="GET" action="{{ route('admin.owners.show', $owner) }}">
-                        <input type="hidden" name="faturamento_modal" value="1">
-                        <select name="ano_faturamento"
-                                class="form-select form-select-sm"
-                                onchange="this.form.submit()"
-                                aria-label="Selecionar ano">
-                            @foreach ($anosFaturamentoEmpresa as $ano)
-                                <option value="{{ $ano }}" @selected($anoFaturamentoEmpresa === $ano)>
-                                    {{ $ano }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                </div>
-
-                <div class="table-responsive border rounded" style="max-height: 55vh; overflow-y: auto;">
-                    <table class="table align-middle mb-0 admin-sticky-table">
-                        <thead class="table-light sticky-top">
-                            <tr><th class="ps-3">Mês</th><th>Arena</th><th class="text-end pe-3">Faturamento</th></tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($faturamentoAnoEmpresa as $registro)
-                                <tr>
-                                    <td class="ps-3 text-nowrap">
-                                        {{ \Carbon\Carbon::createFromFormat('Y-m', $registro->mes)->translatedFormat('F/Y') }}
-                                    </td>
-                                    <td class="fw-bold">{{ $registro->arena_nome }}</td>
-                                    <td class="text-end pe-3 text-success fw-bold">
-                                        R$ {{ number_format($registro->total, 2, ',', '.') }}
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="3" class="text-center text-muted py-4">Nenhum pagamento confirmado neste ano.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                @include('admin.arenas._faturamento-detalhe', [
+                    'fatMes' => $fatMesEmpresa,
+                    'fatAcumulado' => $fatAcumuladoEmpresa,
+                    'fatAno' => $fatAnoEmpresa,
+                    'fatMensal' => $fatMensalEmpresa,
+                    'anoFaturamento' => $anoFaturamentoEmpresa,
+                    'anosFaturamento' => $anosFaturamentoEmpresa,
+                    'formAction' => route('admin.owners.show', $owner),
+                    'formHidden' => ['faturamento_modal' => 1],
+                ])
             </div>
         </div>
     </div>
@@ -506,5 +503,56 @@
         });
     </script>
 @endif
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let activeEmployeeDetails = null;
+
+        document.querySelectorAll('#modalFuncionariosEmpresa .collapse').forEach(function (details) {
+            const button = document.querySelector(
+                `.employee-details-toggle[data-bs-target="#${details.id}"]`
+            );
+
+            if (!button) {
+                return;
+            }
+
+            details.addEventListener('shown.bs.collapse', function () {
+                if (activeEmployeeDetails && activeEmployeeDetails !== details) {
+                    bootstrap.Collapse.getOrCreateInstance(
+                        activeEmployeeDetails,
+                        { toggle: false }
+                    ).hide();
+                }
+
+                activeEmployeeDetails = details;
+                button.textContent = 'Fechar detalhes';
+            });
+
+            details.addEventListener('hidden.bs.collapse', function () {
+                button.textContent = 'Ver detalhes';
+
+                if (activeEmployeeDetails === details) {
+                    activeEmployeeDetails = null;
+                }
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!activeEmployeeDetails) {
+                return;
+            }
+
+            const activeCard = activeEmployeeDetails.closest('[data-empresa-employee-card]');
+
+            if (activeCard && !activeCard.contains(event.target)) {
+                bootstrap.Collapse.getOrCreateInstance(
+                    activeEmployeeDetails,
+                    { toggle: false }
+                ).hide();
+            }
+        });
+    });
+</script>
 
 @endsection

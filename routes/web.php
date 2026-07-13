@@ -72,12 +72,23 @@ Route::middleware([
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])
         ->name('dashboard');
     Route::get('/employees/dashboard', function () {
-        $employee = \App\Models\Employee::where('user_id', auth()->id())->first();
+        // Painel do ATENDENTE (employee 'basic'). Ele só consulta a arena e as
+        // quadras (por modal) e opera reservas/caixa — nada de gestão. Ver
+        // App\Support\ArenaAtual e o middleware pode.gerir.
+        $employee = \App\Models\Employee::with('arena')
+            ->where('user_id', auth()->id())
+            ->where('active', true)
+            ->first();
         $arena = $employee?->arena;
 
-        $hoje = collect();
-        $semana = collect();
-        $pendentes = 0;
+        $courts = collect();
+        $courtsCount = 0;
+        $courtsActive = 0;
+        $customersCount = 0;
+        $agendamentosHoje = 0;
+        $pendentesCount = 0;
+        $proximosAgendamentos = collect();
+        $proximosCount = 0;
 
         if ($arena) {
             $idsQuadras = $arena->courts()->pluck('id')->all();
@@ -85,33 +96,42 @@ Route::middleware([
             if (! empty($idsQuadras)) {
                 \App\Models\Booking::autoConfirmarExpiradas($idsQuadras);
                 \App\Models\Booking::autoCompletarRealizadas($idsQuadras);
-
-                $hoje = \App\Models\Booking::with(['court', 'client.user'])
-                    ->whereIn('court_id', $idsQuadras)
-                    ->whereDate('date', now()->toDateString())
-                    ->where('status', 'confirmed')
-                    ->orderBy('start_time')
-                    ->get();
-
-                $semana = \App\Models\Booking::with(['court', 'client.user'])
-                    ->whereIn('court_id', $idsQuadras)
-                    ->whereBetween('date', [
-                        now()->startOfWeek()->toDateString(),
-                        now()->endOfWeek()->toDateString(),
-                    ])
-                    ->where('status', 'confirmed')
-                    ->orderBy('date')
-                    ->orderBy('start_time')
-                    ->get();
-
-                $pendentes = \App\Models\Booking::whereIn('court_id', $idsQuadras)
-                    ->where('status', 'pending')
-                    ->whereDate('date', '>=', now()->toDateString())
-                    ->count();
             }
+
+            $courts = $arena->courts()->with('sports')->orderBy('name')->get();
+            $courtsCount = $courts->count();
+            $courtsActive = $courts->where('active', true)->count();
+
+            // Clientes = clientes distintos com reserva nas quadras desta arena.
+            $customersCount = \App\Models\Booking::whereIn('court_id', $idsQuadras)
+                ->distinct('client_id')
+                ->count('client_id');
+
+            $agendamentosHoje = \App\Models\Booking::whereIn('court_id', $idsQuadras)
+                ->whereDate('date', now()->toDateString())
+                ->where('status', 'confirmed')
+                ->count();
+
+            $pendentesCount = \App\Models\Booking::whereIn('court_id', $idsQuadras)
+                ->where('status', 'pending')
+                ->count();
+
+            $base = \App\Models\Booking::whereIn('court_id', $idsQuadras)
+                ->whereDate('date', '>=', now()->toDateString())
+                ->where('status', 'confirmed');
+
+            $proximosCount = (clone $base)->count();
+            $proximosAgendamentos = $base->with(['court', 'client.user'])
+                ->orderBy('date')
+                ->orderBy('start_time')
+                ->limit(4)
+                ->get();
         }
 
-        return view('employees.dashboard', compact('employee', 'arena', 'hoje', 'semana', 'pendentes'));
+        return view('employees.dashboard', compact(
+            'employee', 'arena', 'courts', 'courtsCount', 'courtsActive', 'customersCount',
+            'agendamentosHoje', 'pendentesCount', 'proximosAgendamentos', 'proximosCount'
+        ));
     })->name('employees.dashboard');
 
     // "Minha Conta" do funcionário (dados pessoais + senha).
@@ -370,17 +390,22 @@ Route::middleware(['auth'])->group(function () {
         ));
     })->name('owners.dashboard');
 
-    // Minha Conta do dono (dados pessoais + empresa + senha).
-    Route::get('/owners/perfil', [OwnerProfileController::class, 'edit'])
-        ->name('owner.profile.edit');
-    Route::patch('/owners/perfil/pessoais', [OwnerProfileController::class, 'updatePersonal'])
-        ->name('owner.profile.personal');
-    Route::patch('/owners/perfil/empresa', [OwnerProfileController::class, 'updateCompany'])
-        ->name('owner.profile.company');
-    Route::put('/owners/perfil/senha', [OwnerProfileController::class, 'updatePassword'])
-        ->name('owner.profile.password');
+    // Minha Conta do dono (dados pessoais + empresa + senha). Só dono/gerente —
+    // o atendente tem a "Minha Conta" própria (Employee\ProfileController).
+    Route::middleware('pode.gerir')->group(function () {
+        Route::get('/owners/perfil', [OwnerProfileController::class, 'edit'])
+            ->name('owner.profile.edit');
+        Route::patch('/owners/perfil/pessoais', [OwnerProfileController::class, 'updatePersonal'])
+            ->name('owner.profile.personal');
+        Route::patch('/owners/perfil/empresa', [OwnerProfileController::class, 'updateCompany'])
+            ->name('owner.profile.company');
+        Route::put('/owners/perfil/senha', [OwnerProfileController::class, 'updatePassword'])
+            ->name('owner.profile.password');
+    });
 
-    // Tela "em qual arena entrar" (quando há mais de uma).
+    // Tela "em qual arena entrar" (quando há mais de uma). Trocar/escolher arena
+    // é só do dono; gerente e atendente têm arena fixa.
+    Route::middleware('pode.gerir')->group(function () {
     Route::get('/owners/arena/choose', function () {
         $owner = \App\Models\Owner::where('user_id', auth()->id())->first();
         $arenas = $owner ? $owner->arenas()->orderBy('name')->get() : collect();
@@ -410,26 +435,33 @@ Route::middleware(['auth'])->group(function () {
 
         return redirect()->route('owners.dashboard');
     })->name('owners.arena.select');
+    });
 
-    // Lista de clientes da arena atual.
+    // Clientes da arena. CONSULTA (lista, detalhes, reservas) é liberada também
+    // para o atendente — ele precisa conhecer o cliente no balcão. ENVIAR mensagem
+    // e disparo em massa são gestão (dono/gerente): ficam sob pode.gerir.
+    // Ordem importa: 'mensagem-massa' antes de '/{client}' para não virar {client}.
     Route::get('/owners/clients', [ClientController::class, 'index'])
         ->name('clients.index');
 
-    // Disparo de mensagem para vários clientes de uma vez.
-    Route::get('/owners/clients/mensagem-massa', [ClientController::class, 'broadcastForm'])
-        ->name('clients.broadcast.create');
-    Route::post('/owners/clients/mensagem-massa', [ClientController::class, 'broadcast'])
-        ->name('clients.broadcast');
+    Route::middleware('pode.gerir')->group(function () {
+        Route::get('/owners/clients/mensagem-massa', [ClientController::class, 'broadcastForm'])
+            ->name('clients.broadcast.create');
+        Route::post('/owners/clients/mensagem-massa', [ClientController::class, 'broadcast'])
+            ->name('clients.broadcast');
+    });
 
-    // Detalhes de um cliente (reservas, dívidas) e envio de mensagem.
     Route::get('/owners/clients/{client}', [ClientController::class, 'show'])
         ->name('clients.show');
     Route::get('/owners/clients/{client}/reservas/{tipo}', [ClientController::class, 'bookings'])
         ->name('clients.bookings');
-    Route::get('/owners/clients/{client}/mensagem', [ClientController::class, 'messageForm'])
-        ->name('clients.message.create');
-    Route::post('/owners/clients/{client}/mensagem', [ClientController::class, 'sendMessage'])
-        ->name('clients.message');
+
+    Route::middleware('pode.gerir')->group(function () {
+        Route::get('/owners/clients/{client}/mensagem', [ClientController::class, 'messageForm'])
+            ->name('clients.message.create');
+        Route::post('/owners/clients/{client}/mensagem', [ClientController::class, 'sendMessage'])
+            ->name('clients.message');
+    });
 
     // Todos os próximos agendamentos da arena atual.
     Route::get('/owners/bookings', [BookingController::class, 'index'])
@@ -479,12 +511,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('caixa.entries');
     Route::get('/owners/caixa/fechados', [CashRegisterController::class, 'closed'])
         ->name('caixa.closed');
-    Route::get('/owners/caixa/financeiro', [CashRegisterController::class, 'report'])
-        ->name('caixa.report');
-    Route::get('/owners/caixa/financeiro/lancamentos', [CashRegisterController::class, 'reportEntries'])
-        ->name('caixa.report.entries');
-    Route::get('/owners/caixa/balanco', [CashRegisterController::class, 'balance'])
-        ->name('caixa.balance');
+    // Relatório financeiro e balanço: gestão (dono/gerente). O atendente opera o
+    // caixa mas não vê os relatórios de lucro.
+    Route::middleware('pode.gerir')->group(function () {
+        Route::get('/owners/caixa/financeiro', [CashRegisterController::class, 'report'])
+            ->name('caixa.report');
+        Route::get('/owners/caixa/financeiro/lancamentos', [CashRegisterController::class, 'reportEntries'])
+            ->name('caixa.report.entries');
+        Route::get('/owners/caixa/balanco', [CashRegisterController::class, 'balance'])
+            ->name('caixa.balance');
+    });
     Route::post('/owners/caixa/abrir', [CashRegisterController::class, 'open'])
         ->name('caixa.open');
     Route::post('/owners/caixa/lancamento', [CashRegisterController::class, 'entry'])
@@ -599,7 +635,9 @@ Route::middleware(['auth'])->group(function () {
         ->name('client.profile.destroy');
 });
 
-Route::middleware(['auth'])->group(function () {
+// Gestão de arenas, quadras e funcionários: só dono e gerente (pode.gerir).
+// O atendente consulta arena/quadras por modal no painel, sem essas telas.
+Route::middleware(['auth', 'pode.gerir'])->group(function () {
     Route::patch('/arenas/{arena}/pagamentos', [ArenaController::class, 'updatePayments'])
         ->name('arenas.payments.update');
     Route::patch('/arenas/{arena}/toggle', [ArenaController::class, 'toggleActive'])

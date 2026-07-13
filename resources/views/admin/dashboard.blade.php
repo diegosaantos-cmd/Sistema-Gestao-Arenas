@@ -18,7 +18,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <h4 class="text-secondary">Empresas</h4>
-                            <span class="text-muted small">Visualizar</span>
+                            <span class="text-muted small">Ver</span>
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['proprietarios'] }}</h1>
                         <div class="small text-muted">Empresas e proprietários cadastrados</div>
@@ -37,7 +37,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <h4 class="text-secondary">Arenas</h4>
-                            <span class="text-muted small">Visualizar</span>
+                            <span class="text-muted small">Ver</span>
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['arenas'] }}</h1>
                         <div class="small text-muted">Arenas cadastradas</div>
@@ -56,7 +56,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <h4 class="text-secondary">Quadras</h4>
-                            <span class="text-muted small">Visualizar</span>
+                            <span class="text-muted small">Ver</span>
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['quadras'] }}</h1>
                         <div class="small text-muted">Em todas as arenas</div>
@@ -75,7 +75,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <h4 class="text-secondary">Clientes</h4>
-                            <span class="text-muted small">Visualizar</span>
+                            <span class="text-muted small">Ver</span>
                         </div>
                         <h1 class="fw-bold mb-1">{{ $resumo['clientes'] }}</h1>
                         <div class="small text-muted">Clientes cadastrados</div>
@@ -98,7 +98,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <h4 class="text-secondary">Total de usuários</h4>
-                                    <span class="text-muted small">Visualizar</span>
+                                    <span class="text-muted small">Ver</span>
                                 </div>
                                 <h1 class="fw-bold mb-1">{{ $resumo['usuarios'] }}</h1>
                                 <div class="small text-muted">Clientes, funcionários e proprietários</div>
@@ -117,7 +117,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <h4 class="text-secondary">Funcionários</h4>
-                                    <span class="text-muted small">Visualizar</span>
+                                    <span class="text-muted small">Ver</span>
                                 </div>
                                 <h1 class="fw-bold mb-1">{{ $resumo['funcionarios'] }}</h1>
                                 <div class="small text-muted">Funcionários cadastrados nas arenas</div>
@@ -136,7 +136,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <h4 class="text-secondary">Administradores do sistema</h4>
-                                    <span class="text-muted small">Visualizar</span>
+                                    <span class="text-muted small">Ver</span>
                                 </div>
                                 <h1 class="fw-bold mb-1">{{ $resumo['administradores'] }}</h1>
                                 <div class="small text-muted">Controle administrativo</div>

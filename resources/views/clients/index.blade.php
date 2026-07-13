@@ -6,7 +6,7 @@
 
 <div class="container py-4 painel">
 
-    <x-back :href="route('owners.dashboard')" />
+    <x-back :href="\App\Support\ArenaAtual::podeGerir() ? route('owners.dashboard') : route('employees.dashboard')" />
 
     <h1 class="fw-bold mb-4">Clientes — {{ $arena->name }}</h1>
 
@@ -42,9 +42,11 @@
             <button class="btn btn-primary">Filtrar</button>
         </form>
 
-        <a href="{{ route('clients.broadcast.create') }}" class="btn btn-success">
-            <i class="bi bi-megaphone me-1"></i> Disparar mensagem para vários
-        </a>
+        @if (\App\Support\ArenaAtual::podeGerir())
+            <a href="{{ route('clients.broadcast.create') }}" class="btn btn-success">
+                <i class="bi bi-megaphone me-1"></i> Disparar mensagem para vários
+            </a>
+        @endif
     </div>
 
     <div class="card shadow-sm border-0">
@@ -90,9 +92,11 @@
                                     <a href="{{ route('clients.show', $client) }}" class="btn btn-sm btn-primary">
                                         <i class="bi bi-info-circle me-1"></i> Detalhes
                                     </a>
-                                    <a href="{{ route('clients.message.create', $client) }}" class="btn btn-sm btn-success">
-                                        <i class="bi bi-send me-1"></i> Enviar mensagem
-                                    </a>
+                                    @if (\App\Support\ArenaAtual::podeGerir())
+                                        <a href="{{ route('clients.message.create', $client) }}" class="btn btn-sm btn-success">
+                                            <i class="bi bi-send me-1"></i> Enviar mensagem
+                                        </a>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

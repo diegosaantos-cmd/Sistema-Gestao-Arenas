@@ -34,8 +34,13 @@
 
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
-            <button class="nav-link {{ $aba === 'canceladas' ? '' : 'active' }}" data-bs-toggle="tab" data-bs-target="#abaMes" type="button">
+            <button class="nav-link {{ $aba === 'mes' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#abaMes" type="button">
                 Reservas do mês <span class="badge bg-secondary ms-1">{{ $reservasMesLista->total() }}</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link text-warning {{ $aba === 'atrasados' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#abaAtrasados" type="button">
+                Pagamentos atrasados <span class="badge bg-warning text-dark ms-1">{{ $reservasAtrasadasLista->total() }}</span>
             </button>
         </li>
         <li class="nav-item">
@@ -46,11 +51,14 @@
     </ul>
 
     <div class="tab-content">
-        <div class="tab-pane fade {{ $aba === 'canceladas' ? '' : 'show active' }}" id="abaMes">
-            @include('admin.arenas._booking-list', ['listaReservas' => $reservasMesLista])
+        <div class="tab-pane fade {{ $aba === 'mes' ? 'show active' : '' }}" id="abaMes">
+            @include('admin.arenas._booking-list', ['listaReservas' => $reservasMesLista, 'mostrarTaxa' => true])
+        </div>
+        <div class="tab-pane fade {{ $aba === 'atrasados' ? 'show active' : '' }}" id="abaAtrasados">
+            @include('admin.arenas._booking-list', ['listaReservas' => $reservasAtrasadasLista])
         </div>
         <div class="tab-pane fade {{ $aba === 'canceladas' ? 'show active' : '' }}" id="abaCanceladas">
-            @include('admin.arenas._booking-list', ['listaReservas' => $reservasCanceladasLista])
+            @include('admin.arenas._booking-list', ['listaReservas' => $reservasCanceladasLista, 'mostrarTaxa' => true])
         </div>
     </div>
 </div>

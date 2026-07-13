@@ -153,8 +153,11 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')->whereColumn('bookings.client_id', 'clients.id')
-                    ->whereIn('court_id', clone $idsQuadras)->where('status', '!=', 'cancelled'),
+                // Total gasto = valor das reservas não canceladas + a taxa que o
+                // cliente pagou nas canceladas (também é gasto na arena).
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                    ->whereColumn('bookings.client_id', 'clients.id')
+                    ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'
             )
             ->orderByDesc('reservas_total')
@@ -219,12 +222,25 @@ class DashboardController extends Controller
             ->paginate(25, ['*'], 'mes_page')->appends($filtros);
         $reservasCanceladasLista = (clone $consulta)->where('status', 'cancelled')
             ->paginate(25, ['*'], 'canceladas_page')->appends($filtros);
+
+        // Pagamentos atrasados: confirmada/realizada, sem pagamento pago e cujo
+        // horário já terminou (mesma regra do Booking::situacaoPagamento()).
+        $reservasAtrasadasLista = (clone $consulta)
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'))
+            ->where(function ($q) {
+                $q->whereDate('date', '<', now()->toDateString())
+                    ->orWhere(fn ($q2) => $q2->whereDate('date', now()->toDateString())
+                        ->where('end_time', '<', now()->format('H:i:s')));
+            })
+            ->paginate(25, ['*'], 'atrasados_page')->appends($filtros);
+
         $historicoReservasLista = (clone $consulta)
             ->paginate(25, ['*'], 'historico_page')->appends($filtros);
 
         return view('admin.arenas.reservas-page', compact(
             'arena', 'aba', 'busca',
-            'reservasMesLista', 'reservasCanceladasLista', 'historicoReservasLista'
+            'reservasMesLista', 'reservasCanceladasLista', 'reservasAtrasadasLista', 'historicoReservasLista'
         ));
     }
 
@@ -757,15 +773,13 @@ class DashboardController extends Controller
         $inicioMes = now()->startOfMonth();
         $fimMes = now()->endOfMonth();
 
-        $faturamentoPorArena = DB::table('payments')
-            ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
-            ->join('courts', 'courts.id', '=', 'bookings.court_id')
-            ->where('payments.status', 'paid')
-            ->whereBetween('payments.paid_at', [$inicioMes, $fimMes])
-            ->whereIn('courts.arena_id', $owner->arenas()->select('arenas.id'))
-            ->groupBy('courts.arena_id')
-            ->selectRaw('courts.arena_id, COALESCE(SUM(payments.amount), 0) as total')
-            ->pluck('total', 'courts.arena_id');
+        // Faturamento REAL (via caixa): líquido do mês por arena, para os cards.
+        $arenaIdsEmpresa = $owner->arenas()->pluck('arenas.id')->all();
+        $faturamentoPorArena = collect($arenaIdsEmpresa)->mapWithKeys(fn ($aid) => [
+            $aid => \App\Support\Faturamento::liquido(
+                [$aid], $inicioMes->toDateString(), $fimMes->toDateString()
+            ),
+        ]);
 
         $owner->load('user');
 
@@ -793,45 +807,23 @@ class DashboardController extends Controller
             'faturamento_mes' => $arenas->sum('faturamento_mes'),
         ];
 
-        $faturamentoHistoricoEmpresa = DB::table('payments')
-            ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
-            ->join('courts', 'courts.id', '=', 'bookings.court_id')
-            ->join('arenas', 'arenas.id', '=', 'courts.arena_id')
-            ->where('payments.status', 'paid')
-            ->whereIn('courts.arena_id', $owner->arenas()->select('arenas.id'))
-            ->groupBy(
-                'courts.arena_id',
-                'arenas.name',
-                DB::raw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m')")
-            )
-            ->orderByRaw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') DESC")
-            ->orderBy('arenas.name')
-            ->selectRaw("
-                courts.arena_id,
-                arenas.name as arena_nome,
-                DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') as mes,
-                SUM(payments.amount) as total
-            ")
-            ->get();
-
-        $faturamentoAcumuladoEmpresa = (float) $faturamentoHistoricoEmpresa->sum('total');
-        $anosFaturamentoEmpresa = $faturamentoHistoricoEmpresa
-            ->map(fn ($registro) => (int) substr($registro->mes, 0, 4))
-            ->push((int) now()->year)
-            ->unique()
-            ->sortDesc()
-            ->values();
-
+        // Faturamento REAL da empresa (todas as arenas): breakdown por ano + mensal.
         $anoFaturamentoEmpresa = (int) request('ano_faturamento', now()->year);
+        $anosFaturamentoEmpresa = \App\Support\Faturamento::anos($arenaIdsEmpresa);
         if (! $anosFaturamentoEmpresa->contains($anoFaturamentoEmpresa)) {
             $anoFaturamentoEmpresa = (int) now()->year;
         }
 
-        $faturamentoAnoEmpresa = $faturamentoHistoricoEmpresa
-            ->filter(fn ($registro) =>
-                (int) substr($registro->mes, 0, 4) === $anoFaturamentoEmpresa
-            )
-            ->values();
+        $fatMesEmpresa = \App\Support\Faturamento::resumo(
+            $arenaIdsEmpresa, $inicioMes->toDateString(), $fimMes->toDateString()
+        );
+        $fatAcumuladoEmpresa = \App\Support\Faturamento::resumo($arenaIdsEmpresa);
+        $fatAnoEmpresa = \App\Support\Faturamento::resumo(
+            $arenaIdsEmpresa,
+            $anoFaturamentoEmpresa . '-01-01',
+            $anoFaturamentoEmpresa . '-12-31'
+        );
+        $fatMensalEmpresa = \App\Support\Faturamento::mensal($arenaIdsEmpresa, $anoFaturamentoEmpresa);
 
         $idsQuadrasEmpresa = Court::withTrashed()
             ->whereIn('arena_id', $owner->arenas()->select('arenas.id'))
@@ -864,10 +856,9 @@ class DashboardController extends Controller
                 'reservas_na_empresa'
             )
             ->selectSub(
-                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
-                    ->whereIn('court_id', clone $idsQuadrasEmpresa)
-                    ->where('status', '!=', 'cancelled'),
+                    ->whereIn('court_id', clone $idsQuadrasEmpresa),
                 'valor_total_na_empresa'
             )
             ->orderByDesc('reservas_na_empresa')
@@ -888,10 +879,12 @@ class DashboardController extends Controller
             'totais',
             'empresas',
             'clientesEmpresa',
-            'faturamentoAcumuladoEmpresa',
-            'anosFaturamentoEmpresa',
             'anoFaturamentoEmpresa',
-            'faturamentoAnoEmpresa'
+            'anosFaturamentoEmpresa',
+            'fatMesEmpresa',
+            'fatAcumuladoEmpresa',
+            'fatAnoEmpresa',
+            'fatMensalEmpresa'
         ));
     }
 
@@ -922,10 +915,9 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
-                    ->whereIn('court_id', clone $idsQuadras)
-                    ->where('status', '!=', 'cancelled'),
+                    ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'
             )
             ->orderByDesc('reservas_total')
@@ -1098,39 +1090,26 @@ class DashboardController extends Controller
                 ->orderBy('opens_at'),
         ])->loadCount(['courts', 'employees']);
 
-        $faturamentoMensalCompleto = DB::table('payments')
-            ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
-            ->join('courts', 'courts.id', '=', 'bookings.court_id')
-            ->where('courts.arena_id', $arena->id)
-            ->where('payments.status', 'paid')
-            ->groupByRaw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m')")
-            ->orderByRaw("DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') DESC")
-            ->selectRaw("
-                DATE_FORMAT(COALESCE(payments.paid_at, payments.created_at), '%Y-%m') as mes,
-                SUM(payments.amount) as total
-            ")
-            ->get();
-
-        $faturamentoTotal = (float) $faturamentoMensalCompleto->sum('total');
-        $faturamentoMesAtual = (float) optional(
-            $faturamentoMensalCompleto->firstWhere('mes', now()->format('Y-m'))
-        )->total;
-
-        $anosFaturamento = $faturamentoMensalCompleto
-            ->map(fn ($registro) => (int) substr($registro->mes, 0, 4))
-            ->push((int) now()->year)
-            ->unique()
-            ->sortDesc()
-            ->values();
-
+        // Faturamento REAL da arena (via caixa): reservas + cancelamentos +
+        // entradas avulsas − despesas. Ver App\Support\Faturamento.
         $anoFaturamento = (int) request('ano_faturamento', now()->year);
+        $anosFaturamento = \App\Support\Faturamento::anos([$arena->id]);
         if (! $anosFaturamento->contains($anoFaturamento)) {
             $anoFaturamento = (int) now()->year;
         }
 
-        $faturamentoMensal = $faturamentoMensalCompleto
-            ->filter(fn ($registro) => (int) substr($registro->mes, 0, 4) === $anoFaturamento)
-            ->values();
+        $fatMes = \App\Support\Faturamento::resumo(
+            [$arena->id],
+            now()->startOfMonth()->toDateString(),
+            now()->endOfMonth()->toDateString()
+        );
+        $fatAcumulado = \App\Support\Faturamento::resumo([$arena->id]);
+        $fatAno = \App\Support\Faturamento::resumo(
+            [$arena->id],
+            $anoFaturamento . '-01-01',
+            $anoFaturamento . '-12-31'
+        );
+        $fatMensal = \App\Support\Faturamento::mensal([$arena->id], $anoFaturamento);
 
         $quadrasAtivas = $arena->courts()->where('active', true)->count();
         $funcionariosAtivos = $arena->employees()->where('active', true)->count();
@@ -1221,10 +1200,9 @@ class DashboardController extends Controller
                 'reservas_na_arena'
             )
             ->selectSub(
-                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
-                    ->whereIn('court_id', clone $idsQuadras)
-                    ->where('status', '!=', 'cancelled'),
+                    ->whereIn('court_id', clone $idsQuadras),
                 'valor_total_na_arena'
             )
             ->orderByDesc('reservas_na_arena')
@@ -1239,11 +1217,12 @@ class DashboardController extends Controller
 
         return view('admin.arenas.show', compact(
             'arena',
-            'faturamentoMensal',
-            'anosFaturamento',
             'anoFaturamento',
-            'faturamentoTotal',
-            'faturamentoMesAtual',
+            'anosFaturamento',
+            'fatMes',
+            'fatAcumulado',
+            'fatAno',
+            'fatMensal',
             'quadrasAtivas',
             'funcionariosAtivos',
             'reservasTotal',
@@ -1280,10 +1259,9 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                Booking::selectRaw('COALESCE(SUM(total_amount), 0)')
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
-                    ->whereIn('court_id', clone $idsQuadras)
-                    ->where('status', '!=', 'cancelled'),
+                    ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'
             )
             ->orderByDesc('reservas_total')

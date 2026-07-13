@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function ($middleware) {
     $middleware->alias([
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        'pode.gerir' => \App\Http\Middleware\PodeGerirArena::class,
     ]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {

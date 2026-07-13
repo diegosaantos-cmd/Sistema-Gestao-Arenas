@@ -15,6 +15,9 @@
                     <th>Status</th>
                     <th>Pagamento</th>
                     <th class="text-end">Valor</th>
+                    @if ($mostrarTaxa ?? false)
+                        <th class="text-end">Taxa</th>
+                    @endif
                     <th class="pe-3">Cancelada por</th>
                 </tr>
             </thead>
@@ -52,9 +55,29 @@
                                 </div>
                             @endif
                         </td>
-                        <td class="text-end text-nowrap fw-bold">
-                            R$ {{ number_format($reserva->total_amount, 2, ',', '.') }}
+                        @php
+                            // Cancelada NÃO gera receita: o valor cheio aparece riscado
+                            // (com ou sem taxa). Se houve taxa, ela aparece na coluna Taxa
+                            // como o que realmente foi pago.
+                            $reservaCancelada = ($mostrarTaxa ?? false) && $reserva->status === 'cancelled';
+                        @endphp
+                        <td class="text-end text-nowrap {{ $reservaCancelada ? 'text-muted' : 'fw-bold' }}">
+                            <span @if ($reservaCancelada) style="text-decoration: line-through;"
+                                  title="Não gerou receita — reserva cancelada" @endif>
+                                R$ {{ number_format($reserva->total_amount, 2, ',', '.') }}
+                            </span>
                         </td>
+                        @if ($mostrarTaxa ?? false)
+                            <td class="text-end text-nowrap">
+                                @if ($reserva->cancellation_fee_amount > 0)
+                                    <span class="fw-semibold text-danger" title="Taxa de cancelamento paga">
+                                        R$ {{ number_format($reserva->cancellation_fee_amount, 2, ',', '.') }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                        @endif
                         <td class="pe-3">
                             @if ($reserva->status === 'cancelled')
                                 <strong class="d-block small">
@@ -79,7 +102,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-5">
+                        <td colspan="{{ ($mostrarTaxa ?? false) ? 9 : 8 }}" class="text-center text-muted py-5">
                             Nenhuma reserva encontrada.
                         </td>
                     </tr>

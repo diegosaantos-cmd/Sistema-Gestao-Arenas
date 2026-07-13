@@ -4,7 +4,14 @@
     background: linear-gradient(90deg, #021B35, #001427);
     padding: 6px 6px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    
+
+}
+
+/* A navbar fica SEMPRE acima de qualquer cabeçalho fixo de tabela
+   (.admin-sticky-table thead th tem z-index baixo). Sem isto, dependendo do
+   navegador/cache, o cabeçalho da tabela podia passar por cima da navbar. */
+header.sticky-top{
+    z-index: 1030;
 }
 
 .logo{

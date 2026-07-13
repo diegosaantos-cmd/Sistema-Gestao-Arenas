@@ -33,16 +33,13 @@
             <div class="text-muted">
                 <div><strong>E-mail:</strong> {{ $client->user->email ?? '—' }}</div>
                 <div><strong>Telefone:</strong> {{ $client->user->phone ?? '—' }}</div>
-                @if ($canceladasCount)
-                    <div class="mt-1"><strong>Canceladas:</strong> {{ $canceladasCount }}</div>
-                @endif
             </div>
         </div>
     </div>
 
     {{-- Cards de reservas (clique para ver a lista completa) --}}
     <div class="row g-3 mb-4">
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-lg-3">
             <a href="{{ route('clients.bookings', [$client, 'a-realizar']) }}" class="text-decoration-none">
                 <div class="card shadow-sm border-0 h-100 text-center card-hover">
                     <div class="card-body">
@@ -53,7 +50,7 @@
                 </div>
             </a>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-lg-3">
             <a href="{{ route('clients.bookings', [$client, 'realizadas']) }}" class="text-decoration-none">
                 <div class="card shadow-sm border-0 h-100 text-center card-hover">
                     <div class="card-body">
@@ -64,7 +61,7 @@
                 </div>
             </a>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-lg-3">
             <a href="{{ route('clients.bookings', [$client, 'nao-pagas']) }}" class="text-decoration-none">
                 <div class="card shadow-sm border-0 h-100 text-center card-hover {{ $naoPagas->count() ? 'border-danger' : '' }}"
                      @if ($naoPagas->count()) style="border-width:2px !important;" @endif>
@@ -78,22 +75,35 @@
                 </div>
             </a>
         </div>
-    </div>
-
-    {{-- Enviar mensagem ao cliente --}}
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-                <h2 class="h5 fw-bold mb-1">Enviar mensagem</h2>
-                <p class="text-muted small mb-0">
-                    A mensagem chega ao cliente nas notificações dele dentro do sistema e no e-mail.
-                </p>
-            </div>
-            <a href="{{ route('clients.message.create', $client) }}" class="btn btn-success">
-                <i class="bi bi-send me-1"></i> Enviar mensagem
+        <div class="col-6 col-lg-3">
+            <a href="{{ route('clients.bookings', [$client, 'canceladas']) }}" class="text-decoration-none">
+                <div class="card shadow-sm border-0 h-100 text-center card-hover">
+                    <div class="card-body">
+                        <div class="display-6 fw-bold text-secondary">{{ $canceladas->count() }}</div>
+                        <div class="text-muted">Reservas canceladas</div>
+                        <div class="small text-primary mt-2">Ver lista →</div>
+                    </div>
+                </div>
             </a>
         </div>
     </div>
+
+    {{-- Enviar mensagem ao cliente (comunicação: só gerente/dono) --}}
+    @if (\App\Support\ArenaAtual::podeGerir())
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h2 class="h5 fw-bold mb-1">Enviar mensagem</h2>
+                    <p class="text-muted small mb-0">
+                        A mensagem chega ao cliente nas notificações dele dentro do sistema e no e-mail.
+                    </p>
+                </div>
+                <a href="{{ route('clients.message.create', $client) }}" class="btn btn-success">
+                    <i class="bi bi-send me-1"></i> Enviar mensagem
+                </a>
+            </div>
+        </div>
+    @endif
 
 </div>
 

@@ -104,9 +104,10 @@ class UserNotification extends Model
     }
 
     /**
-     * Avisa o STAFF de uma arena (o dono + os gerentes ativos). Usado quando o
-     * próprio cliente age (cria ou cancela uma reserva) e o staff precisa saber.
-     * `sent_by` fica nulo: o gatilho é uma ação do cliente, não um envio manual.
+     * Avisa o STAFF de uma arena (o dono + os funcionários ativos: gerentes e
+     * atendentes). Usado quando o próprio cliente age (cria ou cancela uma reserva)
+     * e o staff precisa saber. `sent_by` fica nulo: o gatilho é uma ação do
+     * cliente, não um envio manual.
      */
     public static function paraStaffDaArena(Arena $arena, string $title, string $body): void
     {
@@ -122,8 +123,10 @@ class UserNotification extends Model
     }
 
     /**
-     * IDs de usuário do staff da arena: o dono e os gerentes ativos. Sem repetir
-     * (caso raro de o dono também ter vínculo de funcionário na própria arena).
+     * IDs de usuário do staff da arena: o dono e TODOS os funcionários ativos
+     * (gerentes e atendentes) — o atendente também atende reservas no balcão, então
+     * precisa ser avisado. Sem repetir (caso raro de o dono também ter vínculo de
+     * funcionário na própria arena).
      */
     private static function idsStaffDaArena(Arena $arena): array
     {
@@ -134,13 +137,12 @@ class UserNotification extends Model
             $ids[] = $arena->owner->user_id;
         }
 
-        $gerentes = Employee::where('arena_id', $arena->id)
-            ->where('access_level', 'managerial')
+        $funcionarios = Employee::where('arena_id', $arena->id)
             ->where('active', true)
             ->whereNotNull('user_id')
             ->pluck('user_id')
             ->all();
 
-        return array_values(array_unique([...$ids, ...$gerentes]));
+        return array_values(array_unique([...$ids, ...$funcionarios]));
     }
 }

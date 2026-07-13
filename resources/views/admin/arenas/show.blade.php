@@ -109,10 +109,10 @@
                     data-bs-target="#modalFaturamentoArena">
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Faturamento da arena</h5>
-                    <h2 class="fs-4">
-                        R$ {{ number_format($faturamentoMesAtual, 2, ',', '.') }}
+                    <h2 class="fs-4 {{ $fatMes['liquido'] < 0 ? 'text-danger' : '' }}">
+                        R$ {{ number_format($fatMes['liquido'], 2, ',', '.') }}
                     </h2>
-                    <small class="text-muted">Pagamentos confirmados</small>
+                    <small class="text-muted">Líquido do mês (entradas − saídas)</small>
                 </div>
                 <i class="bi bi-cash-coin dashboard-icon text-success"></i>
             </button>
@@ -143,71 +143,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <span class="text-muted">Faturamento no mês</span>
-                            <div class="fs-3 fw-bold text-success">
-                                R$ {{ number_format($faturamentoMesAtual, 2, ',', '.') }}
-                            </div>
-                            <small class="text-muted">Pagamentos confirmados no mês atual</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <span class="text-muted">Faturamento acumulado</span>
-                            <div class="fs-3 fw-bold text-success">
-                                R$ {{ number_format($faturamentoTotal, 2, ',', '.') }}
-                            </div>
-                            <small class="text-muted">Desde o início dos registros no sistema</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <h6 class="fw-bold mb-0">Faturamento por mês</h6>
-                    <form method="GET" action="{{ route('admin.arenas.show', $arena) }}">
-                        <input type="hidden" name="faturamento_modal" value="1">
-                        <select name="ano_faturamento"
-                                class="form-select form-select-sm"
-                                aria-label="Selecionar ano"
-                                onchange="this.form.submit()">
-                            @foreach ($anosFaturamento as $ano)
-                                <option value="{{ $ano }}" @selected($anoFaturamento === $ano)>
-                                    {{ $ano }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                </div>
-                <div class="table-responsive border rounded" style="max-height: 55vh; overflow-y: auto;">
-                    <table class="table align-middle mb-0 admin-sticky-table">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th class="ps-3">Mês</th>
-                                <th class="text-end pe-3">Faturamento</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($faturamentoMensal as $registro)
-                                <tr>
-                                    <td class="ps-3">
-                                        {{ \Carbon\Carbon::createFromFormat('Y-m', $registro->mes)->translatedFormat('F/Y') }}
-                                    </td>
-                                    <td class="text-end fw-bold text-success pe-3">
-                                        R$ {{ number_format($registro->total, 2, ',', '.') }}
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="2" class="text-center text-muted py-4">
-                                        Nenhum pagamento confirmado.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                @include('admin.arenas._faturamento-detalhe', [
+                    'fatMes' => $fatMes,
+                    'fatAcumulado' => $fatAcumulado,
+                    'fatAno' => $fatAno,
+                    'fatMensal' => $fatMensal,
+                    'anoFaturamento' => $anoFaturamento,
+                    'anosFaturamento' => $anosFaturamento,
+                    'formAction' => route('admin.arenas.show', $arena),
+                    'formHidden' => ['faturamento_modal' => 1, 'origem' => request('origem')],
+                ])
             </div>
         </div>
     </div>
@@ -470,11 +415,11 @@
                     </div>
                     <div class="tab-pane fade {{ $abaAtivaReservas === 'canceladas' ? 'show active' : '' }}"
                          id="reservas-arena-canceladas" role="tabpanel">
-                        @include('admin.arenas._booking-list', ['listaReservas' => $reservasCanceladasLista])
+                        @include('admin.arenas._booking-list', ['listaReservas' => $reservasCanceladasLista, 'mostrarTaxa' => true])
                     </div>
                     <div class="tab-pane fade {{ $abaAtivaReservas === 'historico' ? 'show active' : '' }}"
                          id="reservas-arena-historico" role="tabpanel">
-                        @include('admin.arenas._booking-list', ['listaReservas' => $historicoReservasLista])
+                        @include('admin.arenas._booking-list', ['listaReservas' => $historicoReservasLista, 'mostrarTaxa' => true])
                     </div>
                 </div>
             </div>
@@ -495,7 +440,7 @@
             <div class="modal-body">
                 <div class="row g-3 align-items-start">
                     @forelse ($arena->courts->sortBy('name') as $quadra)
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                             <div class="border rounded p-3 d-flex flex-column" data-arena-court-card>
                                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                                     <h6 class="fw-bold mb-0">{{ $quadra->name }}</h6>
@@ -574,7 +519,7 @@
                                     </div>
                                 </div>
 
-                                <button type="button" class="btn btn-outline-primary btn-sm w-100 court-details-toggle"
+                                <button type="button" class="btn btn-primary btn-sm w-100 court-details-toggle"
                                         data-bs-toggle="collapse"
                                         data-bs-target="#detalhesQuadraArena{{ $quadra->id }}"
                                         aria-controls="detalhesQuadraArena{{ $quadra->id }}"
@@ -706,9 +651,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3">
+                <div class="row g-3 align-items-start">
                     @forelse ($arena->employees->sortBy(fn ($employee) => $employee->user?->name) as $employee)
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                         <div class="border rounded p-3 h-100 d-flex flex-column" data-arena-employee-card>
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                 <div>
@@ -758,7 +703,7 @@
                                             <div class="col-6"><span class="small text-dark fw-bold">Cadastrado por</span><br><span>{{ $employee->createdBy->name }}</span></div>
                                         @endif
                                         <div class="col-12">
-                                            <button type="button" class="btn btn-outline-danger btn-sm w-100"
+                                            <button type="button" class="btn btn-danger btn-sm w-100"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#modalExcluirFuncionario{{ $employee->id }}">
                                                 Excluir
@@ -768,7 +713,7 @@
                                 </div>
                             </div>
 
-                            <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-auto employee-details-toggle"
+                            <button type="button" class="btn btn-primary btn-sm w-100 mt-auto employee-details-toggle"
                                     data-bs-toggle="collapse"
                                     data-bs-target="#detalhesFuncionarioArena{{ $employee->id }}"
                                     aria-controls="detalhesFuncionarioArena{{ $employee->id }}"

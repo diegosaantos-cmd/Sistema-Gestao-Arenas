@@ -32,11 +32,15 @@
         <div class="col-lg-6">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
+                    @php $soConsulta = \App\Support\ArenaAtual::ehAtendente(); @endphp
+
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0">Dados pessoais</h5>
-                        <button type="button" class="btn btn-sm btn-warning" id="btnEditarPessoais">
-                            ✏️ Editar
-                        </button>
+                        @unless ($soConsulta)
+                            <button type="button" class="btn btn-sm btn-warning" id="btnEditarPessoais">
+                                ✏️ Editar
+                            </button>
+                        @endunless
                     </div>
 
                     <div id="pessoaisView">
@@ -45,6 +49,7 @@
                         <p class="mb-0"><strong>Telefone:</strong> {{ $user->phone ?: '—' }}</p>
                     </div>
 
+                    @unless ($soConsulta)
                     <form method="POST" action="{{ route('employee.profile.personal') }}" id="pessoaisForm" class="d-none">
                         @csrf
                         @method('PATCH')
@@ -70,6 +75,11 @@
                             <button type="button" class="btn btn-secondary btn-sm" id="btnCancelarPessoais">Cancelar</button>
                         </div>
                     </form>
+                    @else
+                        <p class="text-muted small mt-3 mb-0">
+                            Seus dados são definidos pelo proprietário. Se algo estiver errado, avise-o.
+                        </p>
+                    @endunless
                 </div>
             </div>
         </div>

@@ -110,7 +110,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h4 class="text-secondary">Arena Atual</h4>
-                                <span class="text-muted small">Visualizar</span>
+                                <span class="text-muted small">Ver</span>
                             </div>
                             <h3 class="fw-bold mb-1">{{ $selectedArena->name }}</h3>
                             @if ($selectedArena->active)
@@ -138,7 +138,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h4 class="text-secondary">Quadras</h4>
-                                <span class="text-muted small">Visualizar</span>
+                                <span class="text-muted small">Ver</span>
                             </div>
                             <h1 class="fw-bold mb-1">{{ $courtsCount }}</h1>
                             <div class="small">
@@ -165,7 +165,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h4 class="text-secondary">Reservas de Hoje</h4>
-                                <span class="text-muted small">Visualizar</span>
+                                <span class="text-muted small">Ver</span>
                             </div>
                             <h1 class="fw-bold">{{ $agendamentosHoje }}</h1>
                         </div>
@@ -188,7 +188,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h4 class="text-secondary">Aguardando confirmação</h4>
-                                <span class="text-muted small">Visualizar</span>
+                                <span class="text-muted small">Ver</span>
                             </div>
                             <h1 class="fw-bold mb-1">{{ $pendentesCount }}</h1>
                             @if ($pendentesCount > 0)
@@ -216,7 +216,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h4 class="text-secondary">Clientes</h4>
-                                <span class="text-muted small">Visualizar</span>
+                                <span class="text-muted small">Ver</span>
                             </div>
                             <h1 class="fw-bold">{{ $customersCount }}</h1>
                         </div>
@@ -239,7 +239,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h4 class="text-secondary">Funcionários</h4>
-                                <span class="text-muted small">Visualizar</span>
+                                <span class="text-muted small">Ver</span>
                             </div>
                             <h1 class="fw-bold mb-1">{{ $employeesCount }}</h1>
                             <div class="small">
@@ -266,7 +266,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h4 class="text-secondary">Lucro do mês</h4>
-                                <span class="text-muted small">Visualizar</span>
+                                <span class="text-muted small">Ver</span>
                             </div>
                             <h1 class="fw-bold {{ $lucroMes >= 0 ? 'text-success' : 'text-danger' }}">
                                 R$ {{ number_format($lucroMes, 2, ',', '.') }}

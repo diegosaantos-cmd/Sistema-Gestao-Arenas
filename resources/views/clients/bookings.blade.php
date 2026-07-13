@@ -23,8 +23,13 @@
                             <th>Data / Horário</th>
                             <th>Quadra</th>
                             <th>Status</th>
-                            <th>Pagamento</th>
+                            @if ($tipo !== 'canceladas')
+                                <th>Pagamento</th>
+                            @endif
                             <th class="text-end">Valor</th>
+                            @if ($tipo === 'canceladas')
+                                <th class="text-end">Taxa</th>
+                            @endif
                             <th class="text-end">Ação</th>
                         </tr>
                     </thead>
@@ -49,10 +54,34 @@
                                         <span class="badge bg-danger">Cancelada</span>
                                     @endif
                                 </td>
-                                <td>@include('partials.payment-badge', ['booking' => $b])</td>
-                                <td class="text-end {{ $tipo === 'nao-pagas' ? 'fw-bold text-danger' : '' }}">
-                                    R$ {{ number_format($b->total_amount, 2, ',', '.') }}
+                                @if ($tipo !== 'canceladas')
+                                    <td>@include('partials.payment-badge', ['booking' => $b])</td>
+                                @endif
+                                <td class="text-end">
+                                    @if ($tipo === 'canceladas')
+                                        {{-- Cancelada não gerou receita da reserva: risca o valor. --}}
+                                        <span class="text-decoration-line-through text-muted">R$ {{ number_format($b->total_amount, 2, ',', '.') }}</span>
+                                    @else
+                                        <span class="{{ $tipo === 'nao-pagas' ? 'fw-bold text-danger' : '' }}">R$ {{ number_format($b->total_amount, 2, ',', '.') }}</span>
+                                    @endif
                                 </td>
+                                @if ($tipo === 'canceladas')
+                                    @php $taxa = (float) $b->cancellation_fee_amount; @endphp
+                                    <td class="text-end">
+                                        @if ($taxa > 0)
+                                            <span class="fw-semibold {{ $b->isPaga() ? 'text-success' : '' }}">
+                                                R$ {{ number_format($taxa, 2, ',', '.') }}
+                                            </span><br>
+                                            @if ($b->isPaga())
+                                                <span class="badge bg-success">Paga</span>
+                                            @else
+                                                <span class="badge bg-warning text-dark">A receber</span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted">Sem taxa</span>
+                                        @endif
+                                    </td>
+                                @endif
                                 <td class="text-end">
                                     <a href="{{ route('bookings.show', $b) }}" class="btn btn-sm btn-primary">Detalhes</a>
                                 </td>

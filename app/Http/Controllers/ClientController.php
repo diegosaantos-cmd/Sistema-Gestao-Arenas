@@ -115,6 +115,7 @@ class ClientController extends Controller
             'a-realizar' => ['Reservas a realizar', $r['proximas']],
             'realizadas' => ['Reservas realizadas', $r['realizadas']],
             'nao-pagas'  => ['Reservas não pagas', $r['naoPagas']],
+            'canceladas' => ['Reservas canceladas', $r['canceladas']],
             default      => abort(404),
         };
 
@@ -284,9 +285,13 @@ class ClientController extends Controller
         // Devendo: realizadas e não pagas.
         $naoPagas = $realizadas->filter(fn ($b) => ! $b->isPaga())->values();
 
-        $canceladasCount = $bookings->where('status', 'cancelled')->count();
+        // Canceladas: a lista (para a tela) e a contagem (para o cabeçalho).
+        $canceladas = $bookings->where('status', 'cancelled')
+            ->sortByDesc(fn ($b) => $b->date->toDateString() . ' ' . $b->start_time)
+            ->values();
+        $canceladasCount = $canceladas->count();
 
-        return compact('proximas', 'realizadas', 'naoPagas', 'canceladasCount');
+        return compact('proximas', 'realizadas', 'naoPagas', 'canceladas', 'canceladasCount');
     }
 
     /**

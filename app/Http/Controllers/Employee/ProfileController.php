@@ -28,6 +28,9 @@ class ProfileController extends Controller
      */
     public function updatePersonal(Request $request)
     {
+        // O atendente só consulta os próprios dados; quem edita é o gerente/dono.
+        abort_if(\App\Support\ArenaAtual::ehAtendente(), 403);
+
         $this->employee();
         $user = auth()->user();
 

@@ -75,10 +75,10 @@
                                     $route = '/owners/dashboard';
                                 } elseif ($tipo === 'employee') {
                                     // Gerente cai no painel do dono (reaproveitado);
-                                    // atendente, no painel próprio via /dashboard.
+                                    // atendente, no painel próprio.
                                     $route = \App\Support\ArenaAtual::ehGerente()
                                         ? '/owners/dashboard'
-                                        : '/dashboard';
+                                        : '/employees/dashboard';
                                 }
                             @endphp
                             <li class="nav-item">
@@ -94,7 +94,7 @@
                                         MINHA CONTA
                                     </a>
                                 </li>
-                            @elseif (\App\Support\ArenaAtual::ehGerente())
+                            @elseif (auth()->user()->type === 'employee')
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('employee.profile.edit') }}">
                                         <i class="bi bi-person-gear"></i>
