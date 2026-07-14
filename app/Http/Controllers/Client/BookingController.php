@@ -279,6 +279,7 @@ class BookingController extends Controller
     public function cancel(Request $request, Booking $booking)
     {
         $this->autorizarClienteDaReserva($booking);
+        $booking->loadMissing('payments', 'court.arena');
 
         $regra = $booking->regraCancelamentoCliente();
 
@@ -286,11 +287,47 @@ class BookingController extends Controller
             return back()->withErrors(['cancel' => 'Esta reserva não pode mais ser cancelada.']);
         }
 
-        // Com taxa: só cancela pagando a taxa online.
+        // Reserva JÁ PAGA: cancela e REEMBOLSA (pago − taxa, ou tudo sem taxa).
+        // Não passa pela tela de pagar taxa — ele já pagou a reserva inteira.
+        if ($booking->isPaga()) {
+            $validated = $request->validate([
+                'motivo' => ['required', 'string', 'max:255'],
+            ], ['motivo.required' => 'Informe o motivo do cancelamento.']);
+
+            $taxa = $regra === 'taxa' ? (float) $booking->valorTaxaCancelamento() : 0.0;
+
+            $pagamento = DB::transaction(function () use ($booking, $validated, $taxa) {
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $validated['motivo'],
+                    'cancellation_fee_amount' => $taxa > 0 ? $taxa : null,
+                ]);
+
+                return PaymentService::reembolsar($booking, $taxa, auth()->id());
+            });
+
+            $reembolso = (float) ($pagamento->refund_amount ?? 0);
+
+            $booking->notificarStaffCanceladaPeloCliente($validated['motivo']);
+            $booking->notificarClienteReembolso($reembolso, $taxa);
+
+            $msg = 'Reserva cancelada. ';
+            if ($taxa > 0) {
+                $msg .= 'Taxa de R$ ' . number_format($taxa, 2, ',', '.') . ' retida. ';
+            }
+            $msg .= 'Reembolso de R$ ' . number_format($reembolso, 2, ',', '.') . ' processado. ✅';
+
+            return back()->with('status', $msg);
+        }
+
+        // Não paga, com taxa: só cancela pagando a taxa online.
         if ($regra === 'taxa') {
             return redirect()->route('client.bookings.cancel-pay', $booking);
         }
 
+        // Não paga, sem taxa: cancela direto.
         $validated = $request->validate([
             'motivo' => ['required', 'string', 'max:255'],
         ], [
@@ -330,6 +367,13 @@ class BookingController extends Controller
             return redirect()->route('client.bookings.index');
         }
 
+        // JÁ PAGA: não paga a taxa de novo — cancela com reembolso pelo fluxo normal.
+        if ($booking->isPaga()) {
+            return redirect()->route('client.bookings.index')->withErrors([
+                'cancel' => 'Esta reserva já está paga. Use "Cancelar" para cancelar com reembolso.',
+            ]);
+        }
+
         $taxa = $booking->valorTaxaCancelamento();
         // Só formas online (PIX/cartão) — dinheiro não paga taxa remotamente.
         $formas = $booking->court->arena->paymentMethods
@@ -353,6 +397,13 @@ class BookingController extends Controller
         if ($regra !== 'taxa') {
             return redirect()->route('client.bookings.index')
                 ->withErrors(['cancel' => 'Esta reserva não exige pagamento de taxa para cancelar.']);
+        }
+
+        // JÁ PAGA: não paga a taxa de novo — cancela com reembolso pelo fluxo normal.
+        if ($booking->isPaga()) {
+            return redirect()->route('client.bookings.index')->withErrors([
+                'cancel' => 'Esta reserva já está paga. Use "Cancelar" para cancelar com reembolso.',
+            ]);
         }
 
         $arena = $booking->court->arena;

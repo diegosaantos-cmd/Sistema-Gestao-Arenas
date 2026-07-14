@@ -116,9 +116,38 @@
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <span class="text-muted">Valor a receber (fixo da reserva):</span>
-                        <div class="fs-4 fw-bold">R$ {{ number_format($reserva->total_amount, 2, ',', '.') }}</div>
+                    <div class="mb-2">
+                        <span class="text-muted">Valor da reserva:</span>
+                        <div class="fs-5 fw-semibold">R$ {{ number_format($reserva->total_amount, 2, ',', '.') }}</div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label mb-1">Desconto <span class="text-muted small">— opcional</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            {{-- Campo visível com máscara de dinheiro (só o valor numérico
+                                 vai no campo oculto "discount" abaixo). --}}
+                            <input type="text" inputmode="numeric" autocomplete="off"
+                                   class="form-control js-desconto-mask" placeholder="0,00"
+                                   data-total="{{ $reserva->total_amount }}">
+                        </div>
+                        <input type="hidden" name="discount" value="{{ old('discount', '0') }}"
+                               class="js-desconto-valor">
+                    </div>
+
+                    <div class="mb-2 js-motivo-wrap" style="display:none;">
+                        <label class="form-label mb-1">Motivo do desconto <span class="text-danger">*</span></label>
+                        <input type="text" name="discount_reason" maxlength="255"
+                               class="form-control js-motivo-caixa"
+                               placeholder="Ex.: cliente fiel, cortesia, arredondamento…"
+                               value="{{ old('discount_reason') }}">
+                    </div>
+
+                    <div class="mb-3 border rounded p-2 bg-light">
+                        <span class="text-muted">Valor a receber:</span>
+                        <div class="fs-4 fw-bold text-success js-valor-receber" data-total="{{ $reserva->total_amount }}">
+                            R$ {{ number_format($reserva->total_amount, 2, ',', '.') }}
+                        </div>
                     </div>
 
                     {{-- PIX (simulação — o cliente paga na hora) --}}
@@ -170,6 +199,46 @@
             }
 
             sel.addEventListener('change', sync);
+            sync();
+        });
+
+        // Desconto com MÁSCARA DE DINHEIRO: o usuário digita os dígitos e eles vão
+        // preenchendo os centavos da direita para a esquerda (ex.: 1500 -> 15,00;
+        // 150000 -> 1.500,00). O valor numérico limpo (ex.: 15.00) vai no campo
+        // oculto "discount"; o "valor a receber" recalcula ao vivo e o motivo fica
+        // obrigatório sempre que houver desconto.
+        function numeroBR(v) {
+            return v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        document.querySelectorAll('.js-desconto-mask').forEach(function (vis) {
+            var form = vis.closest('form');
+            var total = parseFloat(vis.getAttribute('data-total')) || 0;
+            var hidden = form.querySelector('.js-desconto-valor');
+            var alvo = form.querySelector('.js-valor-receber');
+            var motivoWrap = form.querySelector('.js-motivo-wrap');
+            var motivo = form.querySelector('.js-motivo-caixa');
+
+            function sync() {
+                var digitos = (vis.value || '').replace(/\D/g, '');
+                var desc = digitos ? parseInt(digitos, 10) / 100 : 0;
+                if (desc > total) { desc = total; }
+
+                vis.value = desc > 0 ? numeroBR(desc) : '';
+                if (hidden) { hidden.value = desc.toFixed(2); }
+
+                if (alvo) { alvo.textContent = 'R$ ' + numeroBR(total - desc); }
+
+                var temDesconto = desc > 0;
+                if (motivoWrap) { motivoWrap.style.display = temDesconto ? '' : 'none'; }
+                if (motivo) { motivo.required = temDesconto; if (!temDesconto) { motivo.value = ''; } }
+            }
+
+            vis.addEventListener('input', sync);
+
+            // Repõe o valor (ex.: erro de validação com old('discount')).
+            var inicial = parseFloat(hidden ? hidden.value : '0') || 0;
+            if (inicial > 0) { vis.value = numeroBR(inicial); }
             sync();
         });
     })();

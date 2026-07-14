@@ -181,12 +181,6 @@
                         HISTÓRICO
                     </a>
 
-                    <a href="{{ route('client.profile.edit') }}"
-                       class="btn dashboard-btn-outline">
-                        <i class="bi bi-person-fill me-2"></i>
-                        MEU PERFIL
-                    </a>
-
                 </div>
 
             </div>

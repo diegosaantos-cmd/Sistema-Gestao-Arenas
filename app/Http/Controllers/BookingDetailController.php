@@ -35,6 +35,10 @@ class BookingDetailController extends Controller
             abort(403);
         }
 
+        // Só o staff (dono/gerente/atendente) pode abrir o lançamento no caixa; o
+        // cliente não tem acesso ao caixa, então não vê o botão "Ver lançamento".
+        $podeVerCaixa = $ehDono || $ehFuncionario;
+
         // Quem registrou a reserva (dono, gerente, atendente ou admin). Vem do
         // created_by — nas reservas feitas pelo próprio cliente no site é nulo.
         $registradaPor = $this->descreverUsuario($booking->created_by);
@@ -46,7 +50,7 @@ class BookingDetailController extends Controller
         // sequência dele; dono/funcionário veem a sequência da arena.
         $numeroReserva = $ehCliente ? $booking->numeroDoCliente() : $booking->numeroNaArena();
 
-        return view('bookings.details', compact('booking', 'registradaPor', 'canceladoPor', 'numeroReserva'));
+        return view('bookings.details', compact('booking', 'registradaPor', 'canceladoPor', 'numeroReserva', 'podeVerCaixa'));
     }
 
     /**

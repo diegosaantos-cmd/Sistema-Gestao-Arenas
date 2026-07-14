@@ -101,6 +101,13 @@
                                         MINHA CONTA
                                     </a>
                                 </li>
+                            @elseif (auth()->user()->type === 'client')
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('client.profile.edit') }}">
+                                        <i class="bi bi-person-gear"></i>
+                                        MINHA CONTA
+                                    </a>
+                                </li>
                             @endif
 
                             @if (auth()->user()->type !== 'admin')
@@ -170,6 +177,27 @@
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
     <script src="/js/favorites.js" defer></script>
+    <script>
+        // Navegação "lateral" entre a reserva e o lançamento do caixa (botões
+        // "Ver lançamento completo" / "Ver reserva completa"). Se o destino é
+        // exatamente a página de onde eu vim, volto pelo histórico (history.back)
+        // em vez de empilhar uma nova entrada. Assim, alternar entre as duas telas
+        // não acumula histórico e o "Voltar" chega à origem em poucos passos —
+        // sem o "loop" de ter que desfazer cada alternância. Fallback: navegação
+        // normal (empilha) se o referrer não estiver disponível.
+        function arenaCrossNav(e, url) {
+            try {
+                var ref = document.referrer ? new URL(document.referrer).pathname : '';
+                var alvo = new URL(url, window.location.origin).pathname;
+                if (ref && ref === alvo && window.history.length > 1) {
+                    e.preventDefault();
+                    window.history.back();
+                    return false;
+                }
+            } catch (err) { /* referrer indisponível: segue navegação normal */ }
+            return true;
+        }
+    </script>
 </body>
 
 </html>

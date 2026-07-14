@@ -6,7 +6,7 @@
 
 <div class="container py-4 painel">
 
-    <x-back :href="url()->previous()" />
+    <x-back :href="url()->previous()" history />
 
     @php
         $statusInfo = [
@@ -34,13 +34,14 @@
         @include('partials.payment-badge', ['booking' => $booking])
     </div>
 
-    <div class="row g-4">
+    {{-- Cards em masonry de 2 colunas: equilibra a altura sozinho, seja a
+         Reserva (paga) ou o Registro (cancelamento) o card mais alto. --}}
+    <div class="reserva-cards">
 
         {{-- Reserva --}}
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">Reserva</h5>
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">Reserva</h5>
                     <p class="mb-1"><strong>Arena:</strong> {{ $booking->court->arena->name ?? '—' }}</p>
                     <p class="mb-1"><strong>Quadra:</strong> {{ $booking->court->name ?? '—' }}</p>
                     <p class="mb-1">
@@ -66,6 +67,17 @@
                         </p>
                         @if ($pago)
                             <p class="mb-1"><strong>Forma:</strong> {{ $pago->paymentMethod->label ?? '—' }}</p>
+                            @if ((float) $pago->discount_amount > 0)
+                                <p class="mb-1">
+                                    <strong>Valor original:</strong>
+                                    <span class="text-decoration-line-through text-muted">R$ {{ number_format($booking->total_amount, 2, ',', '.') }}</span>
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Desconto:</strong>
+                                    <span class="text-danger">− R$ {{ number_format($pago->discount_amount, 2, ',', '.') }}</span>
+                                </p>
+                                <p class="mb-1"><strong>Motivo do desconto:</strong> {{ $pago->discount_reason ?: '—' }}</p>
+                            @endif
                             <p class="mb-1">
                                 <strong>Valor pago:</strong>
                                 R$ {{ number_format($pago->amount, 2, ',', '.') }}
@@ -74,45 +86,49 @@
                                 <strong>Pago em:</strong>
                                 {{ optional($pago->paid_at)->format('d/m/Y H:i') ?? '—' }}
                             </p>
+                            @if (($podeVerCaixa ?? false) && $pago->cash_register_entry_id)
+                                {{-- Sem 'voltar': o back do lançamento cai no destino
+                                     padrão (caixa), evitando loop com o back desta tela
+                                     (que é url()->previous()). --}}
+                                <a href="{{ route('caixa.entry.show', $pago->cash_register_entry_id) }}"
+                                   class="btn btn-sm btn-primary mt-3"
+                                   onclick="return arenaCrossNav(event, this.href)">
+                                    <i class="bi bi-receipt me-1"></i> Ver lançamento completo
+                                </a>
+                            @endif
                         @endif
                     @endif
                 </div>
             </div>
-        </div>
 
         {{-- Cliente --}}
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">Cliente</h5>
-                    <p class="mb-1"><strong>Nome:</strong> {{ $booking->nomeCliente() }}</p>
-                    <p class="mb-1"><strong>E-mail:</strong> {{ $booking->emailCliente() ?? '—' }}</p>
-                    <p class="mb-0"><strong>Telefone:</strong> {{ $booking->telefoneCliente() ?? '—' }}</p>
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">Cliente</h5>
+                        <p class="mb-1"><strong>Nome:</strong> {{ $booking->nomeCliente() }}</p>
+                        <p class="mb-1"><strong>E-mail:</strong> {{ $booking->emailCliente() ?? '—' }}</p>
+                        <p class="mb-0"><strong>Telefone:</strong> {{ $booking->telefoneCliente() ?? '—' }}</p>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        {{-- Observações --}}
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">Observações</h5>
-                    <p class="mb-0">{{ $booking->notes ?: '—' }}</p>
-                    @if ($registradaPor)
-                        <hr>
-                        <p class="mb-0">
-                            <strong>Registrada por:</strong> {{ $registradaPor }}
-                        </p>
-                    @endif
+                {{-- Observações --}}
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-3">Observações</h5>
+                        <p class="mb-0">{{ $booking->notes ?: '—' }}</p>
+                        @if ($registradaPor)
+                            <hr>
+                            <p class="mb-0">
+                                <strong>Registrada por:</strong> {{ $registradaPor }}
+                            </p>
+                        @endif
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        {{-- Registro / cancelamento --}}
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">Registro</h5>
+                {{-- Registro / cancelamento --}}
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-3">Registro</h5>
                     <p class="mb-1">
                         <strong>Criada em:</strong>
                         {{ optional($booking->created_at)->format('d/m/Y H:i') ?? '—' }}
@@ -135,7 +151,7 @@
                         <p class="mb-1">
                             <strong>Motivo:</strong> {{ $booking->cancellation_reason ?: '—' }}
                         </p>
-                        <p class="mb-0">
+                        <p class="mb-1">
                             <strong>Taxa:</strong>
                             @if ((float) $booking->cancellation_fee_amount > 0)
                                 <span class="text-danger fw-semibold">R$ {{ number_format($booking->cancellation_fee_amount, 2, ',', '.') }}</span>
@@ -143,10 +159,19 @@
                                 <span class="text-muted">Sem taxa</span>
                             @endif
                         </p>
+                        @php $estorno = $booking->payments->first(fn ($p) => $p->refunded_at !== null); @endphp
+                        @if ($estorno)
+                            <p class="mb-0">
+                                <strong>Reembolso:</strong>
+                                <span class="text-success fw-semibold">R$ {{ number_format($estorno->refund_amount, 2, ',', '.') }}</span>
+                                @if (! $estorno->refund_cash_register_entry_id)
+                                    <span class="badge bg-warning text-dark ms-1">a lançar no caixa</span>
+                                @endif
+                            </p>
+                        @endif
                     @endif
+                    </div>
                 </div>
-            </div>
-        </div>
 
     </div>
 

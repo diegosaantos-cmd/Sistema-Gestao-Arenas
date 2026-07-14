@@ -52,6 +52,29 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(SystemAdmin::class);
     }
 
+    /**
+     * "Tipo: Nome" do usuário (Cliente / Proprietário / Gerente / Atendente /
+     * Administrador). Para funcionário, distingue gerente de atendente pelo nível
+     * de acesso. Usado onde é útil saber o papel de quem fez a ação (ex.: quem
+     * lançou algo no caixa).
+     */
+    public function descricaoComTipo(): string
+    {
+        $tipo = match ($this->type) {
+            'client' => 'Cliente',
+            'owner' => 'Proprietário',
+            'admin' => 'Administrador',
+            default => null,
+        };
+
+        if ($this->type === 'employee') {
+            $emp = Employee::where('user_id', $this->id)->first();
+            $tipo = ($emp && $emp->access_level === 'managerial') ? 'Gerente' : 'Atendente';
+        }
+
+        return ($tipo ? $tipo . ': ' : '') . $this->name;
+    }
+
     use TwoFactorAuthenticatable;
 
     /**

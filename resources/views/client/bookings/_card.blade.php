@@ -2,6 +2,7 @@
     [$rotulo, $cor] = $badges[$b->status] ?? [$b->status, 'bg-secondary'];
     $regra = $b->regraCancelamentoCliente();  // null quando já começou
     $emAndamento = $b->estaEmAndamento();     // já começou, ainda não terminou
+    $paga = $b->isPaga();                      // já paga -> cancelar reembolsa
 @endphp
 
 <div class="col-sm-6 col-lg-3">
@@ -65,11 +66,13 @@
                 </a>
             @endif
 
-            @if ($regra === 'taxa')
+            @if ($regra === 'taxa' && ! $paga)
+                {{-- Não paga, com taxa: paga a taxa online para poder cancelar. --}}
                 <a href="{{ route('client.bookings.cancel-pay', $b) }}" class="btn btn-danger btn-sm">
                     <i class="bi bi-x-circle me-1"></i> Cancelar (com taxa)
                 </a>
-            @elseif ($regra === 'livre')
+            @elseif ($regra)
+                {{-- Livre, ou JÁ PAGA (cancela e reembolsa pago − taxa). --}}
                 <button type="button" class="btn btn-danger btn-sm"
                         data-bs-toggle="modal" data-bs-target="#cancelModal{{ $b->id }}">
                     <i class="bi bi-x-circle me-1"></i> Cancelar
@@ -77,7 +80,7 @@
             @endif
         </div>
 
-        @if ($regra === 'livre')
+        @if ($regra === 'livre' || $paga)
             {{-- Modal de confirmação (cancelamento sem taxa) --}}
             <div class="modal fade" id="cancelModal{{ $b->id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
@@ -98,10 +101,26 @@
                                     {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
                                 </p>
 
-                                <p class="mb-3">
-                                    Tem certeza que deseja cancelar esta reserva?
-                                    <strong>Sem taxa.</strong>
-                                </p>
+                                @if ($paga)
+                                    @php
+                                        $taxaCanc = $regra === 'taxa' ? (float) $b->valorTaxaCancelamento() : 0.0;
+                                        $pagoAmount = (float) optional($b->payments->firstWhere('status', 'paid'))->amount;
+                                        $reembolso = max(0, round($pagoAmount - $taxaCanc, 2));
+                                    @endphp
+                                    <p class="mb-3">
+                                        Você pagou <strong>R$ {{ number_format($pagoAmount, 2, ',', '.') }}</strong> nesta reserva.
+                                        @if ($taxaCanc > 0)
+                                            Será retida a taxa de <strong>R$ {{ number_format($taxaCanc, 2, ',', '.') }}</strong> e
+                                        @endif
+                                        você será reembolsado em
+                                        <strong class="text-success">R$ {{ number_format($reembolso, 2, ',', '.') }}</strong>.
+                                    </p>
+                                @else
+                                    <p class="mb-3">
+                                        Tem certeza que deseja cancelar esta reserva?
+                                        <strong>Sem taxa.</strong>
+                                    </p>
+                                @endif
 
                                 <label class="form-label">Motivo do cancelamento</label>
                                 <textarea name="motivo" class="form-control" rows="3" required

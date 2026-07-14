@@ -79,7 +79,9 @@
                                 <th>Arena</th>
                                 <th>Quadra</th>
                                 <th>Status</th>
+                                <th>Pagamento</th>
                                 <th class="text-end">Valor</th>
+                                <th class="text-end">Taxa</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,10 +107,52 @@
                                             {{ $statusPt[$r->status] ?? ucfirst($r->status) }}
                                         </span>
                                     </td>
-                                    <td class="text-end">R$ {{ number_format($r->total_amount, 2, ',', '.') }}</td>
+                                    <td>
+                                        {{-- Pagamento: pago (com forma) / a pagar / atrasado; cancelada não se aplica --}}
+                                        @php
+                                            $sit = $r->situacaoPagamento();
+                                            $pago = $r->payments->firstWhere('status', 'paid');
+                                        @endphp
+                                        @if ($sit === 'pago')
+                                            <span class="badge bg-success">Pago</span>
+                                            @if ($pago?->paymentMethod?->label)
+                                                <div class="small text-muted">{{ $pago->paymentMethod->label }}</div>
+                                            @endif
+                                        @elseif ($sit === 'atrasado')
+                                            <span class="badge bg-danger">Atrasado</span>
+                                        @elseif ($sit === 'a_pagar')
+                                            <span class="badge bg-warning text-dark">A pagar</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        @if ($r->status === 'cancelled')
+                                            {{-- Cancelada não gerou receita: valor riscado. --}}
+                                            <span class="text-muted text-decoration-line-through">R$ {{ number_format($r->total_amount, 2, ',', '.') }}</span>
+                                        @elseif ($pago && (float) $pago->discount_amount > 0)
+                                            {{-- Destaque (cor) para o que ENTROU: o "pago" escuro; o valor cheio em cinza e riscado (não foi o que entrou). --}}
+                                            <span class="text-muted text-decoration-line-through">R$ {{ number_format($r->total_amount, 2, ',', '.') }}</span>
+                                            <div class="small text-danger">− R$ {{ number_format($pago->discount_amount, 2, ',', '.') }} desc.</div>
+                                            <div class="small">pago R$ {{ number_format($pago->amount, 2, ',', '.') }}</div>
+                                        @else
+                                            R$ {{ number_format($r->total_amount, 2, ',', '.') }}
+                                        @endif
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        @if ($r->status === 'cancelled')
+                                            @if ((float) $r->cancellation_fee_amount > 0)
+                                                <span class="fw-semibold text-danger">R$ {{ number_format($r->cancellation_fee_amount, 2, ',', '.') }}</span>
+                                            @else
+                                                <span class="text-muted">Sem taxa</span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center text-muted py-3">Nenhuma reserva.</td></tr>
+                                <tr><td colspan="8" class="text-center text-muted py-3">Nenhuma reserva.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

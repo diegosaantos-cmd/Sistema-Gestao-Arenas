@@ -6,7 +6,7 @@
 
 <div class="container py-4 painel">
 
-    <x-back :href="request('voltar', route('caixa.index'))" />
+    <x-back :href="request('voltar', route('caixa.index'))" history />
 
     @php $entrada = $entry->type === 'income'; @endphp
 
@@ -38,7 +38,7 @@
                     <p class="mb-0">
                         <strong>Feito por:</strong>
                         @if ($entry->createdBy)
-                            {{ $entry->createdBy->name }}
+                            {{ $entry->createdBy->descricaoComTipo() }}
                             @if ($pagamento && $pagamento->origin === 'online')
                                 <span class="badge bg-light text-dark border">cliente (online)</span>
                             @endif
@@ -86,7 +86,8 @@
                             {{ substr($b->start_time, 0, 5) }}–{{ substr($b->end_time, 0, 5) }}
                         </p>
                         <p class="mb-0"><strong>Valor da reserva:</strong> R$ {{ number_format($b->total_amount, 2, ',', '.') }}</p>
-                        <a href="{{ route('bookings.show', $b) }}" class="btn btn-sm btn-primary mt-3">
+                        <a href="{{ route('bookings.show', $b) }}" class="btn btn-sm btn-primary mt-3"
+                           onclick="return arenaCrossNav(event, this.href)">
                             <i class="bi bi-info-circle me-1"></i> Ver reserva completa
                         </a>
                     </div>
@@ -107,6 +108,15 @@
                                 <strong>Pago em:</strong>
                                 {{ optional($pagamento->paid_at)->format('d/m/Y H:i') ?? '—' }}
                             </p>
+                            @if ((float) $pagamento->discount_amount > 0)
+                                <p class="mb-1">
+                                    <strong>Desconto:</strong>
+                                    <span class="text-danger">− R$ {{ number_format($pagamento->discount_amount, 2, ',', '.') }}</span>
+                                    @if ($pagamento->discount_reason)
+                                        <span class="text-muted">({{ $pagamento->discount_reason }})</span>
+                                    @endif
+                                </p>
+                            @endif
                             <p class="mb-0"><strong>Valor pago:</strong> R$ {{ number_format($pagamento->amount, 2, ',', '.') }}</p>
                         @else
                             <p class="text-muted mb-0">Sem pagamento vinculado a este lançamento.</p>

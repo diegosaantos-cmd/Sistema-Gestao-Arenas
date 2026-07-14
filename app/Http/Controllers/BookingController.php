@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Services\CourtScheduleService;
+use App\Services\PaymentService;
 use App\Support\ArenaAtual;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -199,7 +201,9 @@ class BookingController extends Controller
     }
 
     /**
-     * Cancela uma reserva pendente/confirmada (ação do dono, sem taxa).
+     * Cancela uma reserva pendente/confirmada (ação do staff). Se a reserva já
+     * estava PAGA, reembolsa o cliente INTEGRALMENTE — quem cancelou foi a arena,
+     * então o cliente não é penalizado (sem taxa).
      */
     public function cancel(Request $request, Booking $booking)
     {
@@ -215,13 +219,30 @@ class BookingController extends Controller
             'motivo.required' => 'Informe o motivo do cancelamento.',
         ]);
 
-        $booking->update([
-            'status' => 'cancelled',
-            'cancelled_by' => auth()->id(),
-            'cancelled_at' => now(),
-            'cancellation_reason' => $validated['motivo'],
-        ]);
+        $booking->loadMissing('payments', 'court.arena');
+        $paga = $booking->isPaga();
+
+        $pagamento = DB::transaction(function () use ($booking, $validated, $paga) {
+            $booking->update([
+                'status' => 'cancelled',
+                'cancelled_by' => auth()->id(),
+                'cancelled_at' => now(),
+                'cancellation_reason' => $validated['motivo'],
+            ]);
+
+            // Reserva paga cancelada pela arena: reembolso integral (sem taxa).
+            return $paga ? PaymentService::reembolsar($booking, 0.0, auth()->id()) : null;
+        });
+
         $booking->notificarClienteCancelada($validated['motivo'], auth()->id());
+
+        if ($pagamento) {
+            $reembolso = (float) $pagamento->refund_amount;
+            $booking->notificarClienteReembolso($reembolso, 0.0, auth()->id());
+
+            return back()->with('msg',
+                'Reserva cancelada. Reembolso de R$ ' . number_format($reembolso, 2, ',', '.') . ' processado.');
+        }
 
         // Volta para a página de origem (próximos ou aguardando confirmação).
         return back()->with('msg', 'Reserva cancelada.');

@@ -32,6 +32,7 @@ class CashRegisterController extends Controller
         $reservasCount = $caixaAberto ? $this->reservasAReceberQuery($arena)->count() : 0;
         $taxasCount = $caixaAberto ? $this->taxasAReceberQuery($arena)->count() : 0;
         $lancarCount = $caixaAberto ? $this->pagamentosALancarQuery($arena)->count() : 0;
+        $reembolsosCount = $caixaAberto ? $this->reembolsosALancarQuery($arena)->count() : 0;
         $lancamentosCount = $caixaAberto ? $caixaAberto->entries->count() : 0;
 
         // Card "Caixas fechados": conta só os do mês atual e informa o mês.
@@ -50,7 +51,7 @@ class CashRegisterController extends Controller
 
         return view('owners.caixa.index', compact(
             'arena', 'caixaAberto', 'reservasCount', 'taxasCount', 'lancarCount',
-            'lancamentosCount', 'fechadosCount', 'mesAtualLabel'
+            'reembolsosCount', 'lancamentosCount', 'fechadosCount', 'mesAtualLabel'
         ));
     }
 
@@ -157,6 +158,56 @@ class CashRegisterController extends Controller
         PaymentService::lancarNoCaixa($payment, $caixa, auth()->id());
 
         return redirect()->route('caixa.pending-payments')->with('status', 'Pagamento lançado no caixa.');
+    }
+
+    /**
+     * Reembolsos de cancelamento que ficaram pendentes (o cancelamento foi feito
+     * com o caixa fechado) — saídas a lançar. Espelha "pagamentos a lançar".
+     */
+    public function pendingRefunds()
+    {
+        $arena = $this->arena();
+
+        $caixaAberto = CashRegister::where('arena_id', $arena->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (! $caixaAberto) {
+            return redirect()->route('caixa.index');
+        }
+
+        $reembolsos = $this->reembolsosALancarQuery($arena)
+            ->with(['booking.court', 'booking.client.user', 'paymentMethod'])
+            ->orderBy('refunded_at')
+            ->get();
+
+        $numerosReservas = Booking::numerosNaArena($arena->id);
+
+        return view('owners.caixa.pending-refunds', compact('arena', 'caixaAberto', 'reembolsos', 'numerosReservas'));
+    }
+
+    /**
+     * Lança no caixa aberto a SAÍDA de um reembolso que estava pendente.
+     */
+    public function launchRefund(Payment $payment)
+    {
+        $arena = $this->arena();
+        $caixa = $this->caixaAberto($arena);
+
+        $booking = $payment->booking;
+        $courtIds = $arena->courts()->pluck('id')->all();
+
+        if (! $booking || ! in_array($booking->court_id, $courtIds)) {
+            abort(403);
+        }
+
+        if ($payment->refunded_at === null || (float) $payment->refund_amount <= 0 || $payment->refund_cash_register_entry_id) {
+            return back()->withErrors(['refund' => 'Este reembolso já foi lançado no caixa.']);
+        }
+
+        PaymentService::lancarReembolso($payment, $caixa, auth()->id());
+
+        return redirect()->route('caixa.pending-refunds')->with('status', 'Reembolso lançado no caixa como saída.');
     }
 
     /**
@@ -488,10 +539,17 @@ class CashRegisterController extends Controller
             return back()->withErrors(['pay' => 'Esta reserva já foi paga.']);
         }
 
+        $total = round((float) $booking->total_amount, 2);
+
         $validated = $request->validate([
             'payment_method_id' => ['required', 'integer'],
+            'discount' => ['nullable', 'numeric', 'min:0', 'max:' . $total],
+            'discount_reason' => ['nullable', 'string', 'max:255'],
         ], [
             'payment_method_id.required' => 'Escolha a forma de pagamento.',
+            'discount.numeric' => 'O desconto deve ser um valor numérico.',
+            'discount.min' => 'O desconto não pode ser negativo.',
+            'discount.max' => 'O desconto não pode ser maior que o valor da reserva.',
         ]);
 
         // A forma de pagamento precisa ser uma das aceitas pela arena.
@@ -500,16 +558,37 @@ class CashRegisterController extends Controller
             return back()->withErrors(['pay' => 'Forma de pagamento inválida.']);
         }
 
-        // O valor é fixo: vem da reserva, não do formulário (não pode ser alterado).
-        $valor = $booking->total_amount;
+        // Desconto (R$) e motivo. Motivo é obrigatório quando há desconto, para
+        // ficar registrado e não haver desconto "oculto".
+        $desconto = round((float) ($validated['discount'] ?? 0), 2);
+        $motivo = trim((string) ($validated['discount_reason'] ?? '')) ?: null;
 
-        DB::transaction(function () use ($booking, $metodo, $valor, $caixa) {
+        if ($desconto > 0 && ! $motivo) {
+            return back()
+                ->withErrors(['discount_reason' => 'Informe o motivo do desconto.'])
+                ->withInput();
+        }
+
+        if ($desconto <= 0) {
+            $desconto = 0;
+            $motivo = null;
+        }
+
+        // Valor que REALMENTE entra no caixa = total da reserva − desconto.
+        $valor = round($total - $desconto, 2);
+
+        $descricao = 'Pagamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label;
+        if ($desconto > 0) {
+            $descricao .= ' (desconto R$ ' . number_format($desconto, 2, ',', '.') . ')';
+        }
+
+        DB::transaction(function () use ($booking, $metodo, $valor, $desconto, $motivo, $descricao, $caixa) {
             $entry = CashRegisterEntry::create([
                 'cash_register_id' => $caixa->id,
                 'booking_id' => $booking->id,
                 'type' => 'income',
                 'amount' => $valor,
-                'description' => 'Pagamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label,
+                'description' => $descricao,
                 'created_by' => auth()->id(),
             ]);
 
@@ -517,6 +596,8 @@ class CashRegisterController extends Controller
                 'booking_id' => $booking->id,
                 'payment_method_id' => $metodo->id,
                 'amount' => $valor,
+                'discount_amount' => $desconto,
+                'discount_reason' => $motivo,
                 'status' => 'paid',
                 'origin' => 'local',
                 'cash_register_entry_id' => $entry->id,
@@ -524,7 +605,11 @@ class CashRegisterController extends Controller
             ]);
         });
 
-        return redirect()->route('caixa.receivables')->with('status', 'Pagamento registrado no caixa.');
+        $msg = $desconto > 0
+            ? 'Pagamento registrado no caixa com desconto de R$ ' . number_format($desconto, 2, ',', '.') . '.'
+            : 'Pagamento registrado no caixa.';
+
+        return redirect()->route('caixa.receivables')->with('status', $msg);
     }
 
     /**
@@ -700,6 +785,20 @@ class CashRegisterController extends Controller
         return Payment::where('status', 'paid')
             ->where('origin', 'online')
             ->whereNull('cash_register_entry_id')
+            ->whereIn('booking_id', Booking::whereIn('court_id', $courtIds)->select('id'));
+    }
+
+    /**
+     * Query base dos reembolsos de cancelamento que ainda não foram lançados no
+     * caixa (feitos com o caixa fechado). São SAÍDAS pendentes.
+     */
+    private function reembolsosALancarQuery(Arena $arena)
+    {
+        $courtIds = $arena->courts()->pluck('id');
+
+        return Payment::whereNotNull('refunded_at')
+            ->where('refund_amount', '>', 0)
+            ->whereNull('refund_cash_register_entry_id')
             ->whereIn('booking_id', Booking::whereIn('court_id', $courtIds)->select('id'));
     }
 

@@ -69,6 +69,8 @@
             'completed' => ['Concluída',  'bg-success'],
             'cancelled' => ['Cancelada',  'bg-danger'],
         ];
+        // Número da reserva na arena (o que o staff vê), em lote para evitar N+1.
+        $numerosArena = \App\Models\Booking::numerosNaArena($arena->id);
     @endphp
 
     <div class="card shadow-sm border-0">
@@ -77,6 +79,7 @@
             <table class="table align-middle mb-0">
                 <thead>
                     <tr>
+                        <th>Nº</th>
                         <th>Cliente</th>
                         <th>Origem</th>
                         <th>Quadra</th>
@@ -89,6 +92,7 @@
                 <tbody>
                     @forelse ($bookings as $booking)
                         <tr>
+                            <td class="fw-semibold text-nowrap">#{{ $numerosArena[$booking->id] ?? $booking->id }}</td>
                             <td>{{ $booking->nomeCliente() }}</td>
                             <td>@include('partials.origin-badge', ['booking' => $booking])</td>
                             <td>{{ $booking->court->name }}</td>
@@ -117,7 +121,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted">
+                            <td colspan="8" class="text-center text-muted">
                                 @if (request('q') || request('situacao'))
                                     Nenhum agendamento encontrado para o filtro.
                                 @else

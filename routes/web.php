@@ -503,10 +503,14 @@ Route::middleware(['auth'])->group(function () {
         ->name('caixa.fees');
     Route::get('/owners/caixa/pagamentos-a-lancar', [CashRegisterController::class, 'pendingPayments'])
         ->name('caixa.pending-payments');
+    Route::get('/owners/caixa/reembolsos-a-lancar', [CashRegisterController::class, 'pendingRefunds'])
+        ->name('caixa.pending-refunds');
     Route::get('/owners/caixa/lancamento/{entry}', [CashRegisterController::class, 'showEntry'])
         ->name('caixa.entry.show');
     Route::post('/owners/caixa/pagamentos/{payment}/lancar', [CashRegisterController::class, 'launchPayment'])
         ->name('caixa.launch-payment');
+    Route::post('/owners/caixa/reembolsos/{payment}/lancar', [CashRegisterController::class, 'launchRefund'])
+        ->name('caixa.launch-refund');
     Route::get('/owners/caixa/lancamentos', [CashRegisterController::class, 'entries'])
         ->name('caixa.entries');
     Route::get('/owners/caixa/fechados', [CashRegisterController::class, 'closed'])

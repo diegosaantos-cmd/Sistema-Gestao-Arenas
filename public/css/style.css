@@ -697,3 +697,17 @@ main img{ max-width: 100%; height: auto; }
     .arena-card .card-body p{ font-size: .78rem; }
     .arena-card .dashboard-btn-primary{ padding: 10px; font-size: .9rem; }
 }
+
+/* Detalhes da reserva: cards em masonry de 2 colunas (>= lg). Equilibra a
+   altura sozinho, seja a Reserva (paga) ou o Registro (cancelamento) o card
+   mais alto — evita a coluna desbalanceada. Em telas menores vira 1 coluna. */
+.reserva-cards > .card {
+    margin-bottom: 1.5rem;
+    break-inside: avoid;
+}
+@media (min-width: 992px) {
+    .reserva-cards {
+        column-count: 2;
+        column-gap: 1.5rem;
+    }
+}

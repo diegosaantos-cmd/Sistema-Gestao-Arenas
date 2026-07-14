@@ -118,7 +118,7 @@ class DashboardController extends Controller
 
         $reservas = collect();
         if ($user->client) {
-            $reservas = Booking::with(['court.arena'])
+            $reservas = Booking::with(['court.arena', 'payments.paymentMethod'])
                 ->where('client_id', $user->client->id)
                 ->orderByDesc('date')->orderByDesc('start_time')
                 ->paginate(20);
@@ -153,9 +153,10 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                // Total gasto = valor das reservas não canceladas + a taxa que o
-                // cliente pagou nas canceladas (também é gasto na arena).
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                // Total gasto = valor das reservas não canceladas MENOS o desconto
+                // que o cliente teve ao pagar (abate o desconto), + a taxa que ele
+                // pagou nas canceladas (também é gasto na arena).
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'
@@ -856,7 +857,7 @@ class DashboardController extends Controller
                 'reservas_na_empresa'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadrasEmpresa),
                 'valor_total_na_empresa'
@@ -915,7 +916,7 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'
@@ -1200,7 +1201,7 @@ class DashboardController extends Controller
                 'reservas_na_arena'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total_na_arena'
@@ -1259,7 +1260,7 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'

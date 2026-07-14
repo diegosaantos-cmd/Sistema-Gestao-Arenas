@@ -66,6 +66,16 @@
                                   title="Não gerou receita — reserva cancelada" @endif>
                                 R$ {{ number_format($reserva->total_amount, 2, ',', '.') }}
                             </span>
+                            @php $pagoComDesc = $reserva->payments->firstWhere('status', 'paid'); @endphp
+                            @if ($pagoComDesc && (float) $pagoComDesc->discount_amount > 0)
+                                <div class="small text-danger fw-normal"
+                                     title="Motivo: {{ $pagoComDesc->discount_reason }}">
+                                    − R$ {{ number_format($pagoComDesc->discount_amount, 2, ',', '.') }} desc.
+                                </div>
+                                <div class="small text-muted fw-normal">
+                                    pago R$ {{ number_format($pagoComDesc->amount, 2, ',', '.') }}
+                                </div>
+                            @endif
                         </td>
                         @if ($mostrarTaxa ?? false)
                             <td class="text-end text-nowrap">

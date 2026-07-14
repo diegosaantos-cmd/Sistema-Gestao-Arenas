@@ -49,7 +49,7 @@
                                     @elseif ($b->status === 'pending')
                                         <span class="badge bg-warning text-dark">Pendente</span>
                                     @elseif ($b->status === 'completed')
-                                        <span class="badge bg-secondary">Concluída</span>
+                                        <span class="badge bg-success">Concluída</span>
                                     @else
                                         <span class="badge bg-danger">Cancelada</span>
                                     @endif

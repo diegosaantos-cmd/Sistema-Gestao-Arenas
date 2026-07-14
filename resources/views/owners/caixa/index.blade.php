@@ -119,6 +119,22 @@
                     </div>
                 </a>
             </div>
+            {{-- Reembolsos a lançar: só aparece quando houver (cancelamento de reserva
+                 paga feito com o caixa fechado gera uma saída pendente). --}}
+            @if ($reembolsosCount > 0)
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ route('caixa.pending-refunds') }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm border-0 h-100 card-hover text-center border border-danger">
+                        <div class="card-body">
+                            <div class="fs-2">📤</div>
+                            <h6 class="text-secondary mb-1">Reembolsos a lançar</h6>
+                            <h2 class="fw-bold mb-1 text-danger">{{ $reembolsosCount }}</h2>
+                            <span class="small text-primary">ver todos →</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            @endif
             <div class="col-md-3 col-sm-6">
                 <a href="{{ route('caixa.entries') }}" class="text-decoration-none text-reset">
                     <div class="card shadow-sm border-0 h-100 card-hover text-center">

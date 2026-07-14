@@ -438,13 +438,29 @@ class Booking extends Model
         UserNotification::paraReserva(
             $this,
             'Reserva não paga',
-            'A sua reserva #' . $this->id
+            'A sua reserva #' . $this->numeroDoCliente()
                 . ' na ' . ($this->court->arena->name ?? 'arena')
                 . ' (' . $this->descricaoCurta() . ') foi realizada, '
                 . 'mas ficou sem pagamento. '
                 . 'Você ainda pode pagá-la na área "Pagamentos pendentes".',
             $sentBy
         );
+    }
+
+    /**
+     * Avisa o cliente do reembolso quando a reserva JÁ PAGA é cancelada
+     * (devolvido o valor pago menos a taxa retida, se houver).
+     */
+    public function notificarClienteReembolso(float $reembolso, float $taxa = 0, ?int $sentBy = null): void
+    {
+        $texto = 'Sua reserva foi cancelada: ' . $this->descricaoCurta() . '. ';
+        if ($taxa > 0) {
+            $texto .= 'Foi retida a taxa de cancelamento de R$ '
+                . number_format($taxa, 2, ',', '.') . '. ';
+        }
+        $texto .= 'Você foi reembolsado em R$ ' . number_format($reembolso, 2, ',', '.') . '.';
+
+        UserNotification::paraReserva($this, 'Reserva cancelada — reembolso', $texto, $sentBy);
     }
 
     /**
