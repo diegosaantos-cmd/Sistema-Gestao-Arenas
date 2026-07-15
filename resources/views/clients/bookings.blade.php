@@ -57,12 +57,20 @@
                                 @if ($tipo !== 'canceladas')
                                     <td>@include('partials.payment-badge', ['booking' => $b])</td>
                                 @endif
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
                                     @if ($tipo === 'canceladas')
                                         {{-- Cancelada não gerou receita da reserva: risca o valor. --}}
                                         <span class="text-decoration-line-through text-muted">R$ {{ number_format($b->total_amount, 2, ',', '.') }}</span>
                                     @else
-                                        <span class="{{ $tipo === 'nao-pagas' ? 'fw-bold text-danger' : '' }}">R$ {{ number_format($b->total_amount, 2, ',', '.') }}</span>
+                                        @php $pagoDesc = $b->payments->firstWhere('status', 'paid'); @endphp
+                                        @if ($pagoDesc && (float) $pagoDesc->discount_amount > 0)
+                                            {{-- Pago com desconto: destaque no que entrou; valor cheio riscado. --}}
+                                            <span class="text-muted text-decoration-line-through">R$ {{ number_format($b->total_amount, 2, ',', '.') }}</span>
+                                            <div class="small text-danger">− R$ {{ number_format($pagoDesc->discount_amount, 2, ',', '.') }} desc.</div>
+                                            <div class="small">pago R$ {{ number_format($pagoDesc->amount, 2, ',', '.') }}</div>
+                                        @else
+                                            <span class="{{ $tipo === 'nao-pagas' ? 'fw-bold text-danger' : '' }}">R$ {{ number_format($b->total_amount, 2, ',', '.') }}</span>
+                                        @endif
                                     @endif
                                 </td>
                                 @if ($tipo === 'canceladas')
@@ -79,6 +87,15 @@
                                             @endif
                                         @else
                                             <span class="text-muted">Sem taxa</span>
+                                        @endif
+                                        @php $estorno = $b->payments->first(fn ($p) => $p->refunded_at !== null); @endphp
+                                        @if ($estorno)
+                                            <div class="small text-success mt-1" title="Reembolso ao cliente">
+                                                reemb. R$ {{ number_format($estorno->refund_amount, 2, ',', '.') }}
+                                                @unless ($estorno->refund_cash_register_entry_id)
+                                                    <span class="text-warning">(a lançar)</span>
+                                                @endunless
+                                            </div>
                                         @endif
                                     </td>
                                 @endif

@@ -35,7 +35,7 @@ class ArenaController extends Controller
 
         $arenas = Arena::where('active', true)
             ->pesquisar($busca)
-            ->with('owner.user')
+            ->with('owner.user', 'photos')
             ->withCount([
                 'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
             ])
@@ -46,7 +46,8 @@ class ArenaController extends Controller
                 fn ($query) => $query->inRandomOrder(),
                 fn ($query) => $query->orderBy('name'),
             )
-            ->get();
+            ->paginate(12)
+            ->withQueryString();
 
         $favoritasIds = $this->favoritasIds();
 
@@ -62,7 +63,7 @@ class ArenaController extends Controller
             abort(404);
         }
 
-        $arena->load(['businessHours', 'paymentMethods', 'owner.user']);
+        $arena->load(['businessHours', 'paymentMethods', 'owner.user', 'photos']);
 
         $courts = $arena->courts()
             ->where('active', true)

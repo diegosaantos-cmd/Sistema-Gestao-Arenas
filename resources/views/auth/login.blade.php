@@ -48,12 +48,7 @@
                            required autocomplete="current-password">
                 </div>
 
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-                    <div class="form-check mb-0">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember_me">
-                        <label class="form-check-label small" for="remember_me">Manter conectado</label>
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     @if (Route::has('password.request'))
                         <a href="{{ route('password.request') }}" class="small text-decoration-none">
                             Esqueceu a senha?

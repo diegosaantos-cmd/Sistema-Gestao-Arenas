@@ -41,6 +41,7 @@ class FavoriteController extends Controller
 
         $arenas = $cliente->favoritas()
             ->where('arenas.active', true)
+            ->with('photos')
             ->withCount([
                 'courts as quadras_ativas_count' => fn ($q) => $q->where('active', true),
             ])

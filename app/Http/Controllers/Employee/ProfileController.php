@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Employee;
 
+use App\Http\Controllers\Concerns\RenovaSessaoAposTrocaDeSenha;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use Illuminate\Http\Request;
@@ -15,6 +16,8 @@ use Illuminate\Validation\Rule;
  */
 class ProfileController extends Controller
 {
+    use RenovaSessaoAposTrocaDeSenha;
+
     public function edit()
     {
         $employee = $this->employee();
@@ -75,6 +78,7 @@ class ProfileController extends Controller
         }
 
         $user->update(['password_hash' => $request->password]);
+        $this->renovarHashDaSenhaNaSessao($request);
 
         return back()->with('status', 'Senha alterada com sucesso.');
     }

@@ -145,7 +145,7 @@ class CashRegisterController extends Controller
         $caixa = $this->caixaAberto($arena);
 
         $booking = $payment->booking;
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
 
         if (! $booking || ! in_array($booking->court_id, $courtIds)) {
             abort(403);
@@ -195,7 +195,7 @@ class CashRegisterController extends Controller
         $caixa = $this->caixaAberto($arena);
 
         $booking = $payment->booking;
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
 
         if (! $booking || ! in_array($booking->court_id, $courtIds)) {
             abort(403);
@@ -275,7 +275,7 @@ class CashRegisterController extends Controller
             $mesSelecionado = null; // vazio ou inválido -> mostra todos
         }
 
-        $caixasFechados = $query->get();
+        $caixasFechados = $query->paginate(20)->withQueryString();
 
         $numeros = $this->numerosDaArena($arena);
 
@@ -341,7 +341,8 @@ class CashRegisterController extends Controller
             $lancamentos = (clone $doMes)
                 ->with('booking.client.user', 'cashRegister')
                 ->orderByDesc('id')
-                ->get();
+                ->paginate(30)
+                ->withQueryString();
         }
 
         $lucro = $entradas - $saidas;
@@ -530,7 +531,7 @@ class CashRegisterController extends Controller
         $caixa = $this->caixaAberto($arena);
 
         // A reserva precisa ser de uma quadra desta arena.
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
         if (! in_array($booking->court_id, $courtIds)) {
             abort(403);
         }
@@ -621,7 +622,7 @@ class CashRegisterController extends Controller
         $arena = $this->arena();
         $caixa = $this->caixaAberto($arena);
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
         if (! in_array($booking->court_id, $courtIds)) {
             abort(403);
         }
@@ -753,7 +754,7 @@ class CashRegisterController extends Controller
      */
     private function reservasAReceberQuery(Arena $arena)
     {
-        $courtIds = $arena->courts()->pluck('id');
+        $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
         return Booking::whereIn('court_id', $courtIds)
             ->whereIn('status', ['confirmed', 'completed'])
@@ -766,7 +767,7 @@ class CashRegisterController extends Controller
      */
     private function taxasAReceberQuery(Arena $arena)
     {
-        $courtIds = $arena->courts()->pluck('id');
+        $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
         return Booking::whereIn('court_id', $courtIds)
             ->where('status', 'cancelled')
@@ -780,7 +781,7 @@ class CashRegisterController extends Controller
      */
     private function pagamentosALancarQuery(Arena $arena)
     {
-        $courtIds = $arena->courts()->pluck('id');
+        $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
         return Payment::where('status', 'paid')
             ->where('origin', 'online')
@@ -794,7 +795,7 @@ class CashRegisterController extends Controller
      */
     private function reembolsosALancarQuery(Arena $arena)
     {
-        $courtIds = $arena->courts()->pluck('id');
+        $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
         return Payment::whereNotNull('refunded_at')
             ->where('refund_amount', '>', 0)

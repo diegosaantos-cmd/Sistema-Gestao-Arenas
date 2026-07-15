@@ -13,9 +13,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use App\Models\User;
+use Illuminate\Support\Facades\Password;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\LoginResponse;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Http\Responses\SuccessfulPasswordResetLinkRequestResponse;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -37,6 +40,14 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
+
+        // Anti-enumeração de e-mail: ao pedir "recuperar senha", a resposta é a
+        // MESMA exista ou não uma conta com aquele e-mail (e também sob throttle).
+        // Assim ninguém descobre quais e-mails têm cadastro. A mensagem exibida é
+        // neutra ("se houver uma conta, você receberá um link" — ver passwords.sent).
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, function () {
+            return new SuccessfulPasswordResetLinkRequestResponse(Password::RESET_LINK_SENT);
+        });
 
         Fortify::authenticateUsing(function (Request $request) {
             $user = User::where('email', mb_strtolower(trim((string) $request->email)))

@@ -50,6 +50,10 @@
         </div>
     @endforelse
 
+    @if ($notifications->hasPages())
+        <div class="mt-4">{{ $notifications->links() }}</div>
+    @endif
+
 </div>
 
 @endsection

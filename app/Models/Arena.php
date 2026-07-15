@@ -91,6 +91,12 @@ class Arena extends Model
         return $this->hasMany(Court::class);
     }
 
+    /** Fotos da arena (carrossel), na ordem definida pelo dono — a 1ª é a capa. */
+    public function photos()
+    {
+        return $this->hasMany(ArenaPhoto::class)->orderBy('ordem')->orderBy('id');
+    }
+
     /**
      * Clientes que marcaram esta arena como favorita.
      * Permite, por exemplo, contar quantos favoritaram (withCount).

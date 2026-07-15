@@ -104,6 +104,10 @@ class EmployeeController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'password_hash' => Hash::make($validated['password']),
                 'type' => 'employee',
+                // Funcionário é criado pelo dono/gerente (área controlada): já
+                // nasce com e-mail verificado, para não ser barrado pelo
+                // middleware `verified` caso a verificação de e-mail seja ligada.
+                'email_verified_at' => now(),
             ]);
 
             Employee::create([

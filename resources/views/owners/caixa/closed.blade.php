@@ -75,6 +75,10 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($caixasFechados->hasPages())
+                <div class="mt-3">{{ $caixasFechados->links() }}</div>
+            @endif
         </div>
     </div>
 

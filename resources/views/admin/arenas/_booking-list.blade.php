@@ -86,6 +86,15 @@
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
+                                @php $estorno = $reserva->payments->first(fn ($p) => $p->refunded_at !== null); @endphp
+                                @if ($estorno)
+                                    <div class="small text-success" title="Reembolso ao cliente">
+                                        reemb. R$ {{ number_format($estorno->refund_amount, 2, ',', '.') }}
+                                        @unless ($estorno->refund_cash_register_entry_id)
+                                            <span class="text-warning">(a lançar)</span>
+                                        @endunless
+                                    </div>
+                                @endif
                             </td>
                         @endif
                         <td class="pe-3">

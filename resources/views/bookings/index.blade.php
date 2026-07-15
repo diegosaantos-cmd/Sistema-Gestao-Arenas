@@ -15,7 +15,7 @@
 
     <h1 class="fw-bold mb-4">
         Próximos Agendamentos
-        <span class="badge bg-secondary fs-6 align-middle">{{ $bookings->count() }}</span>
+        <span class="badge bg-secondary fs-6 align-middle">{{ $bookings->total() }}</span>
         — {{ $arena->name }}
     </h1>
 
@@ -121,6 +121,10 @@
                 </tbody>
             </table>
             </div>
+
+            @if ($bookings->hasPages())
+                <div class="mt-3">{{ $bookings->links() }}</div>
+            @endif
         </div>
     </div>
 
@@ -145,6 +149,7 @@
                             {{ $booking->date->format('d/m/Y') }}
                             {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
                         </p>
+                        @include('partials.aviso-reembolso-cancelamento', ['booking' => $booking])
                         <label class="form-label">Motivo do cancelamento</label>
                         <textarea name="motivo" class="form-control" rows="3" required
                                   placeholder="Ex.: Quadra indisponível neste horário."></textarea>

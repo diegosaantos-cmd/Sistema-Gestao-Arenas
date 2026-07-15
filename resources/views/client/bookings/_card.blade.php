@@ -72,10 +72,12 @@
                     <i class="bi bi-x-circle me-1"></i> Cancelar (com taxa)
                 </a>
             @elseif ($regra)
-                {{-- Livre, ou JÁ PAGA (cancela e reembolsa pago − taxa). --}}
+                {{-- Livre, ou JÁ PAGA. Paga com taxa: cancela e reembolsa pago − taxa
+                     (a taxa é retida). Sinaliza "(com taxa)" no botão, igual à não paga,
+                     para o cliente ver que há taxa antes mesmo de abrir a confirmação. --}}
                 <button type="button" class="btn btn-danger btn-sm"
                         data-bs-toggle="modal" data-bs-target="#cancelModal{{ $b->id }}">
-                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                    <i class="bi bi-x-circle me-1"></i> Cancelar @if ($regra === 'taxa')(com taxa)@endif
                 </button>
             @endif
         </div>
@@ -103,11 +105,12 @@
 
                                 @if ($paga)
                                     @php
+                                        $pagoPay = $b->payments->firstWhere('status', 'paid');
                                         $taxaCanc = $regra === 'taxa' ? (float) $b->valorTaxaCancelamento() : 0.0;
-                                        $pagoAmount = (float) optional($b->payments->firstWhere('status', 'paid'))->amount;
+                                        $pagoAmount = (float) optional($pagoPay)->amount;
                                         $reembolso = max(0, round($pagoAmount - $taxaCanc, 2));
                                     @endphp
-                                    <p class="mb-3">
+                                    <p class="mb-2">
                                         Você pagou <strong>R$ {{ number_format($pagoAmount, 2, ',', '.') }}</strong> nesta reserva.
                                         @if ($taxaCanc > 0)
                                             Será retida a taxa de <strong>R$ {{ number_format($taxaCanc, 2, ',', '.') }}</strong> e
@@ -115,6 +118,11 @@
                                         você será reembolsado em
                                         <strong class="text-success">R$ {{ number_format($reembolso, 2, ',', '.') }}</strong>.
                                     </p>
+                                    @if ($pagoPay)
+                                        <p class="small text-muted mb-3">
+                                            <i class="bi bi-cash-coin me-1"></i> {{ $pagoPay->comoReembolsar() }}
+                                        </p>
+                                    @endif
                                 @else
                                     <p class="mb-3">
                                         Tem certeza que deseja cancelar esta reserva?

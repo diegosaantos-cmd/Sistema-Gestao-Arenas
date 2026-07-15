@@ -58,7 +58,7 @@ class BookingController extends Controller
                 ->where('status', 'confirmed')
                 ->whereDate('date', '>=', now()->toDateString())
                 ->with('court.arena', 'payments', 'paymentMethod')
-                ->orderBy('date')->orderBy('start_time')->get()
+                ->orderBy('date')->orderBy('start_time')->paginate(12)
             : collect();
 
         return view('client.bookings.index', [
@@ -84,7 +84,7 @@ class BookingController extends Controller
                 ->where('end_time', '>', now()->format('H:i:s'))
                 ->with('court.arena', 'payments', 'paymentMethod')
                 ->orderBy('start_time')
-                ->get()
+                ->paginate(12)
             : collect();
 
         return view('client.bookings.index', [
@@ -112,7 +112,7 @@ class BookingController extends Controller
                 ->with('court.arena', 'payments', 'paymentMethod')
                 ->orderBy('date')
                 ->orderBy('start_time')
-                ->get()
+                ->paginate(12)
             : collect();
 
         return view('client.bookings.index', [
@@ -141,7 +141,7 @@ class BookingController extends Controller
                 ->with('court.arena', 'payments', 'paymentMethod')
                 ->orderBy('date', 'desc')
                 ->orderBy('start_time', 'desc')
-                ->get()
+                ->paginate(12)
             : collect();
 
         return view('client.bookings.index', [
@@ -266,7 +266,7 @@ class BookingController extends Controller
             ? Booking::where('client_id', $client->id)
                 ->whereIn('status', ['cancelled', 'completed'])
                 ->with(['court.arena' => fn ($q) => $q->withTrashed(), 'payments'])
-                ->orderBy('date', 'desc')->orderBy('start_time', 'desc')->get()
+                ->orderBy('date', 'desc')->orderBy('start_time', 'desc')->paginate(12)
             : collect();
 
         return view('client.bookings.history', compact('historico'));

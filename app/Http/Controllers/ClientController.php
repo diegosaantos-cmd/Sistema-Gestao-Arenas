@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\Client;
+use App\Models\User;
 use App\Models\UserNotification;
 use App\Support\ArenaAtual;
 use Carbon\Carbon;
@@ -23,7 +24,7 @@ class ClientController extends Controller
             return $arena;
         }
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
 
         // Mantém os status coerentes para as contagens (realizadas etc.).
         Booking::autoConfirmarExpiradas($courtIds);
@@ -33,6 +34,21 @@ class ClientController extends Controller
         $clientIds = Booking::whereIn('court_id', $courtIds)
             ->distinct()
             ->pluck('client_id');
+
+        // Filtro de situação de pagamento: só clientes com atrasados ou pendentes.
+        // Restringe os ids no SQL (não paga + horário passou/ainda não) para que a
+        // paginação funcione sobre o conjunto já filtrado, sem carregar tudo.
+        $filtro = request('filtro');
+        if (in_array($filtro, ['atrasados', 'pendentes'], true)) {
+            $base = Booking::whereIn('court_id', $courtIds)
+                ->whereIn('client_id', $clientIds)
+                ->whereIn('status', ['confirmed', 'completed'])
+                ->whereDoesntHave('payments', fn ($p) => $p->where('status', 'paid'));
+
+            $base->whereRaw('TIMESTAMP(`date`, `end_time`) ' . ($filtro === 'atrasados' ? '<' : '>=') . ' ?', [now()]);
+
+            $clientIds = $base->distinct()->pluck('client_id');
+        }
 
         $q = trim((string) request('q'));
 
@@ -44,10 +60,12 @@ class ClientController extends Controller
                       ->orWhere('email', 'like', "{$q}%");      // e-mail: começa com (ignora o domínio)
                 });
             })
-            ->get();
+            ->orderBy(User::select('name')->whereColumn('users.id', 'clients.user_id'))
+            ->paginate(25)
+            ->withQueryString();
 
-        // Estatísticas básicas por cliente (realizadas / pagamentos pendentes /
-        // pagamentos atrasados) — uma leitura, agrupada em memória (sem N+1).
+        // Estatísticas por cliente SÓ da página atual (realizadas / pendentes /
+        // atrasados) — uma leitura, agrupada em memória (sem N+1).
         $stats = Booking::with('payments')
             ->whereIn('court_id', $courtIds)
             ->whereIn('client_id', $clients->pluck('id'))
@@ -58,14 +76,6 @@ class ClientController extends Controller
                 'pendentes'  => $bs->filter(fn ($b) => $b->situacaoPagamento() === 'a_pagar')->count(),
                 'atrasados'  => $bs->filter(fn ($b) => $b->situacaoPagamento() === 'atrasado')->count(),
             ]);
-
-        // Filtro de situação de pagamento: só com atrasados ou só com pendentes.
-        $filtro = request('filtro');
-        if ($filtro === 'atrasados') {
-            $clients = $clients->filter(fn ($c) => ($stats[$c->id]['atrasados'] ?? 0) > 0)->values();
-        } elseif ($filtro === 'pendentes') {
-            $clients = $clients->filter(fn ($c) => ($stats[$c->id]['pendentes'] ?? 0) > 0)->values();
-        }
 
         return view('clients.index', compact('arena', 'clients', 'stats', 'filtro'));
     }
@@ -81,7 +91,7 @@ class ClientController extends Controller
             return $arena;
         }
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
         $this->garantirClienteDaArena($client, $courtIds);
 
         $client->load('user');
@@ -105,7 +115,7 @@ class ClientController extends Controller
             return $arena;
         }
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
         $this->garantirClienteDaArena($client, $courtIds);
         $client->load('user');
 
@@ -133,7 +143,7 @@ class ClientController extends Controller
             return $arena;
         }
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
 
         $clientIds = Booking::whereIn('court_id', $courtIds)->distinct()->pluck('client_id');
         $clients = Client::with('user')->whereIn('id', $clientIds)->get();
@@ -152,7 +162,7 @@ class ClientController extends Controller
             return $arena;
         }
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
 
         // Clientes que realmente pertencem a esta arena (segurança).
         $clientIdsArena = Booking::whereIn('court_id', $courtIds)
@@ -205,7 +215,7 @@ class ClientController extends Controller
             return $arena;
         }
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
         $this->garantirClienteDaArena($client, $courtIds);
         $client->load('user');
 
@@ -223,7 +233,7 @@ class ClientController extends Controller
             return $arena;
         }
 
-        $courtIds = $arena->courts()->pluck('id')->all();
+        $courtIds = $arena->courts()->withTrashed()->pluck('id')->all();
         $this->garantirClienteDaArena($client, $courtIds);
 
         $client->load('user');

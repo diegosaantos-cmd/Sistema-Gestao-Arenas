@@ -14,7 +14,7 @@ class ClientNotificationController extends Controller
         $notifications = UserNotification::with('arena')
             ->where('user_id', auth()->id())
             ->latest()
-            ->get();
+            ->paginate(20);
 
         return view('client.notifications.index', compact('notifications'));
     }

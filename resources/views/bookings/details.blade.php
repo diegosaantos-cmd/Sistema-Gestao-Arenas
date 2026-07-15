@@ -161,12 +161,15 @@
                         </p>
                         @php $estorno = $booking->payments->first(fn ($p) => $p->refunded_at !== null); @endphp
                         @if ($estorno)
-                            <p class="mb-0">
+                            <p class="mb-1">
                                 <strong>Reembolso:</strong>
                                 <span class="text-success fw-semibold">R$ {{ number_format($estorno->refund_amount, 2, ',', '.') }}</span>
                                 @if (! $estorno->refund_cash_register_entry_id)
                                     <span class="badge bg-warning text-dark ms-1">a lançar no caixa</span>
                                 @endif
+                            </p>
+                            <p class="mb-0 small {{ $estorno->ehDinheiro() ? 'text-danger' : 'text-muted' }}">
+                                <i class="bi bi-cash-coin me-1"></i> {{ $estorno->comoReembolsar() }}
                             </p>
                         @endif
                     @endif

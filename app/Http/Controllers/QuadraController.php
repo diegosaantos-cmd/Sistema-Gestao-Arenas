@@ -286,10 +286,63 @@ class QuadraController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Exclui a quadra (soft delete: mantém o histórico de reservas no banco).
+     * Direto se não houver reservas futuras; se houver, pede confirmação com
+     * motivo — mesma lógica do excluir da arena.
      */
-    public function destroy(string $id)
+    public function destroy(Court $quadra)
     {
-        //
+        $this->guardQuadra($quadra);
+
+        $afetados = self::agendamentosAtivosDaQuadra($quadra);
+
+        if ($afetados->isEmpty()) {
+            $quadra->delete(); // soft delete: histórico permanece
+
+            return redirect()->route('quadras.index')->with('msg', 'Quadra excluída.');
+        }
+
+        return view('courts.delete-confirm', [
+            'quadra' => $quadra,
+            'arena' => $quadra->arena,
+            'afetados' => $afetados,
+        ]);
+    }
+
+    /**
+     * Confirma a exclusão da quadra cancelando as reservas futuras afetadas.
+     * O motivo é o mesmo para todas.
+     */
+    public function confirmDelete(Request $request, Court $quadra)
+    {
+        $this->guardQuadra($quadra);
+
+        $motivo = trim((string) $request->input('motivo'));
+
+        if ($motivo === '') {
+            return view('courts.delete-confirm', [
+                'quadra' => $quadra,
+                'arena' => $quadra->arena,
+                'afetados' => self::agendamentosAtivosDaQuadra($quadra),
+                'erroMotivo' => 'Informe o motivo do cancelamento.',
+                'motivo' => $motivo,
+            ]);
+        }
+
+        DB::transaction(function () use ($quadra, $motivo) {
+            foreach (self::agendamentosAtivosDaQuadra($quadra) as $booking) {
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => auth()->id(),
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $motivo,
+                ]);
+            }
+
+            $quadra->delete(); // soft delete: histórico permanece
+        });
+
+        return redirect()->route('quadras.index')
+            ->with('msg', 'Quadra excluída e reservas afetadas canceladas.');
     }
 }

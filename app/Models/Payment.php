@@ -62,4 +62,28 @@ class Payment extends Model
     {
         return $this->refunded_at !== null;
     }
+
+    /** Foi pago em DINHEIRO? (não tem estorno automático — devolução física.) */
+    public function ehDinheiro(): bool
+    {
+        return $this->paymentMethod?->type === 'cash';
+    }
+
+    /**
+     * Como o reembolso chega ao cliente, conforme a forma de pagamento. Deixa claro
+     * que pix/cartão são estornados pela própria transação — não dependem de o
+     * cliente ter cadastro nem de informar dados bancários (funciona online ou na
+     * arena/maquininha). Só o dinheiro exige devolução física.
+     */
+    public function comoReembolsar(): string
+    {
+        return match ($this->paymentMethod?->type) {
+            'cash' => 'Pago em dinheiro — não há estorno automático; a devolução é feita '
+                . 'em dinheiro, na arena.',
+            'pix'  => 'Pago via PIX — o estorno volta pela própria transação, para a conta '
+                . 'que pagou.',
+            'card' => 'Pago no cartão — o estorno é feito no mesmo cartão do pagamento.',
+            default => 'Estorno por ' . ($this->paymentMethod?->label ?? 'mesmo meio do pagamento') . '.',
+        };
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\RenovaSessaoAposTrocaDeSenha;
 use App\Http\Controllers\Controller;
 use App\Models\Arena;
 use App\Models\Booking;
@@ -23,6 +24,8 @@ use Illuminate\Validation\Rules\Password;
 
 class DashboardController extends Controller
 {
+    use RenovaSessaoAposTrocaDeSenha;
+
     public function index()
     {
         $inicioMes = now()->startOfMonth();
@@ -347,6 +350,7 @@ class DashboardController extends Controller
         }
 
         $admin->update(['password_hash' => $dados['password']]);
+        $this->renovarHashDaSenhaNaSessao($request);
 
         return redirect()->route('admin.dashboard')
             ->with('msg', 'Senha alterada com sucesso.');
@@ -1292,7 +1296,7 @@ class DashboardController extends Controller
     public function deactivateArena(Arena $arena)
     {
         DB::transaction(function () use ($arena) {
-            $courtIds = $arena->courts()->pluck('id');
+            $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
             Booking::whereIn('court_id', $courtIds)
                 ->whereIn('status', ['pending', 'confirmed'])
@@ -1331,7 +1335,7 @@ class DashboardController extends Controller
         $owner = $arena->owner;
 
         DB::transaction(function () use ($arena) {
-            $courtIds = $arena->courts()->pluck('id');
+            $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
             Booking::whereIn('court_id', $courtIds)
                 ->whereIn('status', ['pending', 'confirmed'])

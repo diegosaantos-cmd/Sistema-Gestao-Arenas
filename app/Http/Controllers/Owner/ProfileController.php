@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\ArenaController;
+use App\Http\Controllers\Concerns\RenovaSessaoAposTrocaDeSenha;
 use App\Http\Controllers\Controller;
 use App\Models\Owner;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
+    use RenovaSessaoAposTrocaDeSenha;
+
     /**
      * Tela "Minha Conta" do dono: dados pessoais + empresa + senha.
      */
@@ -106,6 +109,7 @@ class ProfileController extends Controller
         }
 
         $user->update(['password_hash' => $request->password]);
+        $this->renovarHashDaSenhaNaSessao($request);
 
         return back()->with('status', 'Senha alterada com sucesso.');
     }

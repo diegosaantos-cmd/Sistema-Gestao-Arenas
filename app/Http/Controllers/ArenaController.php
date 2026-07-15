@@ -11,6 +11,7 @@ use App\Models\Court;
 use App\Models\Owner;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Services\SlideImageService;
 use App\Support\ArenaAtual;
 
 class ArenaController extends Controller
@@ -87,6 +88,10 @@ class ArenaController extends Controller
             'bairro' => ['required', 'string', 'max:100'],
             'numero' => ['required', 'string', 'max:15'],
             'descricao' => ['nullable', 'string'],
+            // Fotos da arena são opcionais no cadastro (até 15). Podem ser
+            // adicionadas/reordenadas depois na tela "Fotos da arena".
+            'fotos' => ['nullable', 'array', 'max:15'],
+            'fotos.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:' . SlideImageService::limiteUploadKb()],
             'telefone' => ['required', 'string', 'max:20'],
             'email_contato' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($owner) {
                 if (self::emailDeArenaEmUsoPorOutroDono($value, $owner->id)) {
@@ -156,6 +161,22 @@ class ArenaController extends Controller
         self::salvarQuadras($arena, $request->input('quadras', []));
 
         $arena->paymentMethods()->sync($request->input('pagamentos', []));
+
+        // Fotos opcionais do cadastro. Defensivo: uma foto inválida (ou GD
+        // ausente) é ignorada — nunca bloqueia a criação da arena.
+        if (SlideImageService::disponivel()) {
+            $ordem = 1;
+            foreach (array_slice((array) $request->file('fotos', []), 0, 15) as $foto) {
+                try {
+                    $arena->photos()->create([
+                        'image_path' => SlideImageService::processarEGuardar($foto, 'arenas'),
+                        'ordem' => $ordem++,
+                    ]);
+                } catch (\Throwable $e) {
+                    // ignora a foto problemática e segue
+                }
+            }
+        }
 
         return redirect()->route('owners.dashboard');
     }
@@ -343,7 +364,7 @@ class ArenaController extends Controller
     public static function agendamentosAtivosDaArena(Arena $arena)
     {
         return Booking::with(['court', 'client.user'])
-            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereIn('court_id', $arena->courts()->withTrashed()->select('id'))
             ->whereDate('date', '>=', now()->toDateString())
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('date')->orderBy('start_time')
@@ -617,7 +638,7 @@ class ArenaController extends Controller
     public static function agendamentosForaDoHorario(Arena $arena, array $horarios)
     {
         return Booking::with(['court', 'client.user'])
-            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereIn('court_id', $arena->courts()->withTrashed()->select('id'))
             ->whereDate('date', '>=', now()->toDateString())
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('date')->orderBy('start_time')

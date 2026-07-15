@@ -48,6 +48,10 @@
         @endforelse
     </div>
 
+    @if ($arenas->hasPages())
+        <div class="mt-4">{{ $arenas->links() }}</div>
+    @endif
+
 </div>
 
 @include('client.arenas._live-search')

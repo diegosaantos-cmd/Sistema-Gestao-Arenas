@@ -15,7 +15,7 @@
 
     <h1 class="fw-bold mb-4">
         Histórico de Agendamentos
-        <span class="badge bg-secondary fs-6 align-middle">{{ $bookings->count() }}</span>
+        <span class="badge bg-secondary fs-6 align-middle">{{ $bookings->total() }}</span>
         — {{ $arena->name }}
     </h1>
 
@@ -107,6 +107,15 @@
                                     <div class="small mt-1 {{ (float) $booking->cancellation_fee_amount > 0 ? 'text-danger' : 'text-muted' }}">
                                         {{ $booking->taxaCancelamentoDescricao() }}
                                     </div>
+                                    @php $estorno = $booking->payments->first(fn ($p) => $p->refunded_at !== null); @endphp
+                                    @if ($estorno)
+                                        <div class="small text-success" title="Reembolso ao cliente">
+                                            reembolso R$ {{ number_format($estorno->refund_amount, 2, ',', '.') }}
+                                            @unless ($estorno->refund_cash_register_entry_id)
+                                                <span class="text-warning">(a lançar)</span>
+                                            @endunless
+                                        </div>
+                                    @endif
                                 @endif
                             </td>
                             <td>
@@ -133,6 +142,10 @@
                 </tbody>
             </table>
             </div>
+
+            @if ($bookings->hasPages())
+                <div class="mt-3">{{ $bookings->links() }}</div>
+            @endif
         </div>
     </div>
 

@@ -69,6 +69,10 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($lancamentos instanceof \Illuminate\Contracts\Pagination\Paginator && $lancamentos->hasPages())
+                <div class="mt-3">{{ $lancamentos->links() }}</div>
+            @endif
         </div>
     </div>
 

@@ -711,3 +711,95 @@ main img{ max-width: 100%; height: auto; }
         column-gap: 1.5rem;
     }
 }
+
+/* ===== Carrossel horizontal (fotos da arena, quadras) =====
+   Mostra vários itens lado a lado e desliza revelando os próximos:
+   3 por vez no desktop, 2 no tablet, 1 no celular. */
+.h-scroller {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: .25rem;
+}
+.h-scroller > * {
+    scroll-snap-align: start;
+    flex: 0 0 calc((100% - 2rem) / 3); /* 3 por vez (2 gaps de 1rem) */
+}
+@media (max-width: 991.98px) {
+    .h-scroller > * { flex-basis: calc((100% - 1rem) / 2); } /* 2 no tablet */
+}
+@media (max-width: 575.98px) {
+    .h-scroller > * { flex-basis: 100%; } /* 1 no celular */
+}
+.h-scroller::-webkit-scrollbar { height: 6px; }
+.h-scroller::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .2); border-radius: 3px; }
+
+/* Setas do carrossel horizontal (sobre as bordas). */
+.scroller-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 4;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: #021B35;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+.scroller-arrow.prev { left: 2px; }
+.scroller-arrow.next { right: 2px; }
+
+/* Setas no cabeçalho da seção (não sobrepõem o conteúdo) — usadas nas quadras. */
+.scroller-btn {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6;
+    border-radius: 50%;
+    background: #fff;
+    color: #021B35;
+    transition: background-color .15s ease;
+}
+.scroller-btn:hover { background: #f1f3f5; }
+
+/* Miniatura de foto da arena (abre em tela cheia ao clicar). */
+.galeria-foto {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+.galeria-foto img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: .5rem;
+    background: #021B35;
+}
+.galeria-foto-zoom {
+    position: absolute;
+    right: .4rem;
+    bottom: .4rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, .55);
+    color: #fff;
+    font-size: .9rem;
+}

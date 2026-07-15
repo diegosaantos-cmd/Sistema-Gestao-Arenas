@@ -25,7 +25,7 @@ class BookingController extends Controller
             return redirect()->route('owners.dashboard');
         }
 
-        $idsQuadras = $arena->courts()->pluck('id')->all();
+        $idsQuadras = $arena->courts()->withTrashed()->pluck('id')->all();
         Booking::autoConfirmarExpiradas($idsQuadras);
         Booking::autoCompletarRealizadas($idsQuadras);
 
@@ -34,7 +34,7 @@ class BookingController extends Controller
 
         // Só confirmados. Os pendentes ficam na tela "Aguardando confirmação".
         $query = Booking::with(['court', 'client.user', 'payments'])
-            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereIn('court_id', $arena->courts()->withTrashed()->select('id'))
             ->whereDate('date', '>=', now()->toDateString())
             ->where('status', 'confirmed');
 
@@ -55,7 +55,8 @@ class BookingController extends Controller
             });
         }
 
-        $bookings = $query->orderBy('date')->orderBy('start_time')->get();
+        $bookings = $query->orderBy('date')->orderBy('start_time')
+            ->paginate(20)->withQueryString();
 
         return view('bookings.index', compact('arena', 'bookings'));
     }
@@ -77,7 +78,7 @@ class BookingController extends Controller
         $q = trim((string) request('q'));
 
         $query = Booking::with(['court', 'client.user', 'payments'])
-            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereIn('court_id', $arena->courts()->withTrashed()->select('id'))
             ->where(function ($w) {
                 $w->whereDate('date', '<', now()->toDateString())
                     ->orWhereIn('status', ['cancelled', 'completed']);
@@ -105,17 +106,24 @@ class BookingController extends Controller
             });
         }
 
-        $bookings = $query->orderBy('date', 'desc')->orderBy('start_time', 'desc')->get();
-
-        // Filtro por situação: concluídas / canceladas / pagas / atrasadas.
+        // Filtro por situação (feito no SQL para paginar sem carregar tudo):
+        // concluídas / canceladas / pagas / atrasadas.
         $situacao = request('situacao');
-        $bookings = match ($situacao) {
-            'concluidas' => $bookings->where('status', 'completed')->values(),
-            'canceladas' => $bookings->where('status', 'cancelled')->values(),
-            'pagas'      => $bookings->filter(fn ($b) => $b->isPaga())->values(),
-            'atrasadas'  => $bookings->filter(fn ($b) => $b->situacaoPagamento() === 'atrasado')->values(),
-            default      => $bookings,
-        };
+        if ($situacao === 'concluidas') {
+            $query->where('status', 'completed');
+        } elseif ($situacao === 'canceladas') {
+            $query->where('status', 'cancelled');
+        } elseif ($situacao === 'pagas') {
+            $query->whereHas('payments', fn ($p) => $p->where('status', 'paid'));
+        } elseif ($situacao === 'atrasadas') {
+            // Confirmada/concluída, não paga e cujo horário já terminou.
+            $query->whereIn('status', ['confirmed', 'completed'])
+                ->whereDoesntHave('payments', fn ($p) => $p->where('status', 'paid'))
+                ->whereRaw('TIMESTAMP(`date`, `end_time`) < ?', [now()]);
+        }
+
+        $bookings = $query->orderBy('date', 'desc')->orderBy('start_time', 'desc')
+            ->paginate(20)->withQueryString();
 
         return view('bookings.history', compact('arena', 'bookings', 'situacao', 'origem'));
     }
@@ -132,12 +140,12 @@ class BookingController extends Controller
             return redirect()->route('owners.dashboard');
         }
 
-        $idsQuadras = $arena->courts()->pluck('id')->all();
+        $idsQuadras = $arena->courts()->withTrashed()->pluck('id')->all();
         Booking::autoConfirmarExpiradas($idsQuadras);
         Booking::autoCompletarRealizadas($idsQuadras);
 
         $bookings = Booking::with(['court', 'client.user'])
-            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereIn('court_id', $arena->courts()->withTrashed()->select('id'))
             ->whereDate('date', now()->toDateString())
             ->where('status', 'confirmed')
             ->orderBy('start_time')
@@ -160,12 +168,12 @@ class BookingController extends Controller
             return redirect()->route('owners.dashboard');
         }
 
-        $idsQuadras = $arena->courts()->pluck('id')->all();
+        $idsQuadras = $arena->courts()->withTrashed()->pluck('id')->all();
         Booking::autoConfirmarExpiradas($idsQuadras);
         Booking::autoCompletarRealizadas($idsQuadras);
 
         $bookings = Booking::with(['court', 'client.user'])
-            ->whereIn('court_id', $arena->courts()->select('id'))
+            ->whereIn('court_id', $arena->courts()->withTrashed()->select('id'))
             ->where('status', 'pending')
             ->orderBy('date')->orderBy('start_time')
             ->get();

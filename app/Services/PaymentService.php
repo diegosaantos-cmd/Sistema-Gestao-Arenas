@@ -122,7 +122,13 @@ class PaymentService
             return;
         }
 
+        $pagamento->loadMissing('booking');
+
         DB::transaction(function () use ($pagamento, $caixa, $createdBy) {
+            // "Feito por" = quem INICIOU o cancelamento (cliente ou staff). Quem
+            // lança agora só transporta a saída pro caixa, não é o autor.
+            $autor = $pagamento->booking?->cancelled_by ?? $createdBy;
+
             $entry = CashRegisterEntry::create([
                 'cash_register_id' => $caixa->id,
                 'booking_id' => $pagamento->booking_id,
@@ -130,7 +136,7 @@ class PaymentService
                 'amount' => $pagamento->refund_amount,
                 'description' => 'Reembolso cancelamento reserva #'
                     . (optional($pagamento->booking)->numeroNaArena() ?? $pagamento->booking_id),
-                'created_by' => $createdBy,
+                'created_by' => $autor,
             ]);
 
             $pagamento->update(['refund_cash_register_entry_id' => $entry->id]);
@@ -143,7 +149,16 @@ class PaymentService
      */
     public static function lancarNoCaixa(Payment $pagamento, CashRegister $caixa, ?int $createdBy = null): void
     {
+        $pagamento->loadMissing('booking.client');
+
         DB::transaction(function () use ($pagamento, $caixa, $createdBy) {
+            // "Feito por" = quem realmente pagou. Só pagamentos ONLINE ficam
+            // pendentes de lançamento, e quem pagou online foi o CLIENTE — não o
+            // staff que está lançando agora (esse só transporta pro caixa).
+            $autor = $pagamento->origin === 'online'
+                ? ($pagamento->booking?->client?->user_id ?? $createdBy)
+                : $createdBy;
+
             $entry = CashRegisterEntry::create([
                 'cash_register_id' => $caixa->id,
                 'booking_id' => $pagamento->booking_id,
@@ -151,7 +166,7 @@ class PaymentService
                 'amount' => $pagamento->amount,
                 'description' => 'Pagamento reserva #' . (optional($pagamento->booking)->numeroNaArena() ?? $pagamento->booking_id)
                     . ' — ' . ($pagamento->paymentMethod->label ?? 'Pagamento'),
-                'created_by' => $createdBy,
+                'created_by' => $autor,
             ]);
 
             $pagamento->update(['cash_register_entry_id' => $entry->id]);

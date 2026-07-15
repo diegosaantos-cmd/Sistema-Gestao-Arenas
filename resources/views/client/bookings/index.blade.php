@@ -72,6 +72,10 @@
         @endforelse
     </div>
 
+    @if ($proximas instanceof \Illuminate\Contracts\Pagination\Paginator && $proximas->hasPages())
+        <div class="mt-4">{{ $proximas->withQueryString()->links() }}</div>
+    @endif
+
 </div>
 
 @endsection

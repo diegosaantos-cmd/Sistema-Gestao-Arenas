@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Http\Controllers\Concerns\RenovaSessaoAposTrocaDeSenha;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Client;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
+    use RenovaSessaoAposTrocaDeSenha;
+
     /**
      * Tela de perfil do cliente (dados pessoais + troca de senha).
      */
@@ -77,6 +80,7 @@ class ProfileController extends Controller
 
         // O cast 'hashed' do model faz o hash automaticamente.
         $user->update(['password_hash' => $request->password]);
+        $this->renovarHashDaSenhaNaSessao($request);
 
         return back()->with('status', 'Senha alterada com sucesso.');
     }

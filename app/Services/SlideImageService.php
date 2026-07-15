@@ -45,8 +45,10 @@ class SlideImageService
         return extension_loaded('gd') && function_exists('imagecreatefromjpeg');
     }
 
-    public static function processarEGuardar(UploadedFile $arquivo): string
+    public static function processarEGuardar(UploadedFile $arquivo, ?string $pasta = null): string
     {
+        $pasta = $pasta ?: self::PASTA;
+
         // Sem esta checagem o PHP lançaria "Call to undefined function" e o admin
         // veria um erro 500 sem explicação nenhuma.
         if (! self::disponivel()) {
@@ -89,10 +91,10 @@ class SlideImageService
         try {
             $destino = self::redimensionar($origem, $largura, $altura);
 
-            Storage::disk('public')->makeDirectory(self::PASTA);
+            Storage::disk('public')->makeDirectory($pasta);
 
             // Nome e extensão definidos por nós, nunca pelo usuário.
-            $relativo = self::PASTA.'/'.Str::random(40).'.jpg';
+            $relativo = $pasta.'/'.Str::random(40).'.jpg';
             $absoluto = Storage::disk('public')->path($relativo);
 
             if (! imagejpeg($destino, $absoluto, self::QUALIDADE)) {
@@ -136,5 +138,49 @@ class SlideImageService
     private static function falhar(string $mensagem): never
     {
         throw ValidationException::withMessages(['imagem' => $mensagem]);
+    }
+
+    /** Regras de validação do campo 'imagem' (compartilhadas entre uploads). */
+    public static function regrasImagem(bool $obrigatoria = true): array
+    {
+        return array_merge(
+            [$obrigatoria ? 'required' : 'nullable'],
+            ['image', 'mimes:jpeg,jpg,png,webp', 'max:'.self::limiteUploadKb()]
+        );
+    }
+
+    /** Mensagens amigáveis para o campo 'imagem'. */
+    public static function mensagensImagem(): array
+    {
+        $limite = round(self::limiteUploadKb() / 1024, 1);
+
+        return [
+            'imagem.required' => 'Escolha uma imagem.',
+            'imagem.image' => 'O arquivo precisa ser uma imagem.',
+            'imagem.mimes' => 'Use uma imagem JPG, PNG ou WEBP.',
+            'imagem.max' => "A imagem deve ter no máximo {$limite} MB.",
+            'imagem.uploaded' => "Não foi possível enviar a imagem. Ela provavelmente passa do limite de {$limite} MB do servidor. Use uma foto menor.",
+        ];
+    }
+
+    /** Menor limite de upload do servidor (upload_max_filesize x post_max_size), em KB. */
+    public static function limiteUploadKb(): int
+    {
+        return min(
+            self::iniParaKb((string) ini_get('upload_max_filesize')),
+            self::iniParaKb((string) ini_get('post_max_size'))
+        );
+    }
+
+    private static function iniParaKb(string $valor): int
+    {
+        $numero = (int) $valor;
+
+        return match (strtolower(substr(trim($valor), -1))) {
+            'g' => $numero * 1024 * 1024,
+            'm' => $numero * 1024,
+            'k' => $numero,
+            default => (int) ($numero / 1024),
+        };
     }
 }

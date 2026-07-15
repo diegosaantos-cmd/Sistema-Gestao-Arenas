@@ -42,7 +42,7 @@ class DashboardController extends Controller
         $confirmados = 0;
         $pagamentosPendentes = 0;
         $arenas = Arena::where('active', true)
-            ->with('owner.user')
+            ->with('owner.user', 'photos')
             ->withCount([
                 'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
             ])

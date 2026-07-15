@@ -21,7 +21,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('arenas.store') }}" method="POST">
+            <form action="{{ route('arenas.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 <div class="row g-3">
@@ -37,6 +37,20 @@
                         </label>
                         <textarea class="form-control" id="descricao" name="descricao" rows="3"
                                   placeholder="Conte o que sua arena tem de melhor.">{{ old('descricao') }}</textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label" for="fotos">
+                            Fotos da arena <span class="text-muted fw-normal">(opcional · até 15)</span>
+                        </label>
+                        <input type="file" class="form-control" id="fotos" name="fotos[]"
+                               accept="image/jpeg,image/png,image/webp" multiple>
+                        <div class="form-text">
+                            JPG, PNG ou WEBP. Aparecem no carrossel do card e da página da arena.
+                            <strong>Prefira fotos horizontais (paisagem), proporção 16:9</strong>
+                            (ex.: 1920×1080) — preenchem a tela sem faixas.
+                            Você também pode adicionar/reordenar depois em "Fotos da arena".
+                        </div>
                     </div>
 
                     <div class="col-12 col-md-7">

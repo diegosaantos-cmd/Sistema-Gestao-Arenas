@@ -56,6 +56,37 @@
 
                 {{-- ETAPA 1 — Você e sua empresa --}}
                 <div data-etapa data-campos="name,email,owner_phone,password,password_confirmation,company_name,tax_id" class="d-none">
+
+                    @if (! empty($ehClienteLogado))
+                        {{-- Cliente logado escolhe: virar proprietário com a conta atual
+                             (encerra o cliente) ou criar dados de acesso novos. --}}
+                        <div class="alert alert-info">
+                            <p class="fw-semibold mb-2">Você já tem uma conta de cliente. Como quer cadastrar sua arena?</p>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="modo_conta" id="modo_atual"
+                                       value="atual" data-modo-conta
+                                       {{ old('modo_conta', 'atual') === 'atual' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="modo_atual">
+                                    <strong>Usar minha conta atual</strong>
+                                    ({{ auth()->user()->email }}) — viro proprietário com esta conta.
+                                    Minha conta de cliente é encerrada.
+                                </label>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="modo_conta" id="modo_novos"
+                                       value="novos" data-modo-conta
+                                       {{ old('modo_conta') === 'novos' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="modo_novos">
+                                    <strong>Criar novos dados de acesso</strong> — mantenho minha conta de
+                                    cliente e crio uma conta de proprietário separada (com outro e-mail).
+                                </label>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div data-bloco-acesso>
                     <h2 class="h5 fw-bold mb-3">Seus dados de acesso</h2>
 
                     <div class="row g-3">
@@ -93,6 +124,7 @@
                                    name="password_confirmation" minlength="8" required autocomplete="new-password">
                         </div>
                     </div>
+                    </div>{{-- /data-bloco-acesso --}}
 
                     <hr class="my-4">
                     <h2 class="h5 fw-bold mb-3">Sua empresa</h2>
@@ -390,6 +422,31 @@
                 }
             });
         });
+    })();
+
+    /*
+     * Cliente logado: ao escolher "usar minha conta atual", esconde e DESABILITA
+     * os campos de dados de acesso (o assistente pula campos disabled e eles não
+     * são enviados — o servidor reaproveita a conta logada). Em "novos dados",
+     * mostra e reabilita.
+     */
+    (function () {
+        var radios = document.querySelectorAll('[data-modo-conta]');
+        var bloco = document.querySelector('[data-bloco-acesso]');
+        if (!radios.length || !bloco) return;
+
+        var campos = bloco.querySelectorAll('input, select, textarea');
+
+        function aplicar() {
+            var escolhido = document.querySelector('[data-modo-conta]:checked');
+            var usarAtual = escolhido && escolhido.value === 'atual';
+
+            bloco.classList.toggle('d-none', usarAtual);
+            campos.forEach(function (c) { c.disabled = usarAtual; });
+        }
+
+        radios.forEach(function (r) { r.addEventListener('change', aplicar); });
+        aplicar();
     })();
 </script>
 <script src="/js/masks.js" defer></script>

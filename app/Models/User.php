@@ -90,6 +90,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'terms_accepted_at',
         'active',
         'type', // Adiciona 'type' à lista de atributos preenchíveis
+        'email_verified_at', // funcionário nasce verificado (ver EmployeeController)
     ];
 
     /**

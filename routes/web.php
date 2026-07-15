@@ -19,6 +19,7 @@ use App\Http\Controllers\RegisterArenaOwnerController;
 use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\Owner\ProfileController as OwnerProfileController;
 use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
+use App\Http\Controllers\Owner\ArenaPhotoController;
 use App\Http\Controllers\Owner\CashRegisterController;
 use App\Http\Controllers\Owner\PresencialBookingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -29,7 +30,7 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
 
     $arenas = Arena::where('active', true)
         ->pesquisar($busca)
-        ->with('owner.user')
+        ->with('owner.user', 'photos')
         ->withCount([
             'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
         ])
@@ -66,7 +67,7 @@ Route::post('/registerArenaOwners', [RegisterArenaOwnerController::class, 'store
 
 Route::middleware([
     'auth:sanctum',
-    config('jetstream.auth_session'),
+    // AuthenticateSession agora é global (grupo web em bootstrap/app.php).
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])
@@ -91,7 +92,7 @@ Route::middleware([
         $proximosCount = 0;
 
         if ($arena) {
-            $idsQuadras = $arena->courts()->pluck('id')->all();
+            $idsQuadras = $arena->courts()->withTrashed()->pluck('id')->all();
 
             if (! empty($idsQuadras)) {
                 \App\Models\Booking::autoConfirmarExpiradas($idsQuadras);
@@ -302,7 +303,7 @@ Route::middleware(['auth'])->group(function () {
         if ($selectedArena) {
             // Confirma automaticamente as reservas pendentes cujo prazo expirou
             // e marca como realizadas as confirmadas que já terminaram.
-            $idsQuadras = $selectedArena->courts()->pluck('id')->all();
+            $idsQuadras = $selectedArena->courts()->withTrashed()->pluck('id')->all();
             \App\Models\Booking::autoConfirmarExpiradas($idsQuadras);
             \App\Models\Booking::autoCompletarRealizadas($idsQuadras);
         }
@@ -314,7 +315,7 @@ Route::middleware(['auth'])->group(function () {
         // Clientes = clientes distintos com reserva nas quadras desta arena
         // (qualquer status, inclusive cancelada — quem reservou virou cliente).
         $customersCount = $selectedArena
-            ? \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
+            ? \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->withTrashed()->select('id'))
                 ->distinct('client_id')
                 ->count('client_id')
             : 0;
@@ -329,7 +330,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Reservas de hoje desta arena: só as confirmadas (as que vão acontecer).
         $agendamentosHoje = $selectedArena
-            ? \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
+            ? \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->withTrashed()->select('id'))
                 ->whereDate('date', now()->toDateString())
                 ->where('status', 'confirmed')
                 ->count()
@@ -342,7 +343,7 @@ Route::middleware(['auth'])->group(function () {
         $pendentesCount = 0;
 
         if ($selectedArena) {
-            $base = \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
+            $base = \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->withTrashed()->select('id'))
                 ->whereDate('date', '>=', now()->toDateString())
                 ->where('status', 'confirmed');
 
@@ -354,7 +355,7 @@ Route::middleware(['auth'])->group(function () {
                 ->limit(4)
                 ->get();
 
-            $pendentesCount = \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->select('id'))
+            $pendentesCount = \App\Models\Booking::whereIn('court_id', $selectedArena->courts()->withTrashed()->select('id'))
                 ->where('status', 'pending')
                 ->count();
         }
@@ -388,7 +389,7 @@ Route::middleware(['auth'])->group(function () {
             'employeesCount', 'employeesActive', 'proximosAgendamentos', 'proximosCount',
             'pendentesCount', 'lucroMes', 'entradasMes', 'saidasMes', 'mesAtualLabel'
         ));
-    })->name('owners.dashboard');
+    })->middleware('verified')->name('owners.dashboard');
 
     // Minha Conta do dono (dados pessoais + empresa + senha). Só dono/gerente —
     // o atendente tem a "Minha Conta" própria (Employee\ProfileController).
@@ -641,7 +642,8 @@ Route::middleware(['auth'])->group(function () {
 
 // Gestão de arenas, quadras e funcionários: só dono e gerente (pode.gerir).
 // O atendente consulta arena/quadras por modal no painel, sem essas telas.
-Route::middleware(['auth', 'pode.gerir'])->group(function () {
+// `verified`: dono precisa confirmar o e-mail (funcionário nasce verificado).
+Route::middleware(['auth', 'pode.gerir', 'verified'])->group(function () {
     Route::patch('/arenas/{arena}/pagamentos', [ArenaController::class, 'updatePayments'])
         ->name('arenas.payments.update');
     Route::patch('/arenas/{arena}/toggle', [ArenaController::class, 'toggleActive'])
@@ -661,10 +663,22 @@ Route::middleware(['auth', 'pode.gerir'])->group(function () {
     Route::post('/arenas/{arena}/horarios/confirmar', [ArenaController::class, 'confirmBusinessHours'])
         ->name('arenas.hours.confirm');
     Route::resource('arenas', ArenaController::class);
+
+    // Fotos da arena (galeria/carrossel) — dono/gerente adiciona/exclui/reordena.
+    Route::get('/arenas/{arena}/fotos', [ArenaPhotoController::class, 'index'])
+        ->name('arenas.photos.index');
+    Route::post('/arenas/{arena}/fotos', [ArenaPhotoController::class, 'store'])
+        ->name('arenas.photos.store');
+    Route::patch('/arenas/{arena}/fotos/{photo}/mover', [ArenaPhotoController::class, 'move'])
+        ->name('arenas.photos.move');
+    Route::delete('/arenas/{arena}/fotos/{photo}', [ArenaPhotoController::class, 'destroy'])
+        ->name('arenas.photos.destroy');
     Route::patch('/quadras/{quadra}/toggle', [QuadraController::class, 'toggleActive'])
         ->name('quadras.toggle');
     Route::post('/quadras/{quadra}/desativar/confirmar', [QuadraController::class, 'confirmDeactivate'])
         ->name('quadras.deactivate.confirm');
+    Route::post('/quadras/{quadra}/excluir/confirmar', [QuadraController::class, 'confirmDelete'])
+        ->name('quadras.delete.confirm');
     Route::resource('quadras', QuadraController::class);
     Route::resource('employees', EmployeeController::class);
     Route::patch('/employees/{employee}/toggle', [EmployeeController::class, 'toggleActive'])

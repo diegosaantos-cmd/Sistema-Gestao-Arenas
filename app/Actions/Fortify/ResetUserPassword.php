@@ -25,6 +25,10 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules(),
         ])->validate();
 
+        // Ao trocar `password_hash`, o middleware AuthenticateSession (ativo via
+        // jetstream.auth_session) invalida as OUTRAS sessões abertas dessa conta
+        // na próxima requisição delas — inclusive a de um dispositivo comprometido.
+        // (Não há coluna remember_token nesta base; nada a rotacionar aqui.)
         $user->forceFill([
             'password_hash' => Hash::make($input['password']),
         ])->save();

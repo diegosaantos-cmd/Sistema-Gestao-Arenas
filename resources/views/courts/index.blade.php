@@ -47,7 +47,7 @@
                     </div>
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('quadras.edit', $court) }}" class="btn btn-sm btn-warning">✏️ Editar</a>
                     @if ($court->active)
                         <button type="button" class="btn btn-sm btn-secondary"
@@ -61,6 +61,10 @@
                             <button type="submit" class="btn btn-sm btn-success">✅ Reativar</button>
                         </form>
                     @endif
+                    <button type="button" class="btn btn-sm btn-danger"
+                            data-bs-toggle="modal" data-bs-target="#excluirQuadraModal{{ $court->id }}">
+                        🗑️ Excluir
+                    </button>
                 </div>
 
             </div>
@@ -97,6 +101,37 @@
                 </div>
             </div>
         @endif
+
+        {{-- Modal de confirmação de exclusão (mantém o histórico de reservas) --}}
+        <div class="modal fade" id="excluirQuadraModal{{ $court->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Excluir quadra</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        A quadra <strong>{{ $court->name }}</strong> será <strong>excluída</strong>
+                        e deixará de aparecer na sua gestão e nos agendamentos. O
+                        <strong>histórico de reservas é mantido</strong>. Se houver reservas
+                        futuras, você poderá informar o motivo do cancelamento na próxima tela.
+                        <strong>Esta ação não pode ser desfeita.</strong>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Voltar
+                        </button>
+                        <form method="POST" action="{{ route('quadras.destroy', $court) }}" class="d-inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">
+                                🗑️ Sim, excluir
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     @empty
         <div class="alert alert-light border text-center text-muted">
             Nenhuma quadra cadastrada nesta arena.

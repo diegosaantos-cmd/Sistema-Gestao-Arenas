@@ -43,6 +43,10 @@
         @endforelse
     </div>
 
+    @if ($historico instanceof \Illuminate\Contracts\Pagination\Paginator && $historico->hasPages())
+        <div class="mt-4">{{ $historico->links() }}</div>
+    @endif
+
 </div>
 
 @endsection

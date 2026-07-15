@@ -1,34 +1,62 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+@extends('layouts.main')
 
-        <div class="mb-4 text-sm text-gray-600">
-            {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
+@section('title', 'Recuperar senha')
+
+@section('content')
+<div class="container py-5">
+    <div class="card shadow border-0 mx-auto" style="max-width: 460px;">
+        <div class="card-body p-4 p-md-5">
+
+            <div class="position-relative text-center mb-4">
+                <a href="{{ url('/') }}" class="logo-marca">ArenaPlay</a>
+
+                <a href="{{ route('login') }}" class="btn-close position-absolute top-0 end-0"
+                   aria-label="Fechar" title="Fechar"></a>
+            </div>
+
+            <div class="text-center mb-4">
+                <h1 class="h3 fw-bold mb-1">Recuperar senha</h1>
+                <p class="text-muted mb-0">
+                    Informe seu e-mail e enviaremos um link para você criar uma nova senha.
+                </p>
+            </div>
+
+            @session('status')
+                <div class="alert alert-success">{{ $value }}</div>
+            @endsession
+
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $erro)
+                            <li>{{ $erro }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('password.email') }}">
+                @csrf
+
+                <div class="mb-4">
+                    <label class="form-label" for="email">E-mail</label>
+                    <input type="email" class="form-control" id="email" name="email"
+                           value="{{ old('email') }}" required autofocus autocomplete="username">
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-envelope me-1"></i> Enviar link de recuperação
+                    </button>
+                </div>
+
+                <hr class="my-4">
+
+                <p class="text-center small text-muted mb-0">
+                    Lembrou a senha? <a href="{{ route('login') }}">Voltar para entrar</a>
+                </p>
+            </form>
         </div>
-
-        @session('status')
-            <div class="mb-4 font-medium text-sm text-green-600">
-                {{ $value }}
-            </div>
-        @endsession
-
-        <x-validation-errors class="mb-4" />
-
-        <form method="POST" action="{{ route('password.email') }}">
-            @csrf
-
-            <div class="block">
-                <x-label for="email" value="{{ __('Email') }}" />
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <x-button>
-                    {{ __('Email Password Reset Link') }}
-                </x-button>
-            </div>
-        </form>
-    </x-authentication-card>
-</x-guest-layout>
+    </div>
+</div>
+@endsection

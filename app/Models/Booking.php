@@ -31,7 +31,10 @@ class Booking extends Model
 
     public function court()
     {
-        return $this->belongsTo(Court::class);
+        // withTrashed: quadra excluída (soft delete) continua aparecendo no
+        // histórico de reservas com o nome — o registro não se "perde". As
+        // listagens de quadras ativas usam Arena::courts(), que exclui as apagadas.
+        return $this->belongsTo(Court::class)->withTrashed();
     }
 
     public function courtWithTrashed()
@@ -41,7 +44,11 @@ class Booking extends Model
 
     public function client()
     {
-        return $this->belongsTo(Client::class);
+        // withTrashed: cliente que virou proprietário (conta de cliente
+        // encerrada / soft delete) continua aparecendo no histórico de reservas
+        // com o nome. As LISTAS de clientes usam Client::query (sem trashed),
+        // então ele deixa de figurar como cliente ativo — "cliente que não existe".
+        return $this->belongsTo(Client::class)->withTrashed();
     }
 
     /**
@@ -458,9 +465,17 @@ class Booking extends Model
             $texto .= 'Foi retida a taxa de cancelamento de R$ '
                 . number_format($taxa, 2, ',', '.') . '. ';
         }
-        $texto .= 'Você foi reembolsado em R$ ' . number_format($reembolso, 2, ',', '.') . '.';
+        $texto .= 'Você foi reembolsado em R$ ' . number_format($reembolso, 2, ',', '.') . '. ';
 
-        UserNotification::paraReserva($this, 'Reserva cancelada — reembolso', $texto, $sentBy);
+        // Deixa claro COMO o valor volta (estorno pix/cartão x devolução em dinheiro).
+        $this->loadMissing('payments.paymentMethod');
+        $pago = $this->payments->first(fn ($p) => $p->refunded_at !== null)
+            ?? $this->payments->firstWhere('status', 'paid');
+        if ($pago) {
+            $texto .= $pago->comoReembolsar();
+        }
+
+        UserNotification::paraReserva($this, 'Reserva cancelada — reembolso', trim($texto), $sentBy);
     }
 
     /**

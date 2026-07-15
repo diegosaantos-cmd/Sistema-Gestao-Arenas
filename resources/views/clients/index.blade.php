@@ -117,6 +117,10 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($clients->hasPages())
+                <div class="mt-3">{{ $clients->links() }}</div>
+            @endif
         </div>
     </div>
 

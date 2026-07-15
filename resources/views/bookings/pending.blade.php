@@ -120,6 +120,7 @@
                             {{ $booking->date->format('d/m/Y') }}
                             {{ substr($booking->start_time, 0, 5) }}–{{ substr($booking->end_time, 0, 5) }}
                         </p>
+                        @include('partials.aviso-reembolso-cancelamento', ['booking' => $booking])
                         <label class="form-label">Motivo do cancelamento</label>
                         <textarea name="motivo" class="form-control" rows="3" required
                                   placeholder="Ex.: Quadra indisponível neste horário."></textarea>

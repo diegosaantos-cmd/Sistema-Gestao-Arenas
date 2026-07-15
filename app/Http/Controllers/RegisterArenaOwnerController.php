@@ -6,6 +6,7 @@ use App\Models\Arena;
 use App\Models\Court;
 use App\Models\Owner;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,14 +20,27 @@ class RegisterArenaOwnerController extends Controller
      */
     public function create()
     {
-        return view('auth.registerArenaOwners');
+        // Cliente logado pode virar proprietário reaproveitando a própria conta.
+        $ehClienteLogado = auth()->check() && auth()->user()->type === 'client';
+
+        return view('auth.registerArenaOwners', compact('ehClienteLogado'));
     }
 
     /**
-     * Cria o usuário (tipo owner) e o proprietário de uma só vez.
+     * Cria o proprietário e a arena.
+     *
+     * Dois caminhos, escolhidos na Etapa 1 (campo `modo_conta`):
+     * - "atual": o cliente logado VIRA proprietário com a MESMA conta. O papel de
+     *   cliente é encerrado (soft delete), o histórico de reservas permanece.
+     * - "novos": cria uma conta de proprietário nova (dados de acesso próprios).
+     *   Se for um cliente logado, a conta de cliente dele fica intacta.
      */
     public function store(Request $request)
     {
+        $usarContaAtual = auth()->check()
+            && auth()->user()->type === 'client'
+            && $request->input('modo_conta') === 'atual';
+
         $request->merge([
             'company_name' => ArenaController::normalizarTexto($request->input('company_name')),
             'name_arena' => ArenaController::normalizarTexto($request->input('name_arena')),
@@ -38,13 +52,22 @@ class RegisterArenaOwnerController extends Controller
             'quadras' => ArenaController::normalizarQuadras($request->input('quadras', [])),
         ]);
 
-        $validated = $request->validate([
+        // Dados de acesso só são validados ao criar conta NOVA. Ao usar a conta
+        // atual, reaproveitamos nome/e-mail/telefone/senha do cliente logado.
+        $regrasConta = $usarContaAtual ? [] : [
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             // Telefone pessoal do proprietário (users.phone). É diferente do
             // `phone`, que é o telefone de contato da arena.
             'owner_phone' => ['required', 'string', 'max:20'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
+        ];
+
+        // Para o e-mail da arena: o e-mail do próprio dono é permitido.
+        $emailDoDono = $usarContaAtual ? auth()->user()->email : $request->input('email');
+        $ignoraUserId = $usarContaAtual ? auth()->id() : null;
+
+        $validated = $request->validate(array_merge($regrasConta, [
             'terms' => ['required', 'accepted'],
             'company_name' => ['required', 'string', 'max:150', function ($attribute, $value, $fail) {
                 $chave = ArenaController::chaveComparacao($value);
@@ -64,11 +87,11 @@ class RegisterArenaOwnerController extends Controller
             'address_bairro' => ['required', 'string', 'max:120'],
             'address_numero' => ['required', 'string', 'max:15'],
             'phone' => ['required', 'string', 'max:20'],
-            'email_arena' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($request) {
+            'email_arena' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($emailDoDono, $ignoraUserId) {
                 if (ArenaController::emailDeArenaEmUsoPorOutroDono($value, null)) {
                     $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
-                } elseif ($value !== $request->input('email')
-                    && ArenaController::emailPertenceAOutroUsuario($value, null)) {
+                } elseif ($value !== $emailDoDono
+                    && ArenaController::emailPertenceAOutroUsuario($value, $ignoraUserId)) {
                     $fail('Este e-mail pertence à conta de outra pessoa. Use um e-mail que não seja de outro usuário.');
                 }
             }],
@@ -100,7 +123,7 @@ class RegisterArenaOwnerController extends Controller
             'quadras.*.ativa' => ['nullable', 'boolean'],
             'quadras.*.esportes' => ['required', 'array', 'min:1'],
             'quadras.*.esportes.*' => [Rule::in(array_keys(Court::SPORTS))],
-        ], [
+        ]), [
             'name.required' => 'Informe seu nome completo.',
             'email.required' => 'Informe seu e-mail.',
             'email.unique' => 'Este e-mail já está cadastrado.',
@@ -133,16 +156,26 @@ class RegisterArenaOwnerController extends Controller
         $quadras = $request->input('quadras', []);
         $dadosTaxa = ArenaController::dadosTaxaCancelamento($request);
 
-        // Transação: ou cria usuário E proprietário, ou não cria nada.
-        $user = DB::transaction(function () use ($validated, $horarios, $pagamentos, $quadras, $dadosTaxa) {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'phone' => $validated['owner_phone'],
-                'password_hash' => Hash::make($validated['password']),
-                'terms_accepted_at' => now(),
-                'type' => 'owner',
-            ]);
+        // Transação: ou faz TUDO, ou não faz nada.
+        $user = DB::transaction(function () use ($validated, $horarios, $pagamentos, $quadras, $dadosTaxa, $usarContaAtual) {
+            if ($usarContaAtual) {
+                // Cliente logado vira proprietário com a MESMA conta. Encerra o
+                // papel de cliente (soft delete) — o histórico de reservas
+                // permanece (Booking::client() usa withTrashed). E-mail, senha,
+                // nome e telefone continuam os mesmos.
+                $user = auth()->user();
+                $user->client()->delete();
+                $user->update(['type' => 'owner']);
+            } else {
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'phone' => $validated['owner_phone'],
+                    'password_hash' => Hash::make($validated['password']),
+                    'terms_accepted_at' => now(),
+                    'type' => 'owner',
+                ]);
+            }
 
             $owner = Owner::create([
                 'user_id' => $user->id,
@@ -170,6 +203,14 @@ class RegisterArenaOwnerController extends Controller
 
             return $user;
         });
+
+        // Conta NOVA: dispara Registered (envia o e-mail de verificação, se a
+        // verificação estiver ligada). No "usar conta atual" a conta já existe e
+        // mantém o estado de verificação que já tinha. É no-op quando a
+        // verificação está desligada (hasVerifiedEmail() retorna true).
+        if (! $usarContaAtual) {
+            event(new Registered($user));
+        }
 
         // Já loga o usuário recém-criado e leva ao painel.
         Auth::login($user);
