@@ -156,11 +156,9 @@ return [
         env('EMAIL_VERIFICATION_ENABLED', false) ? Features::emailVerification() : null,
         Features::updateProfileInformation(),
         Features::updatePasswords(),
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0,
-        ]),
+        // 2FA (autenticação de dois fatores) REMOVIDO: nunca foi usado — não havia
+        // tela para ativar (o app usa perfis próprios) nem as colunas two_factor_*
+        // na tabela users. Para reativar: recriar as colunas + uma tela de ativação.
         /*
          * Passkeys (login por WebAuthn) foi REMOVIDO em 2026-07-09.
          *

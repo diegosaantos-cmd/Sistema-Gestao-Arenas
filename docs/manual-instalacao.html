@@ -352,6 +352,26 @@ npm run build</code></pre>
     o que a seção 6.1 pede.
 </div>
 
+<div class="box tip">
+    <strong>Dica — o que mexer nisto quando for para produção:</strong>
+    <ul>
+        <li><strong>Sessão (<code>SESSION_DRIVER</code>):</strong> em arquivo funciona bem. Trocar para
+            <code>database</code> permite <em>ver e encerrar</em> os dispositivos conectados de cada conta
+            (útil num sistema com caixa/dinheiro). A tabela <code>sessions</code> já existe e se limpa sozinha
+            — sessões paradas por mais de 2&nbsp;horas são apagadas automaticamente.</li>
+        <li><strong>Cache (<code>CACHE_STORE</code>):</strong> mantenha em <code>file</code> — num servidor só,
+            é mais rápido que o banco. Cache em <code>database</code> só compensa com vários servidores.</li>
+        <li><strong>Fila (<code>QUEUE_CONNECTION</code>):</strong> em produção use <code>database</code> e deixe
+            <code>php artisan queue:work</code> rodando — assim o e-mail é enviado <em>em segundo plano</em> e não
+            trava a tela de quem confirma uma reserva. As três tabelas de fila já existem no banco:
+            <code>jobs</code> (tarefas na fila de espera), <code>failed_jobs</code> (tarefas que falharam, para
+            inspecionar e reprocessar) e <code>job_batches</code> (progresso de lotes de tarefas). Elas ficam
+            <strong>vazias</strong> enquanto a fila é <code>sync</code> (tudo roda na hora).
+            <strong>Atenção:</strong> com <code>database</code> e <em>sem</em> o <code>queue:work</code> rodando,
+            nenhum e-mail sai — os jobs ficam parados na tabela <code>jobs</code>. Checklist completo na seção&nbsp;11.</li>
+    </ul>
+</div>
+
 <h3>6.3 Opcional: enviar e-mails de verdade</h3>
 <p>Com <code>MAIL_MAILER=log</code>, nada é enviado. Para enviar mesmo (avisos de reserva, "esqueci minha senha"):</p>
 <pre><code>MAIL_MAILER=smtp

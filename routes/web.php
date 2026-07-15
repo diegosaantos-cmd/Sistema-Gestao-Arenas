@@ -59,6 +59,19 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     return view('welcome', compact('arenas', 'busca', 'slides', 'favoritasIds'));
 });
 
+// As telas de perfil e confirmação de senha do Jetstream/Fortify NÃO são usadas
+// (o app tem perfis próprios por papel). Redireciona essas rotas para o lugar
+// certo para poder remover as views mortas do esqueleto do Jetstream.
+Route::get('/user/profile', function () {
+    return match (auth()->user()?->type) {
+        'owner'    => redirect()->route('owner.profile.edit'),
+        'employee' => redirect()->route('employee.profile.edit'),
+        'client'   => redirect()->route('client.profile.edit'),
+        default    => redirect()->route('dashboard'),
+    };
+})->middleware('auth')->name('profile.show');
+Route::get('/user/confirm-password', fn () => redirect()->route('dashboard'))->middleware('auth');
+
 Route::get('/registerArenaOwners', [RegisterArenaOwnerController::class, 'create'])
     ->name('register.arena.owners');
 

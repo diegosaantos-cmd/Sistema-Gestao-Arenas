@@ -1,45 +1,50 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+@extends('layouts.main')
 
-        <div class="mb-4 text-sm text-gray-600">
-            {{ __('Before continuing, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-        </div>
+@section('title', 'Confirme seu e-mail')
 
-        @if (session('status') == 'verification-link-sent')
-            <div class="mb-4 font-medium text-sm text-green-600">
-                {{ __('A new verification link has been sent to the email address you provided in your profile settings.') }}
+@section('content')
+<div class="container py-5">
+    <div class="card shadow border-0 mx-auto" style="max-width: 460px;">
+        <div class="card-body p-4 p-md-5">
+
+            <div class="position-relative text-center mb-4">
+                <a href="{{ url('/') }}" class="logo-marca">ArenaPlay</a>
             </div>
-        @endif
 
-        <div class="mt-4 flex items-center justify-between">
+            <div class="text-center mb-4">
+                <h1 class="h3 fw-bold mb-1">Confirme seu e-mail</h1>
+                <p class="text-muted mb-0">
+                    Enviamos um link de confirmação para o seu e-mail. Clique nele para
+                    ativar sua conta. Não recebeu? Podemos enviar de novo.
+                </p>
+            </div>
+
+            @if (session('status') == 'verification-link-sent')
+                <div class="alert alert-success">
+                    Enviamos um novo link de confirmação para o seu e-mail.
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('verification.send') }}">
                 @csrf
-
-                <div>
-                    <x-button type="submit">
-                        {{ __('Resend Verification Email') }}
-                    </x-button>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-envelope me-1"></i> Reenviar e-mail de confirmação
+                    </button>
                 </div>
             </form>
 
-            <div>
-                <a
-                    href="{{ route('profile.show') }}"
-                    class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                    {{ __('Edit Profile') }}</a>
+            <hr class="my-4">
 
-                <form method="POST" action="{{ route('logout') }}" class="inline">
+            <div class="text-center">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
-
-                    <button type="submit" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ms-2">
-                        {{ __('Log Out') }}
+                    <button type="submit" class="btn btn-link btn-sm text-decoration-none text-muted">
+                        Sair
                     </button>
                 </form>
             </div>
         </div>
-    </x-authentication-card>
-</x-guest-layout>
+    </div>
+</div>
+@endsection

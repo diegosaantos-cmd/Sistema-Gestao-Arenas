@@ -1,13 +1,18 @@
-<x-guest-layout>
-    <div class="pt-4 bg-gray-100">
-        <div class="min-h-screen flex flex-col items-center pt-6 sm:pt-0">
-            <div>
-                <x-authentication-card-logo />
-            </div>
+@extends('layouts.main')
 
-            <div class="w-full sm:max-w-2xl mt-6 p-6 bg-white shadow-md overflow-hidden sm:rounded-lg prose">
+@section('title', 'Política de Privacidade')
+
+@section('content')
+<div class="container py-5">
+    <div class="card shadow-sm border-0 mx-auto" style="max-width: 800px;">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+                <a href="{{ url('/') }}" class="logo-marca">ArenaPlay</a>
+            </div>
+            <div class="prose">
                 {!! $policy !!}
             </div>
         </div>
     </div>
-</x-guest-layout>
+</div>
+@endsection
