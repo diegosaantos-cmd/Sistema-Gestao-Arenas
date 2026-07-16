@@ -11,14 +11,6 @@
     {{-- Desativar/excluir/reativar a arena é só do dono; o gerente só edita. --}}
     @php $ehDono = \App\Support\ArenaAtual::ehDono(); @endphp
 
-    {{-- Galeria: dono e gerente gerenciam as fotos do carrossel. --}}
-    <div class="mb-3">
-        <a href="{{ route('arenas.photos.index', $arena->id) }}" class="btn btn-primary">
-            <i class="bi bi-images me-1"></i> Fotos da arena ({{ $arena->photos()->count() }})
-        </a>
-        <span class="text-muted small ms-2">Aparecem no carrossel do card e na página da arena.</span>
-    </div>
-
     @if ($errors->any())
         <div class="alert alert-danger">
             <strong>Não foi possível salvar.</strong> Corrija o que está marcado abaixo:
@@ -63,6 +55,15 @@
                     </button>
                 </div>
             </form>
+
+            {{-- Galeria: dono e gerente gerenciam as fotos do carrossel.
+                 Fica fora do #nomeView para continuar visível ao editar o nome. --}}
+            <div class="mt-2">
+                <a href="{{ route('arenas.photos.index', $arena->id) }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-images me-1"></i>
+                    Adicionar ou editar fotos da arena ({{ $arena->photos()->count() }})
+                </a>
+            </div>
         </div>
 
         @if ($ehDono)
