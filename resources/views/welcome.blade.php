@@ -93,7 +93,15 @@
         @empty
 
             <div class="col-12 text-center py-5">
-                <h4>Nenhuma arena cadastrada ainda</h4>
+                @if (trim($busca) !== '')
+                    <h4 class="mb-1">Nenhuma arena encontrada com "{{ $busca }}"</h4>
+                    <p class="text-muted mb-0">Tente outro nome ou veja todas as arenas.</p>
+                    <a href="{{ url('/') }}" class="btn btn-primary btn-sm mt-3">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Ver todas as arenas
+                    </a>
+                @else
+                    <h4>Nenhuma arena cadastrada ainda</h4>
+                @endif
             </div>
 
         @endforelse

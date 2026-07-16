@@ -408,6 +408,14 @@ body{
     /* o ícone grande aperta o texto em telas muito estreitas */
     .dashboard-icon{ display: none; }
     .dashboard-box{ padding: 14px; }
+
+    /* Navbar do celular: logo + "Entrar" + hambúrguer numa linha só.
+       Encolhemos a logo/botão para caberem (assim o Bootstrap não quebra a
+       barra em 2 linhas). O menu que abre continua indo para baixo normalmente. */
+    .custom-navbar .container-fluid{ padding-left: 12px; padding-right: 12px; column-gap: 8px; }
+    .logo{ font-size: 1.15rem; letter-spacing: 0; white-space: nowrap; }
+    .custom-navbar .btn-sm{ padding: .25rem .5rem; font-size: .78rem; white-space: nowrap; flex-shrink: 0; }
+    .custom-navbar .navbar-toggler{ padding: .15rem .35rem; flex-shrink: 0; }
 }
 
 /* ===== Tabelas roláveis no celular / tablet =====

@@ -19,7 +19,7 @@
           class="arena-search-form arena-search-box shadow-sm mb-4" data-update-url="true">
         <div class="input-group">
             <input type="search" id="buscaArena" name="busca" class="form-control border-end-0"
-                   value="{{ $busca }}" placeholder="Nome da arena ou do proprietário">
+                   value="{{ $busca }}" placeholder="Pesquisar pelo nome da arena">
             <button type="submit" class="btn bg-white text-secondary border border-start-0"
                     style="border-color: var(--bs-border-color) !important;"
                     aria-label="Pesquisar" title="Pesquisar">

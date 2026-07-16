@@ -25,6 +25,15 @@
                     ArenaPlay
                 </a>
 
+                @guest
+                    {{-- "Entrar" SEMPRE visível no celular: fica fora do menu que colapsa,
+                         para o visitante ver na hora como acessar o site. Some no desktop
+                         (d-lg-none), onde o menu completo já mostra "ENTRAR". --}}
+                    <a href="/login" class="btn btn-outline-light btn-sm d-lg-none ms-auto me-2">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+                    </a>
+                @endguest
+
                 <!-- Botão Mobile -->
                 <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarNav">
@@ -37,16 +46,24 @@
 
                     <ul class="navbar-nav align-items-center gap-4">
 
-                        <li class="nav-item">
-                            <a class="nav-link active" href="/">
-                                <i class="bi bi-house-fill"></i>
-                                INÍCIO
-                            </a>
-                        </li>
+                        {{-- Funcionário (gerente/atendente) não vê "Início": o painel
+                             dele é "Minha Área"; a tela pública inicial não lhe serve. --}}
+                        @unless (auth()->check() && auth()->user()->type === 'employee')
+                            <li class="nav-item">
+                                <a class="nav-link active" href="/">
+                                    <i class="bi bi-house-fill"></i>
+                                    INÍCIO
+                                </a>
+                            </li>
+                        @endunless
 
                         @guest
-                            <li class="nav-item">
+                            {{-- No celular o "Entrar" já fica no botão fixo fora do menu
+                                 (sempre visível); aqui dentro do menu ele só aparece no
+                                 desktop (d-none d-lg-block) — evita dois "Entrar". --}}
+                            <li class="nav-item d-none d-lg-block">
                                 <a class="nav-link" href="/login">
+                                    <i class="bi bi-box-arrow-in-right"></i>
                                     ENTRAR
                                 </a>
                             </li>
@@ -83,6 +100,7 @@
                             @endphp
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ $route }}">
+                                    <i class="bi bi-grid-fill"></i>
                                     MINHA ÁREA
                                 </a>
                             </li>
