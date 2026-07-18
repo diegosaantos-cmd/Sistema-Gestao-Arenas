@@ -23,6 +23,7 @@ class AvisoDoSistema extends Notification implements ShouldQueue
     public function __construct(
         private readonly string $titulo,
         private readonly string $corpo,
+        private readonly ?string $arena = null,
     ) {
     }
 
@@ -33,9 +34,21 @@ class AvisoDoSistema extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage())
-            ->subject($this->titulo.' — ArenaPlay')
-            ->greeting('Olá, '.$notifiable->name.'!')
+        // Mostra qual ARENA gerou o aviso (reserva, mensagem etc.), tanto no
+        // assunto quanto numa linha em destaque — assim o cliente sabe a origem.
+        $assunto = $this->arena
+            ? $this->titulo.' — '.$this->arena.' · ArenaPlay'
+            : $this->titulo.' — ArenaPlay';
+
+        $mail = (new MailMessage())
+            ->subject($assunto)
+            ->greeting('Olá, '.$notifiable->name.'!');
+
+        if ($this->arena) {
+            $mail->line('**Arena:** '.$this->arena);
+        }
+
+        return $mail
             ->line($this->corpo)
             ->action('Ver no sistema', route('notifications.index'))
             ->line('Este aviso também está disponível no sino de notificações.')

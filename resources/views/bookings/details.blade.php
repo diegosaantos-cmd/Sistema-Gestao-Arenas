@@ -43,6 +43,17 @@
             <div class="card-body">
                 <h5 class="fw-bold mb-3">Reserva</h5>
                     <p class="mb-1"><strong>Arena:</strong> {{ $booking->court->arena->name ?? '—' }}</p>
+                    {{-- Endereço aqui evita o cliente ter que ir procurar a arena
+                         só para saber onde é o jogo. --}}
+                    @php $arenaDaReserva = $booking->court?->arena; @endphp
+                    @if ($arenaDaReserva)
+                        <p class="mb-1">
+                            <strong>Endereço:</strong>
+                            <i class="bi bi-geo-alt"></i>
+                            {{ $arenaDaReserva->address_rua }}, {{ $arenaDaReserva->address_numero }}
+                            — {{ $arenaDaReserva->address_bairro }}
+                        </p>
+                    @endif
                     <p class="mb-1"><strong>Quadra:</strong> {{ $booking->court->name ?? '—' }}</p>
                     <p class="mb-1">
                         <strong>Data:</strong>

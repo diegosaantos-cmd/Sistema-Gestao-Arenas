@@ -53,10 +53,15 @@ class UserNotification extends Model
         $titulo = $this->title;
         $corpo = $this->body;
         $id = $this->id;
+        // Nome da arena que gerou o aviso (withTrashed: mostra mesmo se ela foi
+        // excluída depois). Fica nulo em avisos sem arena.
+        $arenaNome = $this->arena_id
+            ? optional($this->arena()->withTrashed()->first())->name
+            : null;
 
-        DB::afterCommit(function () use ($usuario, $titulo, $corpo, $id) {
+        DB::afterCommit(function () use ($usuario, $titulo, $corpo, $id, $arenaNome) {
             try {
-                $usuario->notify(new AvisoDoSistema($titulo, $corpo));
+                $usuario->notify(new AvisoDoSistema($titulo, $corpo, $arenaNome));
             } catch (\Throwable $e) {
                 Log::warning('Falha ao enviar aviso por e-mail.', [
                     'notificacao_id' => $id,

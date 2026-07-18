@@ -378,14 +378,20 @@ npm run build</code></pre>
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USERNAME=seu-email@gmail.com
-MAIL_PASSWORD=senha-de-app-de-16-digitos
-MAIL_SCHEME=tls
+MAIL_PASSWORD=senhadeapp16caracteres
+MAIL_SCHEME=smtp
 MAIL_FROM_ADDRESS="seu-email@gmail.com"</code></pre>
 <div class="box warn">
-    <strong>Duas armadilhas:</strong><br>
-    1. O Gmail <strong>não aceita sua senha normal</strong>. É preciso gerar uma "senha de app" (exige verificação
-    em duas etapas ativa na conta).<br>
-    2. Só ligue <code>EMAIL_VERIFICATION_ENABLED=true</code> <strong>depois</strong> que o envio funcionar. Ligar antes
+    <strong>Quatro armadilhas (todas já pegaram na prática):</strong><br>
+    1. <strong><code>MAIL_SCHEME</code> deve ser <code>smtp</code></strong> (não <code>tls</code>). O Laravel atual
+    só aceita <code>smtp</code> (porta 587, STARTTLS) ou <code>smtps</code> (porta 465, SSL). Com <code>tls</code>
+    dá o erro <em>“The 'tls' scheme is not supported”</em>.<br>
+    2. A <strong>senha de app do Gmail</strong> tem 16 caracteres e o Google a mostra em 4 blocos com espaços
+    (<code>xxxx xxxx xxxx xxxx</code>) — mas cole-a <strong>sem os espaços</strong>. Com espaços, o <code>.env</code>
+    dá o erro <em>“Failed to parse dotenv file. Encountered unexpected whitespace”</em>.<br>
+    3. O Gmail <strong>não aceita sua senha normal</strong>: é preciso gerar uma <strong>“senha de app”</strong>
+    (exige verificação em duas etapas ativa na conta Google).<br>
+    4. Só ligue <code>EMAIL_VERIFICATION_ENABLED=true</code> <strong>depois</strong> que o envio funcionar. Ligar antes
     tranca todo cadastro novo fora do sistema, esperando um e-mail que nunca chega.
 </div>
 <p>Depois de qualquer alteração no <code>.env</code>, rode: <code>php artisan config:clear</code></p>

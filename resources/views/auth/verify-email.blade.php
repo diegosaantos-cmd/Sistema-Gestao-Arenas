@@ -39,8 +39,8 @@
             <div class="text-center">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="btn btn-link btn-sm text-decoration-none text-muted">
-                        Sair
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-box-arrow-right me-1"></i> Sair
                     </button>
                 </form>
             </div>

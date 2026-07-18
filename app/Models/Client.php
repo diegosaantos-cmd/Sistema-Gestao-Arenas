@@ -18,7 +18,10 @@ class Client extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        // withTrashed: quando o cliente encerra a conta (soft delete do User),
+        // as reservas dele continuam aparecendo no histórico da arena COM o nome.
+        // Espelha o que Booking::client() e Booking::court() já fazem.
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     /**
