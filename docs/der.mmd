@@ -1,0 +1,193 @@
+erDiagram
+    users {
+        bigint id PK
+        string name
+        string email UK
+        enum type "admin|owner|employee|client"
+        string password_hash
+        boolean active
+        timestamp email_verified_at
+        timestamp deleted_at
+    }
+    clients {
+        bigint id PK
+        bigint user_id FK "UK 1:1"
+        date date_of_birth
+        timestamp deleted_at
+    }
+    owners {
+        bigint id PK
+        bigint user_id FK "UK 1:1"
+        string tax_id UK
+        string company_name UK
+        boolean active
+        bigint deactivated_by FK
+        timestamp deleted_at
+        string empresa_ativa "gerada: razao social unica (ativas)"
+        string documento_ativo "gerada: CPF/CNPJ unico (ativas)"
+    }
+    employees {
+        bigint id PK
+        bigint user_id FK "UK 1:1"
+        bigint arena_id FK
+        bigint created_by FK
+        enum access_level "basic|managerial"
+        boolean active
+        timestamp deleted_at
+    }
+    system_admins {
+        bigint id PK
+        bigint user_id FK "UK 1:1"
+    }
+    arenas {
+        bigint id PK
+        bigint owner_id FK
+        string name
+        boolean active
+        boolean charges_cancellation_fee
+        enum cancellation_fee_type "fixed|percent"
+        enum cancellation_fee_mode "always|window"
+        timestamp deleted_at
+        string nome_ativo "gerada: nome unico entre as ativas"
+    }
+    courts {
+        bigint id PK
+        bigint arena_id FK
+        string name
+        decimal hourly_rate
+        boolean active
+        timestamp deleted_at
+        string nome_ativo "gerada: nome unico por arena (ativas)"
+    }
+    arena_business_hours {
+        bigint id PK
+        bigint arena_id FK
+        tinyint day_of_week
+        time opens_at
+        time closes_at
+    }
+    arena_photos {
+        bigint id PK
+        bigint arena_id FK
+        string image_path
+        int ordem
+    }
+    cash_register {
+        bigint id PK
+        bigint arena_id FK
+        bigint user_id FK
+        decimal opening_balance
+        decimal closing_balance
+        enum status "open|closed"
+    }
+    arena_payment_methods {
+        bigint id PK
+        bigint arena_id FK
+        bigint payment_method_id FK
+        boolean active
+    }
+    payment_methods {
+        bigint id PK
+        enum type "pix|card|cash (UK)"
+        string label
+    }
+    arena_favorites {
+        bigint id PK
+        bigint client_id FK
+        bigint arena_id FK
+    }
+    court_sports {
+        bigint id PK
+        bigint court_id FK
+        enum sport "beach_tennis|futsal|tennis|..."
+    }
+    bookings {
+        bigint id PK
+        bigint court_id FK
+        bigint client_id FK "nullable"
+        string guest_name "presencial"
+        bigint created_by FK
+        enum origin "site|presencial"
+        date date
+        time start_time
+        time end_time
+        decimal total_amount
+        bigint payment_method_id FK
+        enum status "pending|confirmed|cancelled|completed"
+        decimal cancellation_fee_amount
+        string slot_ativo "UK gerado"
+    }
+    payments {
+        bigint id PK
+        bigint booking_id FK
+        bigint payment_method_id FK
+        decimal amount
+        decimal discount_amount
+        enum status "pending|paid|refunded"
+        enum origin "online|local"
+        bigint cash_register_entry_id FK
+        decimal refund_amount
+        bigint refund_cash_register_entry_id FK
+        timestamp paid_at
+    }
+    cash_register_entries {
+        bigint id PK
+        bigint cash_register_id FK
+        bigint booking_id FK "nullable"
+        bigint created_by FK
+        enum type "income|expense"
+        decimal amount
+        string description
+    }
+    user_notifications {
+        bigint id PK
+        bigint user_id FK "destinatário"
+        bigint arena_id FK "remetente"
+        bigint sent_by
+        string title
+        timestamp read_at
+    }
+    feedbacks {
+        bigint id PK
+        bigint user_id FK
+        enum tipo "sugestao|bug"
+        enum status "aberto|em_andamento|resolvido"
+    }
+    home_slides {
+        bigint id PK
+        string image_path
+        string titulo
+        string cor_texto
+        int ordem
+        boolean active
+    }
+
+    arenas ||--o{ arena_business_hours : "arena_id"
+    arenas ||--o{ arena_favorites : "arena_id"
+    arenas ||--o{ arena_payment_methods : "arena_id"
+    arenas ||--o{ arena_photos : "arena_id"
+    arenas ||--o{ cash_register : "arena_id"
+    arenas ||--o{ courts : "arena_id"
+    arenas ||--o{ employees : "arena_id"
+    bookings ||--o{ cash_register_entries : "booking_id"
+    bookings ||--o{ payments : "booking_id"
+    cash_register ||--o{ cash_register_entries : "cash_register_id"
+    cash_register_entries ||--o{ payments : "cash_register_entry_id"
+    cash_register_entries ||--o{ payments : "refund_cash_register_entry_id"
+    clients ||--o{ arena_favorites : "client_id"
+    clients ||--o{ bookings : "client_id"
+    courts ||--o{ bookings : "court_id"
+    courts ||--o{ court_sports : "court_id"
+    owners ||--o{ arenas : "owner_id"
+    payment_methods ||--o{ arena_payment_methods : "payment_method_id"
+    payment_methods ||--o{ bookings : "payment_method_id"
+    payment_methods ||--o{ payments : "payment_method_id"
+    users ||--o{ bookings : "created_by"
+    users ||--o{ cash_register : "user_id"
+    users ||--o{ cash_register_entries : "created_by"
+    users ||--o| clients : "user_id"
+    users ||--o{ employees : "created_by"
+    users ||--o| employees : "user_id"
+    users ||--o{ owners : "deactivated_by"
+    users ||--o| owners : "user_id"
+    users ||--o| system_admins : "user_id"

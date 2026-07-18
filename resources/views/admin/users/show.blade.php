@@ -184,7 +184,7 @@
                     <div class="col-md-6"><div class="text-muted small">Arena</div><div class="fw-semibold">{{ $emp->arena?->name ?? '—' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Empresa</div><div class="fw-semibold">{{ $emp->arena?->owner?->company_name ?? '—' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Proprietário</div><div class="fw-semibold">{{ $emp->arena?->owner?->user?->name ?? '—' }}</div></div>
-                    <div class="col-md-6"><div class="text-muted small">Cadastrado por</div><div class="fw-semibold">{{ $emp->createdBy?->name ?? '—' }}</div></div>
+                    <div class="col-md-6"><div class="text-muted small">Cadastrado por</div><div class="fw-semibold"><x-nome-autor :user="$emp->createdBy" /></div></div>
                 </div>
             </div>
         </div>

@@ -71,6 +71,27 @@ class Arena extends Model
         });
     }
 
+    /**
+     * Apaga os dados de CONTATO da arena ao encerrá-la.
+     *
+     * Telefone e e-mail de contato costumam ser o telefone e o e-mail pessoais
+     * do dono — e, com a arena encerrada, não servem mais a ninguém: ninguém
+     * pode reservar nela. Somem por minimização de dados (LGPD).
+     *
+     * O que É registro do negócio permanece: nome da arena, endereço, quadras,
+     * reservas, pagamentos e caixa. Some só o dado pessoal.
+     *
+     * Só na EXCLUSÃO. Desativar é reversível — apagar o contato ali impediria
+     * a arena de voltar ao ar com os mesmos dados.
+     */
+    public function anonimizarContato(): void
+    {
+        $this->forceFill([
+            'phone' => null,
+            'contact_email' => null,
+        ])->save();
+    }
+
     public function owner()
     {
         return $this->belongsTo(Owner::class);

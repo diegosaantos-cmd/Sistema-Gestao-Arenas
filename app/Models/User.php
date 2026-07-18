@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
@@ -25,6 +28,75 @@ class User extends Authenticatable implements MustVerifyEmail
 
     use HasProfilePhoto;
     use Notifiable;
+
+    /**
+     * Encerra a conta: apaga os dados pessoais, LIBERA o e-mail para um novo
+     * cadastro, derruba o acesso e desativa a conta (soft delete).
+     *
+     * Este é o "o que significa excluir uma conta" do sistema inteiro — cliente,
+     * funcionário, gerente, admin e proprietário passam por aqui. Ficar num
+     * lugar só evita o que já aconteceu: uma tela de exclusão esquecer um passo.
+     *
+     * Quem chama continua responsável pelo que é DELE: autorização, validações
+     * (ex.: reservas pendentes), efeitos de domínio (encerrar vínculo, cancelar
+     * reservas, anonimizar as reservas) e o logout de quem se autoexclui.
+     *
+     * NOME: também é dado pessoal, então some para TODOS os papéis. No lugar
+     * dele entra um rótulo com a FUNÇÃO — que é o que a auditoria precisa saber
+     * ("um gerente lançou isto"), sem identificar a pessoa. Ver
+     * nomeGenericoParaHistorico().
+     */
+    public function encerrarConta(): void
+    {
+        $this->deleteProfilePhoto();
+
+        $this->forceFill([
+            'name' => $this->nomeGenericoParaHistorico(),
+            // O e-mail vira placeholder porque `users.email` tem índice unique:
+            // sem isso a linha em soft delete continuaria "segurando" o e-mail
+            // original, e a pessoa nunca mais poderia se cadastrar com ele.
+            'email' => 'removido_'.$this->id.'_'.Str::lower(Str::random(8)).'@conta.invalid',
+            'phone' => null,
+        ])->save();
+
+        // Derruba o acesso na hora, sem depender do próximo request.
+        if (Schema::hasTable('sessions')) {
+            DB::table('sessions')->where('user_id', $this->id)->delete();
+        }
+
+        if (Schema::hasTable('personal_access_tokens')) {
+            $this->tokens()->delete();
+        }
+
+        $this->delete();
+    }
+
+    /**
+     * Rótulo que substitui o NOME quando a conta é encerrada.
+     *
+     * O histórico precisa saber a FUNÇÃO de quem agiu ("um gerente lançou
+     * isto"), não a identidade — nome é dado pessoal e some por LGPD.
+     *
+     * Leva o id como PSEUDÔNIMO: com um rótulo puramente genérico, dois gerentes
+     * removidos virariam a mesma coisa e a auditoria perderia a noção de "foi
+     * sempre a mesma pessoa". Com o id, isso se mantém sem revelar quem é —
+     * ainda mais porque nome, telefone e e-mail já foram apagados, então não há
+     * como voltar do número à pessoa.
+     */
+    private function nomeGenericoParaHistorico(): string
+    {
+        $papel = match ($this->type) {
+            'client' => 'Cliente',
+            'owner' => 'Proprietário',
+            'admin' => 'Administrador',
+            'employee' => Employee::withTrashed()->where('user_id', $this->id)->first()?->access_level === 'managerial'
+                ? 'Gerente'
+                : 'Atendente',
+            default => 'Usuário',
+        };
+
+        return $papel.' removido #'.$this->id;
+    }
 
     public function arenas()
     {
@@ -60,6 +132,12 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function descricaoComTipo(): string
     {
+        // Conta encerrada: o nome já virou "Gerente removido #12", que carrega a
+        // função. Repetir o prefixo daria "Gerente: Gerente removido #12".
+        if ($this->trashed()) {
+            return $this->name;
+        }
+
         $tipo = match ($this->type) {
             'client' => 'Cliente',
             'owner' => 'Proprietário',
@@ -68,7 +146,9 @@ class User extends Authenticatable implements MustVerifyEmail
         };
 
         if ($this->type === 'employee') {
-            $emp = Employee::where('user_id', $this->id)->first();
+            // withTrashed: funcionário excluído mantém o cargo correto no
+            // histórico. Sem isto, um GERENTE excluído apareceria como "Atendente".
+            $emp = Employee::withTrashed()->where('user_id', $this->id)->first();
             $tipo = ($emp && $emp->access_level === 'managerial') ? 'Gerente' : 'Atendente';
         }
 

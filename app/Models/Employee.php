@@ -38,6 +38,7 @@ class Employee extends Model
 
     public function createdBy()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        // withTrashed: mantém QUEM cadastrou o funcionário no histórico.
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 }

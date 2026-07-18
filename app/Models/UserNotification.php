@@ -84,7 +84,8 @@ class UserNotification extends Model
 
     public function sender()
     {
-        return $this->belongsTo(User::class, 'sent_by');
+        // withTrashed: mantém QUEM enviou o aviso, mesmo após a conta ser excluída.
+        return $this->belongsTo(User::class, 'sent_by')->withTrashed();
     }
 
     /**
@@ -102,6 +103,34 @@ class UserNotification extends Model
         static::create([
             'user_id'  => $userId,
             'arena_id' => $booking->court?->arena_id,
+            'sent_by'  => $sentBy,
+            'title'    => $title,
+            'body'     => $body,
+        ]);
+    }
+
+    /**
+     * Avisa SÓ o dono da arena (sem os funcionários).
+     *
+     * Usado quando o ADMIN age sobre o negócio dele — desativar/excluir arena,
+     * remover um funcionário. O dono precisa saber o que aconteceu com a
+     * empresa dele, e não é ele quem executou a ação.
+     *
+     * Não usa paraStaffDaArena porque, nesses casos, os funcionários ou estão
+     * sendo encerrados junto ou não são os responsáveis pelo negócio.
+     */
+    public static function paraDonoDaArena(Arena $arena, string $title, string $body, ?int $sentBy = null): void
+    {
+        $arena->loadMissing('owner');
+        $userId = $arena->owner?->user_id;
+
+        if (! $userId) {
+            return;
+        }
+
+        static::create([
+            'user_id'  => $userId,
+            'arena_id' => $arena->id,
             'sent_by'  => $sentBy,
             'title'    => $title,
             'body'     => $body,

@@ -36,6 +36,9 @@ class CashRegisterEntry extends Model
 
     public function createdBy()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        // withTrashed: o lançamento do caixa continua mostrando QUEM lançou,
+        // mesmo depois que o funcionário é excluído. É a trilha de auditoria
+        // do dinheiro — sem isso o histórico financeiro perde o responsável.
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 }

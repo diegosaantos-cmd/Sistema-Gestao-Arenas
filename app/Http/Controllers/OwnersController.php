@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\Owner;
 use App\Models\Court;
 use Illuminate\Http\Request;
@@ -91,12 +92,34 @@ class OwnersController extends Controller
                 'deactivation_source' => 'self',
                 'deactivated_at' => now(),
             ]);
+
+            // Desativar a empresa tira TODAS as arenas do ar, então as reservas
+            // ativas precisam ser canceladas — com aviso e devolução do que já
+            // foi pago. Sem isto os clientes ficavam com horário marcado numa
+            // empresa fora do ar, e nunca eram avisados. Mesma regra de
+            // desativar uma arena.
+            $courtIds = Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))->pluck('id');
+
+            Booking::cancelarEmLote(
+                Booking::whereIn('court_id', $courtIds)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->get(),
+                'Empresa desativada pelo proprietário.',
+                auth()->id()
+            );
+
+            // Fecha o caixa aberto de cada arena, apurando o saldo (o reembolso
+            // acima já entrou como saída antes do fechamento).
+            foreach ($owner->arenas as $arena) {
+                ArenaController::fecharCaixaAbertoDaArena($arena);
+            }
+
             $owner->arenas()->update(['active' => false]);
             Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))
                 ->update(['active' => false]);
         });
 
-        return back()->with('msg', 'Sua empresa foi desativada. Você pode reativá-la quando desejar.');
+        return back()->with('msg', 'Sua empresa foi desativada e as reservas ativas foram canceladas. Você pode reativá-la quando desejar.');
     }
 
     public function activateCompany()

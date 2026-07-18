@@ -75,7 +75,13 @@ class RegisterArenaOwnerController extends Controller
                     $fail('Já existe uma empresa cadastrada com esse nome.');
                 }
             }],
-            'tax_id' => ['required', 'string', 'unique:owners,tax_id', 'regex:/^(\d{11}|\d{14})$/'],
+            // whereNull('deleted_at'): o CPF/CNPJ de uma empresa EXCLUÍDA volta a
+            // ficar livre. Sem isto, `unique:owners,tax_id` contaria a linha em
+            // soft delete e travaria o documento para sempre.
+            'tax_id' => [
+                'required', 'string', 'regex:/^(\d{11}|\d{14})$/',
+                Rule::unique('owners', 'tax_id')->whereNull('deleted_at'),
+            ],
             'name_arena' => ['required', 'string', 'max:120', function ($attribute, $value, $fail) {
                 $chave = ArenaController::chaveComparacao($value);
                 if (Arena::whereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$chave])->exists()) {

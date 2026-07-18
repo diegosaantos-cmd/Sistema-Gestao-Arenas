@@ -206,12 +206,17 @@ class EmployeeController extends Controller
         $this->guardEmployee($employee);
 
         DB::transaction(function () use ($employee) {
-            $employee->user?->delete(); // soft delete do usuário (login)
-            $employee->delete();        // soft delete do vínculo de funcionário
+            // Encerra a conta (anonimiza, libera o e-mail, derruba a sessão).
+            // O nome vira "Gerente/Atendente removido #id": o histórico (caixa,
+            // reservas registradas, cancelamentos) mantém a FUNÇÃO de quem agiu,
+            // sem guardar o dado pessoal.
+            $employee->user?->encerrarConta();
+
+            $employee->delete(); // soft delete do vínculo de funcionário
         });
 
         return redirect()->route('employees.index')
-            ->with('msg', 'Funcionário excluído. O histórico de agendamentos foi preservado.');
+            ->with('msg', 'Funcionário excluído. O histórico foi preservado e o e-mail liberado para um novo cadastro.');
     }
 
     /**

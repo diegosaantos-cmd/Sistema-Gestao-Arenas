@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\ArenaController;
 use App\Http\Controllers\Concerns\RenovaSessaoAposTrocaDeSenha;
 use App\Http\Controllers\Controller;
 use App\Models\Arena;
@@ -13,6 +14,7 @@ use App\Models\Feedback;
 use App\Models\Owner;
 use App\Models\SystemAdmin;
 use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -364,22 +366,28 @@ class DashboardController extends Controller
 
         $admin = $request->user();
         if (! Hash::check($dados['delete_password'], $admin->password_hash)) {
-            return back()->with('msg', 'A senha informada está incorreta.');
+            return back()->with('erro', 'A senha informada está incorreta. A conta não foi excluída.');
+        }
+
+        // O sistema NÃO pode ficar sem administrador: se este for o único que
+        // sobrou (conta viva e ativa), a exclusão é bloqueada. Sem esta guarda,
+        // ninguém mais conseguiria administrar o sistema.
+        $outrosAdmins = SystemAdmin::where('user_id', '!=', $admin->id)
+            ->whereHas('user', fn ($q) => $q->where('active', true))
+            ->count();
+
+        if ($outrosAdmins === 0) {
+            return back()->with('erro', 'Você é o único administrador do sistema. Cadastre outro administrador antes de excluir a sua conta.');
         }
 
         DB::transaction(function () use ($admin) {
             $admin->update(['active' => false]);
             $admin->systemAdmin?->delete();
 
-            if (Schema::hasTable('sessions')) {
-                DB::table('sessions')->where('user_id', $admin->id)->delete();
-            }
-
-            if (Schema::hasTable('personal_access_tokens')) {
-                $admin->tokens()->delete();
-            }
-
-            $admin->delete();
+            // Encerra a conta (anonimiza, libera o e-mail, derruba a sessão).
+            // O nome vira "Administrador removido #id": a FUNÇÃO fica para a
+            // auditoria, o dado pessoal some.
+            $admin->encerrarConta();
         });
 
         Auth::guard('web')->logout();
@@ -683,34 +691,39 @@ class DashboardController extends Controller
             return back()->with('aviso', 'Este usuário é proprietário. Use a tela de Proprietários para excluir a empresa — isso também trata as arenas, as quadras e as reservas.');
         }
 
-        DB::transaction(function () use ($user) {
+        $client = $user->client;
+
+        DB::transaction(function () use ($user, $client) {
             $user->update(['active' => false]);
 
-            // Cliente excluído: cancela as reservas futuras (libera os horários).
-            if ($user->client) {
+            if ($client) {
+                // Ação ADMINISTRATIVA: ao contrário da autoexclusão do cliente,
+                // não há trava por reserva ativa ou pagamento pendente — o admin
+                // executa mesmo assim. As reservas futuras são canceladas (com
+                // aviso e reembolso do que estava pago) e os dados pessoais das
+                // reservas são apagados, igual à autoexclusão.
                 $this->cancelarReservasFuturasDoCliente(
-                    $user->client->id,
+                    $client->id,
                     'Cliente excluído pelo administrador geral.'
                 );
+
+                $client->desligarReservasAnonimizando();
+                $client->delete();
             }
 
             $employee = $user->employee;
             $employee?->update(['active' => false]);
             $user->systemAdmin?->delete();
 
-            if (Schema::hasTable('sessions')) {
-                DB::table('sessions')->where('user_id', $user->id)->delete();
-            }
-
-            if (Schema::hasTable('personal_access_tokens')) {
-                $user->tokens()->delete();
-            }
+            // Cliente: o nome também é apagado — ele não é da equipe, então não
+            // há trilha de auditoria a preservar, e a reserva já não o identifica.
+            // Funcionário/admin: o nome fica, é quem responde pelo que foi feito.
+            $user->encerrarConta();
 
             $employee?->delete();
-            $user->delete();
         });
 
-        return back()->with('msg', 'Usuário excluído com sucesso. O histórico foi preservado.');
+        return back()->with('msg', 'Usuário excluído. O histórico foi preservado e o e-mail liberado para um novo cadastro.');
     }
 
     /**
@@ -720,14 +733,15 @@ class DashboardController extends Controller
      */
     private function cancelarReservasAtivasDasQuadras($courtIds, string $motivo): void
     {
-        Booking::whereIn('court_id', $courtIds)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->update([
-                'status' => 'cancelled',
-                'cancelled_by' => auth()->id(),
-                'cancelled_at' => now(),
-                'cancellation_reason' => $motivo,
-            ]);
+        // cancelarEmLote: cancela E avisa cada cliente com o motivo. Antes era um
+        // update direto, que pulava o model e deixava o cliente sem saber.
+        Booking::cancelarEmLote(
+            Booking::whereIn('court_id', $courtIds)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->get(),
+            $motivo,
+            auth()->id()
+        );
     }
 
     /**
@@ -737,15 +751,17 @@ class DashboardController extends Controller
      */
     private function cancelarReservasFuturasDoCliente(int $clientId, string $motivo): void
     {
-        Booking::where('client_id', $clientId)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->whereDate('date', '>=', now()->toDateString())
-            ->update([
-                'status' => 'cancelled',
-                'cancelled_by' => auth()->id(),
-                'cancelled_at' => now(),
-                'cancellation_reason' => $motivo,
-            ]);
+        // cancelarEmLote também REEMBOLSA o que estava pago: o cliente perde as
+        // reservas por decisão do admin, então não pode perder o dinheiro junto.
+        // O aviso ainda chega, porque isto roda ANTES de a conta ser encerrada.
+        Booking::cancelarEmLote(
+            Booking::where('client_id', $clientId)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->whereDate('date', '>=', now()->toDateString())
+                ->get(),
+            $motivo,
+            auth()->id()
+        );
     }
 
     public function owners()
@@ -953,6 +969,26 @@ class DashboardController extends Controller
             $courtIds = Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))->pluck('id');
             $this->cancelarReservasAtivasDasQuadras($courtIds, 'Empresa desativada pelo administrador geral.');
 
+            // Avisa o dono ANTES de trancar o acesso: a conta dele é desativada
+            // aqui, então sem este e-mail ele apenas descobriria que não
+            // consegue mais entrar, sem saber o motivo.
+            foreach ($owner->arenas as $arena) {
+                UserNotification::paraDonoDaArena(
+                    $arena,
+                    'Empresa desativada pelo administrador',
+                    'A empresa "'.$owner->company_name.'" foi desativada pelo administrador do sistema. '
+                        .'As arenas saíram do ar, as reservas ativas foram canceladas e o acesso está suspenso.',
+                    auth()->id()
+                );
+                break; // um aviso por empresa, não por arena
+            }
+
+            // Fecha o caixa aberto de cada arena (o reembolso do cancelamento
+            // acima já entrou como saída antes do fechamento).
+            foreach ($owner->arenas as $arena) {
+                ArenaController::fecharCaixaAbertoDaArena($arena);
+            }
+
             $owner->arenas()->update(['active' => false]);
 
             Court::whereIn('arena_id', $owner->arenas()->select('arenas.id'))
@@ -1003,19 +1039,25 @@ class DashboardController extends Controller
                 ->update(['active' => false]);
 
             foreach ($owner->arenas as $arena) {
+                // Mesmas regras de excluir uma arena: apura e fecha o caixa
+                // aberto e encerra os funcionários dela.
+                ArenaController::fecharCaixaAbertoDaArena($arena);
+                ArenaController::encerrarFuncionariosDaArena($arena);
+                $arena->anonimizarContato(); // telefone/e-mail somem
                 $arena->delete();
             }
 
-            if ($owner->user) {
-                DB::table('sessions')->where('user_id', $owner->user->id)->delete();
-                if (Schema::hasTable('personal_access_tokens')) {
-                    $owner->user->tokens()->delete();
-                }
-                $owner->user->update(['active' => false]);
-            }
+            $owner->user?->update(['active' => false]);
 
+            // Os DADOS PESSOAIS do dono somem; o nome vira "Proprietário
+            // removido #id". O registro do negócio é da EMPRESA: company_name e
+            // tax_id ficam guardados, e é a pessoa jurídica que responde pela
+            // contabilidade.
+            $owner->user?->encerrarConta();
+
+            // Soft delete da empresa: libera o nome e o CPF/CNPJ para novo
+            // cadastro (colunas geradas empresa_ativa/documento_ativo).
             $owner->delete();
-            $owner->user?->delete();
         });
 
         return redirect()->route('admin.owners.index')
@@ -1027,14 +1069,11 @@ class DashboardController extends Controller
         abort_unless($court->arena_id === $arena->id, 404);
 
         DB::transaction(function () use ($court) {
-            Booking::where('court_id', $court->id)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => 'Quadra desativada pelo administrador geral.',
-                ]);
+            Booking::cancelarEmLote(
+                Booking::where('court_id', $court->id)->whereIn('status', ['pending', 'confirmed'])->get(),
+                'Quadra desativada pelo administrador geral.',
+                auth()->id()
+            );
 
             $court->update(['active' => false]);
         });
@@ -1066,14 +1105,11 @@ class DashboardController extends Controller
         abort_unless($court->arena_id === $arena->id, 404);
 
         DB::transaction(function () use ($court) {
-            Booking::where('court_id', $court->id)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => 'Quadra excluída pelo administrador geral.',
-                ]);
+            Booking::cancelarEmLote(
+                Booking::where('court_id', $court->id)->whereIn('status', ['pending', 'confirmed'])->get(),
+                'Quadra excluída pelo administrador geral.',
+                auth()->id()
+            );
 
             $court->update(['active' => false]);
             $court->delete();
@@ -1285,12 +1321,27 @@ class DashboardController extends Controller
         abort_unless($employee->arena_id === $arena->id, 404);
 
         DB::transaction(function () use ($employee) {
-            $user = $employee->user;
+            // Encerra a conta (anonimiza, libera o e-mail, derruba a sessão).
+            // O nome vira "Gerente/Atendente removido #id": a FUNÇÃO fica para a
+            // auditoria do caixa, o dado pessoal some.
+            $nome = $employee->user?->name ?? 'Funcionário';
+            $employee->user?->encerrarConta();
+
             $employee->delete();
-            $user?->delete();
+
+            // O dono precisa saber que perdeu um funcionário da equipe dele.
+            if ($employee->arena) {
+                UserNotification::paraDonoDaArena(
+                    $employee->arena,
+                    'Funcionário removido pelo administrador',
+                    'O funcionário "'.$nome.'" foi removido da arena "'.$employee->arena->name.'" '
+                        .'pelo administrador do sistema. O histórico do que ele registrou foi preservado.',
+                    auth()->id()
+                );
+            }
         });
 
-        return back()->with('msg', 'Funcionário excluído com sucesso.');
+        return back()->with('msg', 'Funcionário excluído. O histórico foi preservado e o e-mail liberado para um novo cadastro.');
     }
 
     public function deactivateArena(Arena $arena)
@@ -1298,20 +1349,32 @@ class DashboardController extends Controller
         DB::transaction(function () use ($arena) {
             $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
-            Booking::whereIn('court_id', $courtIds)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => 'Arena desativada pelo administrador geral.',
-                ]);
+            Booking::cancelarEmLote(
+                Booking::whereIn('court_id', $courtIds)->whereIn('status', ['pending', 'confirmed'])->get(),
+                'Arena desativada pelo administrador geral.',
+                auth()->id()
+            );
+
+            // Fecha o caixa que estiver aberto, apurando o saldo. Sem isto a
+            // arena ficava suspensa com um caixa em aberto, e a equipe seguia
+            // lançando movimento nele. Mesma regra do dono (ArenaController).
+            ArenaController::fecharCaixaAbertoDaArena($arena);
 
             $arena->courts()->update(['active' => false]);
             $arena->update([
                 'active' => false,
                 'deactivated_by_admin' => true,
             ]);
+
+            // O dono precisa saber: não foi ele quem desativou, e ele não
+            // consegue reativar sozinho (deactivated_by_admin).
+            UserNotification::paraDonoDaArena(
+                $arena,
+                'Arena desativada pelo administrador',
+                'A arena "'.$arena->name.'" foi desativada pelo administrador do sistema. '
+                    .'As reservas ativas foram canceladas e só o administrador pode reativá-la.',
+                auth()->id()
+            );
         });
 
         return back()->with('msg', 'Arena desativada e reservas ativas canceladas.');
@@ -1337,17 +1400,30 @@ class DashboardController extends Controller
         DB::transaction(function () use ($arena) {
             $courtIds = $arena->courts()->withTrashed()->pluck('id');
 
-            Booking::whereIn('court_id', $courtIds)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => 'Arena excluída pelo administrador geral.',
-                ]);
+            Booking::cancelarEmLote(
+                Booking::whereIn('court_id', $courtIds)->whereIn('status', ['pending', 'confirmed'])->get(),
+                'Arena excluída pelo administrador geral.',
+                auth()->id()
+            );
+
+            // Fecha o caixa aberto antes de excluir, apurando o saldo, e encerra
+            // os funcionários da arena — mesmas regras que o dono já aplica.
+            ArenaController::fecharCaixaAbertoDaArena($arena);
+            ArenaController::encerrarFuncionariosDaArena($arena);
+
+            // Avisa o dono ANTES de excluir, enquanto o vínculo ainda existe.
+            UserNotification::paraDonoDaArena(
+                $arena,
+                'Arena excluída pelo administrador',
+                'A arena "'.$arena->name.'" foi excluída pelo administrador do sistema. '
+                    .'As reservas ativas foram canceladas e os vínculos dos funcionários dela foram encerrados. '
+                    .'O histórico e o caixa continuam disponíveis.',
+                auth()->id()
+            );
 
             $arena->courts()->update(['active' => false]);
             $arena->update(['active' => false]);
+            $arena->anonimizarContato(); // telefone/e-mail somem; nome e endereço ficam
             $arena->delete();
         });
 

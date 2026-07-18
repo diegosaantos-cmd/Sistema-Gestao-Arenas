@@ -100,7 +100,7 @@
                         <td class="pe-3">
                             @if ($reserva->status === 'cancelled')
                                 <strong class="d-block small">
-                                    {{ $reserva->cancelledBy?->name ?? 'Sistema' }}
+                                    <x-nome-autor :user="$reserva->cancelledBy" vazio="Sistema" />
                                 </strong>
                                 @if ($reserva->cancelled_at)
                                     <span class="d-block small text-muted">

@@ -10,8 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -89,20 +87,18 @@ class ProfileController extends Controller
     /**
      * Encerra a conta do cliente quando não há pendências.
      *
-     * Estratégia de ANONIMIZAÇÃO (libera o e-mail para reuso e mantém o
-     * histórico da arena correto):
+     * Estratégia de ANONIMIZAÇÃO — o REGISTRO fica, o DADO PESSOAL some:
      *
-     * 1. Cada reserva do cliente guarda um SNAPSHOT do nome/telefone/e-mail
-     *    (colunas guest_*, as mesmas da reserva presencial) e é desligada do
-     *    cliente (client_id = null). Assim a reserva vira auto-suficiente: o
-     *    dono continua vendo quem reservou, sem depender do cadastro.
-     * 2. O e-mail do usuário é trocado por um placeholder, LIBERANDO o e-mail
-     *    original para um novo cadastro. Nome/telefone são apagados.
-     * 3. A conta é desativada (soft delete de user + client) e a sessão encerrada.
+     * 1. As reservas são desligadas do cliente (client_id = null) e passam a
+     *    mostrar "Cliente excluído", sem telefone nem e-mail.
+     * 2. A conta é encerrada: nome vira "Cliente removido #id", telefone é
+     *    apagado e o e-mail vira placeholder — LIBERANDO o original para um
+     *    novo cadastro. A sessão é derrubada.
+     * 3. O vínculo de cliente vira soft delete.
      *
-     * Reservas e pagamentos NÃO são apagados — são o histórico e o caixa da arena.
-     * Um novo cadastro com o e-mail liberado é uma conta NOVA, do zero (o histórico
-     * antigo fica com a arena, não volta para o cliente).
+     * Reservas, pagamentos e caixa NÃO são apagados — é o registro contábil da
+     * arena, e ele não identifica mais ninguém. Um novo cadastro com o e-mail
+     * liberado é uma conta NOVA, do zero (o histórico antigo fica com a arena).
      */
     public function destroy(Request $request)
     {
@@ -160,32 +156,18 @@ class ProfileController extends Controller
         $emailLiberado = $user->email;
 
         DB::transaction(function () use ($user, $client) {
-            // 1. Congela o nome/contato nas reservas e as desliga do cliente.
-            //    A reserva passa a se sustentar sozinha (como uma presencial).
-            if ($client) {
-                Booking::where('client_id', $client->id)->update([
-                    'guest_name'  => $user->name ?: 'Cliente removido',
-                    'guest_phone' => $user->phone,
-                    'guest_email' => $user->email,
-                    'client_id'   => null,
-                ]);
-            }
+            // 1. Desliga as reservas do cliente e APAGA os dados pessoais delas.
+            //    O registro (data, quadra, valor, pagamento, caixa) fica; a
+            //    identidade não. A reserva passa a mostrar "Cliente excluído".
+            $client?->desligarReservasAnonimizando();
 
-            // 2. Anonimiza o usuário e LIBERA o e-mail original para novo cadastro.
-            $user->deleteProfilePhoto();
-            $user->forceFill([
-                'name'  => 'Conta removida',
-                'email' => 'removido_'.$user->id.'_'.Str::lower(Str::random(8)).'@conta.invalid',
-                'phone' => null,
-            ])->save();
+            // 2. Encerra a conta: anonimiza, libera o e-mail, derruba a sessão e
+            //    desativa o acesso. O NOME é apagado aqui (ao contrário de
+            //    funcionário/admin) porque a reserva já tem o snapshot do passo 1.
+            $user->encerrarConta();
 
-            // 3. Desativa a conta (soft delete) e encerra sessão/tokens.
+            // 3. Encerra o vínculo de cliente.
             $client?->delete();
-            DB::table('sessions')->where('user_id', $user->id)->delete();
-            if (Schema::hasTable('personal_access_tokens')) {
-                $user->tokens()->delete();
-            }
-            $user->delete();
         });
 
         Auth::logout();

@@ -415,6 +415,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('owner.profile.company');
         Route::put('/owners/perfil/senha', [OwnerProfileController::class, 'updatePassword'])
             ->name('owner.profile.password');
+        Route::delete('/owners/perfil', [OwnerProfileController::class, 'destroy'])
+            ->name('owner.profile.destroy');
     });
 
     // Tela "em qual arena entrar" (quando há mais de uma). Trocar/escolher arena

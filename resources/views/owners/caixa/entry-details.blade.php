@@ -38,7 +38,7 @@
                     <p class="mb-0">
                         <strong>Feito por:</strong>
                         @if ($entry->createdBy)
-                            {{ $entry->createdBy->descricaoComTipo() }}
+                            <x-nome-autor :user="$entry->createdBy" com-tipo />
                             @if ($pagamento && $pagamento->origin === 'online')
                                 <span class="badge bg-light text-dark border">cliente (online)</span>
                             @endif

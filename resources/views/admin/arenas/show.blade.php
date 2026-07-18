@@ -700,7 +700,7 @@
                                             <div class="col-6"><span class="small text-dark fw-bold">Última atualização</span><br><span>{{ $employee->updated_at->format('d/m/Y H:i') }}</span></div>
                                         @endif
                                         @if ($employee->createdBy?->name)
-                                            <div class="col-6"><span class="small text-dark fw-bold">Cadastrado por</span><br><span>{{ $employee->createdBy->name }}</span></div>
+                                            <div class="col-6"><span class="small text-dark fw-bold">Cadastrado por</span><br><span><x-nome-autor :user="$employee->createdBy" /></span></div>
                                         @endif
                                         <div class="col-12">
                                             <button type="button" class="btn btn-danger btn-sm w-100"

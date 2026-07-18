@@ -179,6 +179,14 @@
                         </div>
                     </div>
                 @endif
+                @if(session('erro'))
+                    <div class="col-12">
+                        <div class="alert alert-danger alert-dismissible fade show mt-3 shadow-sm" role="alert">
+                            ❌ {{ session('erro') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                    </div>
+                @endif
                 @if(session('aviso'))
                     <div class="col-12">
                         <div class="alert alert-warning alert-dismissible fade show mt-3 shadow-sm" role="alert">

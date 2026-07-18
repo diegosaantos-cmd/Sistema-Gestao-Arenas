@@ -156,8 +156,79 @@
             </div>
         </div>
 
+        {{-- Encerrar conta --}}
+        <div class="col-12">
+            <div class="card shadow-sm border-0 border-danger-subtle">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-1 text-danger">Encerrar conta</h5>
+                    <p class="text-muted mb-3">
+                        Encerra a sua conta e a empresa. O histórico das suas arenas — reservas,
+                        pagamentos e caixa — <strong>é preservado</strong>. Só é possível encerrar
+                        com <strong>nenhuma arena ativa</strong>: desative ou exclua todas antes.
+                    </p>
+
+                    @if ($errors->deleteAccount->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach ($errors->deleteAccount->all() as $erro)
+                                    <li>{{ $erro }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <button type="button" class="btn btn-danger"
+                            data-bs-toggle="modal" data-bs-target="#modalEncerrarConta">
+                        <i class="bi bi-trash me-2"></i> Encerrar conta
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
+</div>
+
+<div class="modal fade" id="modalEncerrarConta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('owner.profile.destroy') }}">
+                @csrf
+                @method('DELETE')
+
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i> Encerrar conta
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="alert alert-danger mb-3">
+                        Sua conta e sua empresa serão encerradas, e os
+                        <strong>funcionários das suas arenas perderão o acesso</strong>.
+                    </div>
+
+                    <p class="text-muted">
+                        O histórico continua guardado. O seu e-mail, o nome da empresa e o
+                        CPF/CNPJ ficam liberados para um novo cadastro no futuro — que será
+                        uma empresa nova, começando do zero.
+                    </p>
+
+                    <label for="delete_password" class="form-label">Digite sua senha para confirmar</label>
+                    <input type="password" id="delete_password" name="delete_password"
+                           class="form-control" autocomplete="current-password" required>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i> Encerrar conta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 @php

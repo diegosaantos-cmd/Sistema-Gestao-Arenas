@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
@@ -57,7 +58,9 @@ class Booking extends Model
      */
     public function criadoPor()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        // withTrashed: se o funcionário que registrou a reserva for excluído,
+        // o histórico continua mostrando QUEM registrou.
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     /**
@@ -184,7 +187,9 @@ class Booking extends Model
 
     public function cancelledBy()
     {
-        return $this->belongsTo(User::class, 'cancelled_by');
+        // withTrashed: quem cancelou continua identificado mesmo após a conta
+        // dele ser excluída.
+        return $this->belongsTo(User::class, 'cancelled_by')->withTrashed();
     }
 
     /**
@@ -418,6 +423,54 @@ class Booking extends Model
             'Sua reserva foi confirmada: ' . $this->descricaoCurta() . '.',
             $sentBy
         );
+    }
+
+    /**
+     * Cancela VÁRIAS reservas de uma vez E AVISA cada cliente.
+     *
+     * Existe porque os cancelamentos em massa (desativar/excluir arena ou
+     * quadra, mudar horário de funcionamento, excluir empresa) faziam
+     * `->update(['status' => 'cancelled'])` direto no banco. Aquilo pula o
+     * model e, com ele, o aviso: o cliente tinha o jogo cancelado e não ficava
+     * sabendo — nem recebia o motivo que a arena foi obrigada a escrever.
+     *
+     * Reserva JÁ PAGA é REEMBOLSADA integralmente (sem taxa): quem cancelou foi
+     * a arena, não o cliente. É a mesma regra do cancelamento individual — sem
+     * isto, excluir uma arena com reservas pagas deixava os clientes avisados
+     * mas sem o dinheiro de volta.
+     *
+     * Reserva presencial (sem cliente cadastrado) simplesmente não gera aviso:
+     * UserNotification::paraReserva já trata esse caso.
+     *
+     * @param  iterable<int, self>  $reservas  reservas ATIVAS a cancelar
+     * @return int  quantas foram canceladas
+     */
+    public static function cancelarEmLote(iterable $reservas, string $motivo, ?int $sentBy = null): int
+    {
+        $total = 0;
+
+        foreach ($reservas as $booking) {
+            $booking->update([
+                'status' => 'cancelled',
+                'cancelled_by' => $sentBy,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $motivo,
+            ]);
+
+            // Devolve o dinheiro se estava paga. `reembolsar` retorna null
+            // quando não havia pagamento, então não precisa checar antes.
+            $pagamento = PaymentService::reembolsar($booking, 0.0, $sentBy);
+
+            $booking->notificarClienteCancelada($motivo, $sentBy);
+
+            if ($pagamento) {
+                $booking->notificarClienteReembolso((float) $pagamento->refund_amount, 0.0, $sentBy);
+            }
+
+            $total++;
+        }
+
+        return $total;
     }
 
     public function notificarClienteCancelada(?string $motivo = null, ?int $sentBy = null): void

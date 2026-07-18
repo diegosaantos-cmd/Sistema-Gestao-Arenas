@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Actions\Jetstream\DeleteUser;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Jetstream\Jetstream;
 
@@ -19,11 +18,16 @@ class JetstreamServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
+    /**
+     * A exclusão de conta NÃO é registrada aqui de propósito. Ela é feita pelas
+     * telas do próprio sistema, que passam por User::encerrarConta() — o único
+     * lugar que anonimiza, libera o e-mail e derruba a sessão. O DeleteUser do
+     * Jetstream foi removido para não existir um segundo caminho de exclusão
+     * (inalcançável, mas que apagaria a conta sem nenhuma dessas regras).
+     */
     public function boot(): void
     {
         $this->configurePermissions();
-
-        Jetstream::deleteUsersUsing(DeleteUser::class);
     }
 
     /**

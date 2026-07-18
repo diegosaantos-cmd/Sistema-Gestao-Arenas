@@ -245,14 +245,8 @@ class QuadraController extends Controller
         }
 
         DB::transaction(function () use ($quadra, $motivo) {
-            foreach (self::agendamentosAtivosDaQuadra($quadra) as $booking) {
-                $booking->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => $motivo,
-                ]);
-            }
+            // cancelarEmLote: cancela E avisa cada cliente com o motivo.
+            Booking::cancelarEmLote(self::agendamentosAtivosDaQuadra($quadra), $motivo, auth()->id());
 
             $quadra->update(['active' => false]);
         });
@@ -330,14 +324,8 @@ class QuadraController extends Controller
         }
 
         DB::transaction(function () use ($quadra, $motivo) {
-            foreach (self::agendamentosAtivosDaQuadra($quadra) as $booking) {
-                $booking->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => $motivo,
-                ]);
-            }
+            // cancelarEmLote: cancela E avisa cada cliente com o motivo.
+            Booking::cancelarEmLote(self::agendamentosAtivosDaQuadra($quadra), $motivo, auth()->id());
 
             $quadra->delete(); // soft delete: histórico permanece
         });

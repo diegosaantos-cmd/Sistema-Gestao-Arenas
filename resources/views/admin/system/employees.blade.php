@@ -149,7 +149,7 @@
                                     </div>
                                     <div class="col-6">
                                         <span class="fw-bold text-dark">Cadastrado por</span><br>
-                                        <span>{{ $funcionario->createdBy?->name ?? '—' }}</span>
+                                        <span><x-nome-autor :user="$funcionario->createdBy" /></span>
                                     </div>
                                     <div class="col-6">
                                         <span class="fw-bold text-dark">Cadastro</span><br>

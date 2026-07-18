@@ -36,11 +36,38 @@ class PresencialBookingController extends Controller
     }
 
     /**
+     * Recusa registrar reserva quando a arena está DESATIVADA.
+     *
+     * Arena inativa não aparece para o cliente e não pode abrir caixa (ver
+     * CashRegisterController::open) — então também não pode receber reserva nova
+     * pelo balcão. Sem esta guarda, a arena ficava "fora do ar" para o cliente
+     * enquanto a equipe seguia vendendo horário nela: desativar a arena NÃO
+     * desativa as quadras, então elas continuavam disponíveis aqui dentro.
+     *
+     * O bloqueio é da AÇÃO, não do cargo: vale para dono, gerente e atendente.
+     * O acesso ao painel (consultar histórico, reativar a arena) segue liberado.
+     */
+    private function bloqueioArenaInativa(Arena $arena)
+    {
+        if ($arena->active) {
+            return null;
+        }
+
+        return redirect()->route('owners.dashboard')
+            ->with('aviso', 'A arena "'.$arena->name.'" está inativa. Reative-a para registrar reservas.');
+    }
+
+    /**
      * Formulário: escolher quadra, dia, horário e quem vai jogar.
      */
     public function create(Request $request)
     {
         $arena = $this->arenaAtual();
+
+        if ($bloqueio = $this->bloqueioArenaInativa($arena)) {
+            return $bloqueio;
+        }
+
         $arena->load('businessHours');
 
         $quadras = $arena->courts()->where('active', true)->orderBy('name')->get();
@@ -73,6 +100,13 @@ class PresencialBookingController extends Controller
     public function store(Request $request)
     {
         $arena = $this->arenaAtual();
+
+        // Também no POST: sem isto, bastaria enviar o formulário direto (ou tê-lo
+        // aberto antes de a arena ser desativada) para furar o bloqueio do GET.
+        if ($bloqueio = $this->bloqueioArenaInativa($arena)) {
+            return $bloqueio;
+        }
+
         $arena->load('businessHours');
 
         $dados = $request->validate([

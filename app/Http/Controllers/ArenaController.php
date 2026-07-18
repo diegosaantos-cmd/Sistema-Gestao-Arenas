@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use App\Models\Arena;
 use App\Models\Booking;
 use App\Models\Court;
+use App\Models\Employee;
 use App\Models\Owner;
 use App\Models\PaymentMethod;
 use App\Models\User;
@@ -338,14 +339,8 @@ class ArenaController extends Controller
         }
 
         DB::transaction(function () use ($arena, $motivo) {
-            foreach (self::agendamentosAtivosDaArena($arena) as $booking) {
-                $booking->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => $motivo,
-                ]);
-            }
+            // cancelarEmLote: cancela E avisa cada cliente com o motivo.
+            Booking::cancelarEmLote(self::agendamentosAtivosDaArena($arena), $motivo, auth()->id());
 
             self::fecharCaixaAbertoDaArena($arena);
             $arena->update([
@@ -581,15 +576,9 @@ class ArenaController extends Controller
         }
 
         DB::transaction(function () use ($arena, $horarios, $motivo) {
-            // Cancela as reservas que ficariam fora do novo horário.
-            foreach (self::agendamentosForaDoHorario($arena, $horarios) as $booking) {
-                $booking->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => $motivo,
-                ]);
-            }
+            // Cancela as reservas que ficariam fora do novo horário — avisando
+            // cada cliente, que precisa saber que perdeu o horário e por quê.
+            Booking::cancelarEmLote(self::agendamentosForaDoHorario($arena, $horarios), $motivo, auth()->id());
 
             // Substitui os horários.
             $arena->businessHours()->delete();
@@ -699,14 +688,7 @@ class ArenaController extends Controller
         }
 
         DB::transaction(function () use ($arena, $motivo) {
-            foreach (self::agendamentosAtivosDaArena($arena) as $booking) {
-                $booking->update([
-                    'status' => 'cancelled',
-                    'cancelled_by' => auth()->id(),
-                    'cancelled_at' => now(),
-                    'cancellation_reason' => $motivo,
-                ]);
-            }
+            Booking::cancelarEmLote(self::agendamentosAtivosDaArena($arena), $motivo, auth()->id());
 
             $this->excluirArena($arena);
         });
@@ -725,7 +707,38 @@ class ArenaController extends Controller
         }
 
         self::fecharCaixaAbertoDaArena($arena);
+        self::encerrarFuncionariosDaArena($arena);
+        $arena->anonimizarContato(); // telefone/e-mail somem; nome e endereço ficam
         $arena->delete(); // soft delete: histórico permanece
+    }
+
+    /**
+     * Encerra os vínculos e as contas dos funcionários de uma arena EXCLUÍDA.
+     *
+     * Não existe "realocar funcionário": o `arena_id` é definido na criação e a
+     * edição não deixa trocar de arena. Com a arena excluída o vínculo perde o
+     * sentido — e, sem isto, o funcionário continuava conseguindo logar e batia
+     * num 403 seco ("Você não tem uma arena para gerenciar"), sem entender o
+     * motivo.
+     *
+     * Encerra a CONTA (encerrarConta), e não apenas o vínculo, porque é isso que
+     * LIBERA o e-mail: se a pessoa for contratada em outra arena, o cadastro de
+     * funcionário exige e-mail único e falharia com a conta antiga segurando o
+     * endereço. O nome é preservado, como sempre, para o histórico (quem lançou
+     * no caixa, quem registrou a reserva).
+     *
+     * Só na EXCLUSÃO. Desativar a arena é reversível, então os vínculos ficam.
+     */
+    public static function encerrarFuncionariosDaArena(Arena $arena): int
+    {
+        $funcionarios = Employee::where('arena_id', $arena->id)->get();
+
+        foreach ($funcionarios as $funcionario) {
+            $funcionario->user?->encerrarConta();
+            $funcionario->delete();
+        }
+
+        return $funcionarios->count();
     }
 
     /**

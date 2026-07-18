@@ -42,7 +42,10 @@ class Court extends Model
 
     public function arena()
     {
-        return $this->belongsTo(Arena::class);
+        // withTrashed: arena excluída (soft delete) continua aparecendo no
+        // histórico de reservas com o nome. Sem isto, `$booking->court->arena`
+        // voltava nulo e a reserva antiga perdia de qual arena era.
+        return $this->belongsTo(Arena::class)->withTrashed();
     }
 
     public function sports()
