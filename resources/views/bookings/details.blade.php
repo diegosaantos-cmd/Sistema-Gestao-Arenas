@@ -117,8 +117,8 @@
             <div class="card-body">
                 <h5 class="fw-bold mb-3">Cliente</h5>
                         <p class="mb-1"><strong>Nome:</strong> {{ $booking->nomeCliente() }}</p>
-                        <p class="mb-1"><strong>E-mail:</strong> {{ $booking->emailCliente() ?? '—' }}</p>
-                        <p class="mb-0"><strong>Telefone:</strong> {{ $booking->telefoneCliente() ?? '—' }}</p>
+                        <p class="mb-1"><strong>E-mail:</strong> {{ $booking->emailCliente() }}</p>
+                        <p class="mb-0"><strong>Telefone:</strong> {{ $booking->telefoneCliente() }}</p>
                     </div>
                 </div>
 
@@ -126,11 +126,11 @@
                 <div class="card shadow-sm border-0">
                     <div class="card-body">
                         <h5 class="fw-bold mb-3">Observações</h5>
-                        <p class="mb-0">{{ $booking->notes ?: '—' }}</p>
+                        <p class="mb-0">{{ $booking->observacoes() }}</p>
                         @if ($registradaPor)
                             <hr>
                             <p class="mb-0">
-                                <strong>Registrada por:</strong> {{ $registradaPor }}
+                                <strong>Registrada por:</strong> <x-nome-autor :user="$registradaPor" com-tipo />
                             </p>
                         @endif
                     </div>
@@ -153,7 +153,7 @@
                         <hr>
                         <h6 class="fw-bold text-danger">Cancelamento</h6>
                         <p class="mb-1">
-                            <strong>Cancelada por:</strong> {{ $canceladoPor ?? '—' }}
+                            <strong>Cancelada por:</strong> <x-nome-autor :user="$canceladoPor" vazio="Sistema" com-tipo />
                         </p>
                         <p class="mb-1">
                             <strong>Quando:</strong>

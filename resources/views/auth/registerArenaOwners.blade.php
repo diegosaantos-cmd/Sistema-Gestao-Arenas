@@ -39,15 +39,38 @@
                 </li>
             </ul>
 
-            @if ($errors->any())
+            @php
+                // Erros que NÃO pertencem a nenhuma etapa (ex.: falha geral do envio).
+                // Os demais aparecem dentro da própria etapa, junto do campo — ver o
+                // partial _erros-da-etapa. Um bloco único aqui fora "seguia" o usuário
+                // por todas as etapas, mesmo depois de ele já ter corrigido o campo.
+                $camposDasEtapas = [
+                    'name', 'email', 'owner_phone', 'password', 'password_confirmation',
+                    'company_name', 'tax_id',
+                    'name_arena', 'description', 'address_rua', 'address_bairro',
+                    'address_numero', 'phone', 'email_arena',
+                    'horarios', 'pagamentos', 'cancellation_fee_value',
+                    'cancellation_fee_window_hours', 'quadras', 'terms',
+                ];
+                $errosSoltos = collect($errors->keys())
+                    ->reject(fn ($campo) => in_array(explode('.', $campo)[0], $camposDasEtapas, true))
+                    ->flatMap(fn ($campo) => $errors->get($campo));
+            @endphp
+
+            @if ($errosSoltos->isNotEmpty())
                 <div class="alert alert-danger">
                     <strong>Não foi possível concluir o cadastro.</strong>
-                    Corrija o que está marcado abaixo:
                     <ul class="mb-0 mt-1">
-                        @foreach ($errors->all() as $erro)
+                        @foreach ($errosSoltos as $erro)
                             <li>{{ $erro }}</li>
                         @endforeach
                     </ul>
+                </div>
+            @elseif ($errors->any())
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Faltou corrigir alguns campos.</strong>
+                    Abrimos a etapa onde está o primeiro erro — ele aparece marcado em vermelho.
                 </div>
             @endif
 
@@ -56,6 +79,8 @@
 
                 {{-- ETAPA 1 — Você e sua empresa --}}
                 <div data-etapa data-campos="name,email,owner_phone,password,password_confirmation,company_name,tax_id" class="d-none">
+
+                    @include("auth._erros-da-etapa", ["campos" => explode(",", "name,email,owner_phone,password,password_confirmation,company_name,tax_id")])
 
                     @if (! empty($ehClienteLogado))
                         {{-- Cliente logado escolhe: virar proprietário com a conta atual
@@ -92,36 +117,44 @@
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="name">Nome completo</label>
-                            <input type="text" class="form-control" id="name" name="name"
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name"
                                    value="{{ old('name') }}" maxlength="100" required autofocus autocomplete="name">
+                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="email">E-mail</label>
-                            <input type="email" class="form-control" id="email" name="email"
+                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email"
                                    value="{{ old('email') }}" maxlength="150" required autocomplete="username">
+                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="owner_phone">Telefone</label>
-                            <input type="text" class="form-control" id="owner_phone" name="owner_phone"
+                            <input type="text" class="form-control @error('owner_phone') is-invalid @enderror" id="owner_phone" name="owner_phone"
                                    value="{{ old('owner_phone') }}" data-mask="telefone" inputmode="numeric"
                                    placeholder="(11) 91234-5678" maxlength="20" required autocomplete="tel">
+                            @error('owner_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
                     <div class="row g-3 mt-1">
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="password">Senha</label>
-                            <input type="password" class="form-control" id="password" name="password"
+                            <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password"
                                    minlength="8" required autocomplete="new-password">
-                            <div class="form-text">Mínimo de 8 caracteres.</div>
+                            @error('password')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <div class="form-text">Mínimo de 8 caracteres.</div>
+                            @enderror
                         </div>
 
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="password_confirmation">Confirmar senha</label>
-                            <input type="password" class="form-control" id="password_confirmation"
+                            <input type="password" class="form-control @error('password_confirmation') is-invalid @enderror" id="password_confirmation"
                                    name="password_confirmation" minlength="8" required autocomplete="new-password">
+                            @error('password_confirmation')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
                     </div>{{-- /data-bloco-acesso --}}
@@ -132,16 +165,21 @@
                     <div class="row g-3">
                         <div class="col-12 col-md-7">
                             <label class="form-label" for="company_name">Nome da empresa</label>
-                            <input type="text" class="form-control" id="company_name" name="company_name"
+                            <input type="text" class="form-control @error('company_name') is-invalid @enderror" id="company_name" name="company_name"
                                    value="{{ old('company_name') }}" maxlength="150" required>
+                            @error('company_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12 col-md-5">
                             <label class="form-label" for="tax_id">CPF ou CNPJ</label>
-                            <input type="text" class="form-control" id="tax_id" name="tax_id"
+                            <input type="text" class="form-control @error('tax_id') is-invalid @enderror" id="tax_id" name="tax_id"
                                    value="{{ old('tax_id') }}" data-mask="cpfcnpj" inputmode="numeric"
                                    placeholder="000.000.000-00" required>
-                            <div class="form-text">Pessoa física (CPF) ou jurídica (CNPJ).</div>
+                            @error('tax_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <div class="form-text">Pessoa física (CPF) ou jurídica (CNPJ).</div>
+                            @enderror
                         </div>
                     </div>
 
@@ -155,13 +193,16 @@
 
                 {{-- ETAPA 2 — Sua arena --}}
                 <div data-etapa data-campos="name_arena,description,address_rua,address_bairro,address_numero,phone,email_arena" class="d-none">
+
+                    @include("auth._erros-da-etapa", ["campos" => explode(",", "name_arena,description,address_rua,address_bairro,address_numero,phone,email_arena")])
                     <h2 class="h5 fw-bold mb-3">Dados da arena</h2>
 
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label" for="name_arena">Nome da arena</label>
-                            <input type="text" class="form-control" id="name_arena" name="name_arena"
+                            <input type="text" class="form-control @error('name_arena') is-invalid @enderror" id="name_arena" name="name_arena"
                                    value="{{ old('name_arena') }}" maxlength="120" required>
+                            @error('name_arena')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12">
@@ -175,20 +216,23 @@
 
                         <div class="col-12 col-md-7">
                             <label class="form-label" for="address_rua">Rua</label>
-                            <input type="text" class="form-control" id="address_rua" name="address_rua"
+                            <input type="text" class="form-control @error('address_rua') is-invalid @enderror" id="address_rua" name="address_rua"
                                    value="{{ old('address_rua') }}" maxlength="120" required>
+                            @error('address_rua')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12 col-md-2">
                             <label class="form-label" for="address_numero">Número</label>
-                            <input type="text" class="form-control" id="address_numero" name="address_numero"
+                            <input type="text" class="form-control @error('address_numero') is-invalid @enderror" id="address_numero" name="address_numero"
                                    value="{{ old('address_numero') }}" maxlength="15" required>
+                            @error('address_numero')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12 col-md-3">
                             <label class="form-label" for="address_bairro">Bairro</label>
-                            <input type="text" class="form-control" id="address_bairro" name="address_bairro"
+                            <input type="text" class="form-control @error('address_bairro') is-invalid @enderror" id="address_bairro" name="address_bairro"
                                    value="{{ old('address_bairro') }}" maxlength="120" required>
+                            @error('address_bairro')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12">
@@ -201,9 +245,10 @@
 
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="phone">Telefone de contato da arena</label>
-                            <input type="text" class="form-control" id="phone" name="phone"
+                            <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone"
                                    value="{{ old('phone') }}" data-mask="telefone" inputmode="numeric"
                                    placeholder="(11) 3456-7890" maxlength="20" required>
+                            @error('phone')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="form-check mt-1">
                                 <input class="form-check-input" type="checkbox" id="usar_meu_telefone"
                                        data-copiar-de="owner_phone" data-copiar-para="phone">
@@ -215,8 +260,9 @@
 
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="email_arena">E-mail da arena</label>
-                            <input type="email" class="form-control" id="email_arena" name="email_arena"
+                            <input type="email" class="form-control @error('email_arena') is-invalid @enderror" id="email_arena" name="email_arena"
                                    value="{{ old('email_arena') }}" maxlength="150" required>
+                            @error('email_arena')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="form-check mt-1">
                                 <input class="form-check-input" type="checkbox" id="usar_meu_email"
                                        data-copiar-de="email" data-copiar-para="email_arena">
@@ -243,6 +289,8 @@
                 {{-- ETAPA 3 — Funcionamento --}}
                 <div data-etapa class="d-none"
                      data-campos="horarios,pagamentos,charges_cancellation_fee,cancellation_fee_type,cancellation_fee_value,cancellation_fee_mode,cancellation_fee_window_hours">
+
+                    @include("auth._erros-da-etapa", ["campos" => explode(",", "horarios,pagamentos,charges_cancellation_fee,cancellation_fee_type,cancellation_fee_value,cancellation_fee_mode,cancellation_fee_window_hours")])
                     <h2 class="h5 fw-bold mb-3">Funcionamento e pagamentos</h2>
 
                     @include('arenas.partials.business-hours')
@@ -268,6 +316,8 @@
 
                 {{-- ETAPA 4 — Quadras e conclusão --}}
                 <div data-etapa data-campos="quadras,terms" class="d-none">
+
+                    @include("auth._erros-da-etapa", ["campos" => explode(",", "quadras,terms")])
                     <h2 class="h5 fw-bold mb-3">Quadras da arena</h2>
 
                     @include('arenas.partials.courts')

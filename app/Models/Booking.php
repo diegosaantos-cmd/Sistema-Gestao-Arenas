@@ -78,6 +78,12 @@ class Booking extends Model
      * cadastrado. Sem isto, cada uma das ~65 telas que mostram o nome teria
      * que repetir a mesma verificação.
      */
+    /** Marcador gravado em `guest_name` quando o cliente encerra a conta. */
+    public const CLIENTE_EXCLUIDO = 'Cliente excluído';
+
+    /** Marcador neutro para os campos apagados na anonimização. */
+    public const REMOVIDO = 'Removido';
+
     public function nomeCliente(): string
     {
         return $this->client?->user?->name
@@ -85,14 +91,26 @@ class Booking extends Model
             ?? '—';
     }
 
-    public function telefoneCliente(): ?string
+    /**
+     * Contato do cliente, lido do registro.
+     *
+     * Não há regra de exibição aqui: quando a conta é encerrada, a própria
+     * anonimização grava "Removido" nestes campos (ver
+     * Client::desligarReservasAnonimizando). O banco guarda o que a tela mostra.
+     */
+    public function telefoneCliente(): string
     {
-        return $this->client?->user?->phone ?: $this->guest_phone;
+        return $this->client?->user?->phone ?: $this->guest_phone ?: '—';
     }
 
-    public function emailCliente(): ?string
+    public function emailCliente(): string
     {
-        return $this->client?->user?->email ?: $this->guest_email;
+        return $this->client?->user?->email ?: $this->guest_email ?: '—';
+    }
+
+    public function observacoes(): string
+    {
+        return $this->notes ?: '—';
     }
 
     /**
@@ -401,6 +419,8 @@ class Booking extends Model
 
             if (! $booking->isPaga()) {
                 $booking->notificarClienteNaoPaga();
+                // A arena também precisa saber: vira dinheiro a receber.
+                $booking->notificarStaffNaoPaga();
             }
         }
     }
@@ -535,6 +555,54 @@ class Booking extends Model
      * Avisa o staff da arena (dono + funcionários ativos, gerentes e atendentes)
      * de que o cliente criou uma reserva e ela está aguardando confirmação.
      */
+    /**
+     * Avisa o staff de que o cliente PAGOU a reserva pelo site.
+     *
+     * Sem isto, o dinheiro entrava sem ninguém da arena saber. Importa mais
+     * quando o caixa está fechado: o pagamento fica pendente de lançamento e
+     * alguém precisa lançá-lo na próxima abertura (ver CashRegisterController).
+     */
+    public function notificarStaffPagamentoRecebido(float $valor): void
+    {
+        $this->loadMissing('court.arena', 'client.user');
+        $arena = $this->court?->arena;
+
+        if (! $arena) {
+            return;
+        }
+
+        UserNotification::paraStaffDaArena(
+            $arena,
+            'Pagamento recebido',
+            $this->nomeCliente() . ' pagou R$ ' . number_format($valor, 2, ',', '.')
+                . ' pelo site — reserva ' . $this->descricaoCurta() . '.'
+                . ' Se o caixa estiver fechado, o lançamento fica pendente para a próxima abertura.'
+        );
+    }
+
+    /**
+     * Avisa o staff de que a reserva foi realizada mas ficou SEM pagamento.
+     *
+     * É dinheiro a receber: a reserva entra na lista de "a receber" do caixa, e
+     * antes disso só o cliente era avisado — a arena não ficava sabendo.
+     */
+    public function notificarStaffNaoPaga(): void
+    {
+        $this->loadMissing('court.arena', 'client.user');
+        $arena = $this->court?->arena;
+
+        if (! $arena) {
+            return;
+        }
+
+        UserNotification::paraStaffDaArena(
+            $arena,
+            'Reserva concluída sem pagamento',
+            'A reserva ' . $this->descricaoCurta() . ' (cliente: ' . $this->nomeCliente() . ')'
+                . ' foi realizada e ficou sem pagamento — entrou em "a receber" no caixa.'
+        );
+    }
+
     public function notificarStaffNovaReserva(): void
     {
         $this->loadMissing('court.arena', 'client.user');
@@ -555,7 +623,7 @@ class Booking extends Model
     /**
      * Avisa o staff da arena de que o PRÓPRIO cliente cancelou a reserva.
      */
-    public function notificarStaffCanceladaPeloCliente(?string $motivo = null): void
+    public function notificarStaffCanceladaPeloCliente(?string $motivo = null, float $taxaPaga = 0): void
     {
         $this->loadMissing('court.arena', 'client.user');
         $arena = $this->court?->arena;
@@ -568,6 +636,14 @@ class Booking extends Model
             . $this->descricaoCurta() . '.';
         if ($motivo) {
             $texto .= ' Motivo: ' . $motivo;
+        }
+
+        // A taxa entra AQUI em vez de virar um segundo aviso: o cancelamento e o
+        // pagamento da taxa são o mesmo ato do cliente, e dois avisos seguidos
+        // para a mesma ação viram ruído no sino.
+        if ($taxaPaga > 0) {
+            $texto .= ' Taxa de cancelamento paga: R$ ' . number_format($taxaPaga, 2, ',', '.')
+                . ' (lançada no caixa, ou pendente se ele estiver fechado).';
         }
 
         UserNotification::paraStaffDaArena($arena, 'Reserva cancelada pelo cliente', $texto);

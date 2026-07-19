@@ -41,10 +41,10 @@ class BookingDetailController extends Controller
 
         // Quem registrou a reserva (dono, gerente, atendente ou admin). Vem do
         // created_by — nas reservas feitas pelo próprio cliente no site é nulo.
-        $registradaPor = $this->descreverUsuario($booking->created_by);
+        $registradaPor = $this->usuarioDaAcao($booking->created_by);
 
         // Quem cancelou, no mesmo formato.
-        $canceladoPor = $this->descreverUsuario($booking->cancelled_by);
+        $canceladoPor = $this->usuarioDaAcao($booking->cancelled_by);
 
         // Número da reserva no contexto de quem está vendo: o cliente vê a
         // sequência dele; dono/funcionário veem a sequência da arena.
@@ -58,29 +58,20 @@ class BookingDetailController extends Controller
      * Administrador). Para funcionário, distingue gerente de atendente pelo
      * nível de acesso. Nulo quando não há usuário.
      */
-    private function descreverUsuario(?int $userId): ?string
+    /**
+     * O usuário que fez a ação (registrou ou cancelou a reserva).
+     *
+     * Devolve o MODEL, não um texto pronto: quem formata é o componente
+     * <x-nome-autor>, usado por todas as telas que mostram autor. Assim o
+     * histórico fica consistente em todo o sistema.
+     *
+     * withTrashed: quem teve a conta encerrada precisa continuar identificado.
+     * Sem isso, `User::find()` devolvia nulo e a tela mostrava só um traço — o
+     * dono não sabia se ninguém havia cancelado ou se a informação se perdeu.
+     * O nome já vem anonimizado ("Gerente removido"), então não expõe a pessoa.
+     */
+    private function usuarioDaAcao(?int $userId): ?User
     {
-        if (! $userId) {
-            return null;
-        }
-
-        $u = User::find($userId);
-        if (! $u) {
-            return null;
-        }
-
-        $tipo = match ($u->type) {
-            'client' => 'Cliente',
-            'owner' => 'Dono',
-            'admin' => 'Administrador',
-            default => null,
-        };
-
-        if ($u->type === 'employee') {
-            $emp = Employee::where('user_id', $u->id)->first();
-            $tipo = ($emp && $emp->access_level === 'managerial') ? 'Gerente' : 'Atendente';
-        }
-
-        return ($tipo ? $tipo . ': ' : '') . $u->name;
+        return $userId ? User::withTrashed()->find($userId) : null;
     }
 }

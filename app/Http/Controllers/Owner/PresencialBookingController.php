@@ -121,6 +121,11 @@ class PresencialBookingController extends Controller
             'guest_name' => ['required_if:tipo_cliente,avulso', 'nullable', 'string', 'max:120'],
             'guest_phone' => ['required_if:tipo_cliente,avulso', 'nullable', 'string', 'max:20'],
             'guest_email' => ['nullable', 'email', 'max:150'],
+
+            // Anotação do balcão sobre a reserva. Vale para os dois tipos de
+            // cliente e é apagada junto com os dados pessoais se o cliente
+            // encerrar a conta (ver Client::desligarReservasAnonimizando).
+            'notes' => ['nullable', 'string', 'max:1000'],
         ], [
             'horarios.required' => 'Escolha ao menos um horário.',
             'horarios.min' => 'Escolha ao menos um horário.',
@@ -177,6 +182,9 @@ class PresencialBookingController extends Controller
                         // Quem registrou (dono, gerente ou atendente). É a fonte única:
                         // o tipo é derivado do usuário na tela de detalhes.
                         'created_by' => auth()->id(),
+
+                        // Observação do balcão (vazia vira null, não string vazia).
+                        'notes' => trim((string) ($dados['notes'] ?? '')) ?: null,
 
                         'origin' => Booking::ORIGEM_PRESENCIAL,
                         'date' => $dados['date'],

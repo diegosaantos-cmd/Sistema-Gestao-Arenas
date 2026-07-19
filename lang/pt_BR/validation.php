@@ -173,12 +173,89 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    /*
+     | Sem o nome aqui, o Laravel "humaniza" o nome da COLUNA e a mensagem sai
+     | com jargão de banco: `tax_id` virava "O tax id informado já está em uso",
+     | que não diz nada para quem está cadastrando. Todo campo que aparece numa
+     | validação deve ter o nome que o usuário vê na tela.
+     */
     'attributes' => [
+        // conta e acesso
         'name' => 'nome',
         'email' => 'e-mail',
         'password' => 'senha',
         'password_confirmation' => 'confirmação da senha',
+        'current_password' => 'senha atual',
+        'delete_password' => 'senha',
         'phone' => 'telefone',
+        'owner_phone' => 'telefone',
+        'date_of_birth' => 'data de nascimento',
+        'terms' => 'aceite dos termos',
+        'type' => 'tipo',
+        'photo' => 'foto',
+
+        // empresa
+        'company_name' => 'nome da empresa',
+        'tax_id' => 'CPF/CNPJ',
+
+        // arena
+        'name_arena' => 'nome da arena',
+        'email_arena' => 'e-mail da arena',
+        'email_contato' => 'e-mail de contato',
+        'telefone' => 'telefone',
+        'rua' => 'rua',
+        'bairro' => 'bairro',
+        'numero' => 'número',
+        'address_rua' => 'rua',
+        'address_bairro' => 'bairro',
+        'address_numero' => 'número',
+        'descricao' => 'descrição',
+        'description' => 'descrição',
+        'fotos' => 'fotos',
+        'horarios' => 'horários de funcionamento',
+        'pagamentos' => 'formas de pagamento',
+        'cancellation_fee_type' => 'tipo da taxa de cancelamento',
+        'cancellation_fee_value' => 'valor da taxa de cancelamento',
+        'cancellation_fee_mode' => 'modo da taxa de cancelamento',
+        'cancellation_fee_window_hours' => 'janela da taxa de cancelamento',
+
+        // quadras
+        'quadras' => 'quadras',
+        'nome' => 'nome',
+        'valor_hora' => 'valor por hora',
+        'esportes' => 'esportes',
+        'ativa' => 'situação',
+
+        // reservas
+        'date' => 'data',
+        'horario' => 'horário',
+        'court_id' => 'quadra',
+        'client_id' => 'cliente',
+        'guest_name' => 'nome de quem vai jogar',
+        'guest_phone' => 'telefone de quem vai jogar',
+        'guest_email' => 'e-mail de quem vai jogar',
+        'motivo' => 'motivo',
+        'notes' => 'observações',
+        'status' => 'situação',
+
+        // caixa e pagamentos
+        'amount' => 'valor',
+        'opening_balance' => 'saldo de abertura',
+        'payment_method' => 'forma de pagamento',
+        'payment_method_id' => 'forma de pagamento',
+        'discount' => 'desconto',
+        'discount_reason' => 'motivo do desconto',
+
+        // funcionários
+        'position' => 'cargo',
+        'access_level' => 'nível de acesso',
+
+        // mensagens e conteúdo
+        'mensagem' => 'mensagem',
+        'title' => 'título',
+        'titulo' => 'título',
+        'subtitulo' => 'subtítulo',
+        'cor_texto' => 'cor do texto',
     ],
 
 ];

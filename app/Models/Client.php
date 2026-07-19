@@ -32,14 +32,26 @@ class Client extends Model
      * `guest_name` recebe o marcador porque o banco exige `client_id` OU
      * `guest_name` preenchido (CHECK chk_bookings_cliente_ou_convidado).
      *
+     * `notes` também é limpo: reservas antigas guardam ali
+     * "Responsável: <nome> | Telefone: <fone>", gravado automaticamente pelo
+     * site. Era uma segunda cópia do dado pessoal, fora do alcance da
+     * anonimização e visível em "Observações" na tela de detalhes. O campo
+     * deixou de ser preenchido (ver Client\BookingController), mas os registros
+     * antigos precisam ser limpos aqui.
+     *
      * @return int quantas reservas foram anonimizadas
      */
     public function desligarReservasAnonimizando(): int
     {
+        // Os dados reais são SUBSTITUÍDOS por genéricos aqui, na hora da
+        // exclusão — não são apenas apagados. Assim o registro guarda o que a
+        // tela mostra, e nenhuma tela precisa decidir o que exibir no lugar de
+        // um campo vazio (que seria ambíguo entre "não havia" e "foi apagado").
         return Booking::where('client_id', $this->id)->update([
-            'guest_name'  => 'Cliente excluído',
-            'guest_phone' => null,
-            'guest_email' => null,
+            'guest_name'  => Booking::CLIENTE_EXCLUIDO,
+            'guest_phone' => Booking::REMOVIDO,
+            'guest_email' => Booking::REMOVIDO,
+            'notes'       => Booking::REMOVIDO,
             'client_id'   => null,
         ]);
     }

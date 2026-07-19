@@ -45,7 +45,10 @@
                             </div>
                         </td>
                         <td>{{ $reserva->courtWithTrashed?->name ?? '—' }}</td>
-                        <td>{{ $reserva->client?->user?->name ?? '—' }}</td>
+                        {{-- nomeCliente(): lê do registro. Cobre cliente cadastrado, reserva presencial
+     (guest_name) e conta encerrada ("Cliente excluído"). Acessar
+     client->user->name direto mostrava um traço nos dois últimos casos. --}}
+<td>{{ $reserva->nomeCliente() }}</td>
                         <td><span class="badge {{ $statusClasse }}">{{ $statusTexto }}</span></td>
                         <td class="text-nowrap fw-semibold {{ $pagamentoClasse }}">
                             {{ $pagamentoTexto }}

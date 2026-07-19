@@ -36,7 +36,10 @@ class CashRegister extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        // withTrashed: quem ABRIU o caixa continua identificado depois de a
+        // conta ser encerrada — é trilha de auditoria do dinheiro. O nome já
+        // vem anonimizado ("Gerente removido"), então não expõe a pessoa.
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function entries()

@@ -18,6 +18,9 @@ class Feedback extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        // withTrashed: quem enviou a sugestão continua identificado depois de
+        // encerrar a conta — o nome já vem anonimizado ("Cliente removido").
+        // Sem isto o admin veria um traço e não saberia de onde veio o relato.
+        return $this->belongsTo(User::class)->withTrashed();
     }
 }

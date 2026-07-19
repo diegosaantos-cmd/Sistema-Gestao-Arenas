@@ -77,11 +77,12 @@ class User extends Authenticatable implements MustVerifyEmail
      * O histórico precisa saber a FUNÇÃO de quem agiu ("um gerente lançou
      * isto"), não a identidade — nome é dado pessoal e some por LGPD.
      *
-     * Leva o id como PSEUDÔNIMO: com um rótulo puramente genérico, dois gerentes
-     * removidos virariam a mesma coisa e a auditoria perderia a noção de "foi
-     * sempre a mesma pessoa". Com o id, isso se mantém sem revelar quem é —
-     * ainda mais porque nome, telefone e e-mail já foram apagados, então não há
-     * como voltar do número à pessoa.
+     * NÃO leva o id do banco: as telas da arena não expõem id global (mesma
+     * regra da numeração amigável das reservas). A distinção entre duas pessoas
+     * removidas do mesmo cargo continua existindo no dado — as colunas de
+     * autoria (`created_by`, `cancelled_by`) seguem apontando para linhas
+     * diferentes —, só não é exibida. Quem precisa desse nível, o administrador,
+     * chega nele pelas telas de sistema.
      */
     private function nomeGenericoParaHistorico(): string
     {
@@ -95,7 +96,7 @@ class User extends Authenticatable implements MustVerifyEmail
             default => 'Usuário',
         };
 
-        return $papel.' removido #'.$this->id;
+        return $papel.' removido';
     }
 
     public function arenas()

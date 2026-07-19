@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\Arena;
@@ -652,15 +653,19 @@ class ArenaController extends Controller
         }
 
         $afetados = self::agendamentosAtivosDaArena($arena);
+        $ultima = self::ehUltimaArena($owner, $arena);
 
-        if ($afetados->isEmpty()) {
+        // Sem reservas ativas e ainda restando outra arena: exclui direto.
+        // Sendo a ÚLTIMA, sempre passa pela confirmação — excluí-la encerra
+        // também a conta e a empresa, e isso precisa ser avisado antes.
+        if ($afetados->isEmpty() && ! $ultima) {
             $this->excluirArena($arena);
 
             return redirect()->route('owners.dashboard')
                 ->with('msg', 'Arena excluída.');
         }
 
-        return view('arenas.delete-confirm', compact('arena', 'afetados'));
+        return view('arenas.delete-confirm', compact('arena', 'afetados', 'ultima'));
     }
 
     /**
@@ -677,21 +682,48 @@ class ArenaController extends Controller
         }
 
         $motivo = trim((string) $request->input('motivo'));
+        $afetados = self::agendamentosAtivosDaArena($arena);
+        $ultima = self::ehUltimaArena($owner, $arena);
 
-        if ($motivo === '') {
+        // O motivo só faz sentido se houver reserva para cancelar. Na última
+        // arena sem reservas, a confirmação existe para avisar do encerramento
+        // da conta — exigir motivo ali travaria o dono sem necessidade.
+        if ($afetados->isNotEmpty() && $motivo === '') {
             return view('arenas.delete-confirm', [
                 'arena' => $arena,
-                'afetados' => self::agendamentosAtivosDaArena($arena),
+                'afetados' => $afetados,
+                'ultima' => $ultima,
                 'erroMotivo' => 'Informe o motivo do cancelamento.',
                 'motivo' => $motivo,
             ]);
         }
 
-        DB::transaction(function () use ($arena, $motivo) {
-            Booking::cancelarEmLote(self::agendamentosAtivosDaArena($arena), $motivo, auth()->id());
+        $user = auth()->user();
+        $emailLiberado = $user->email;
+
+        DB::transaction(function () use ($arena, $afetados, $motivo, $ultima, $owner, $user) {
+            Booking::cancelarEmLote($afetados, $motivo ?: 'Arena excluída.', auth()->id());
 
             $this->excluirArena($arena);
+
+            // Sem nenhuma arena, o proprietário não tem mais função no sistema:
+            // a conta e a empresa são encerradas junto (o dono é avisado disso
+            // na tela de confirmação). Mesma regra de Owner\ProfileController.
+            if ($ultima) {
+                $user->encerrarConta();
+                $owner->delete();
+            }
         });
+
+        if ($ultima) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect('/')->with('status',
+                'Arena excluída e conta encerrada. O histórico foi preservado. Se quiser voltar, '
+                .'pode se cadastrar novamente com o e-mail '.$emailLiberado.'.');
+        }
 
         return redirect()->route('owners.dashboard')
             ->with('msg', 'Arena excluída e reservas afetadas canceladas.');
@@ -700,6 +732,17 @@ class ArenaController extends Controller
     /**
      * Faz o soft delete da arena e limpa a seleção de sessão, se for ela.
      */
+    /**
+     * Esta é a única arena que sobrou para o proprietário?
+     *
+     * Conta apenas as NÃO excluídas: uma arena desativada ainda é uma arena, e
+     * o dono pode reativá-la — nesse caso a conta dele não é encerrada.
+     */
+    private static function ehUltimaArena(Owner $owner, Arena $arena): bool
+    {
+        return $owner->arenas()->where('arenas.id', '!=', $arena->id)->count() === 0;
+    }
+
     private function excluirArena(Arena $arena): void
     {
         if (session('selected_arena_id') == $arena->id) {

@@ -37,7 +37,7 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                     <div>
                         <span class="badge bg-success mb-2">Caixa aberto</span>
-                        <p class="mb-1"><strong>Aberto por:</strong> {{ $caixaAberto->user->name ?? '—' }}</p>
+                        <p class="mb-1"><strong>Aberto por:</strong> <x-nome-autor :user="$caixaAberto->user" /></p>
                         <p class="mb-0 text-muted small">
                             Desde {{ optional($caixaAberto->opened_at)->format('d/m/Y H:i') ?? '—' }}
                         </p>

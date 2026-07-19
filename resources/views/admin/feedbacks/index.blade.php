@@ -52,7 +52,7 @@
                 <tbody>
                     @forelse ($feedbacks as $f)
                         <tr>
-                            <td class="ps-3 fw-semibold text-break">{{ $f->user?->name ?? '—' }}</td>
+                            <td class="ps-3 fw-semibold text-break"><x-nome-autor :user="$f->user" /></td>
                             <td>
                                 <span class="badge {{ $f->tipo === 'bug' ? 'bg-danger' : 'bg-primary' }}">
                                     {{ $f->tipo === 'bug' ? 'Bug' : 'Sugestão' }}

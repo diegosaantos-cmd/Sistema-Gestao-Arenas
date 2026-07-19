@@ -199,6 +199,24 @@
                         O cliente recebe o aviso de reserva confirmada no sino e por e-mail.
                     </div>
                 </div>
+
+                {{-- Observação do balcão: vale para os dois tipos de cliente, por
+                     isso fica fora dos blocos que alternam. --}}
+                <hr class="my-4">
+
+                <label class="form-label fw-bold" for="notes">
+                    Observações <span class="text-muted fw-normal">(opcional)</span>
+                </label>
+                <textarea name="notes" id="notes" rows="2" maxlength="1000"
+                          class="form-control @error('notes') is-invalid @enderror"
+                          placeholder="Ex.: pagou metade adiantado; vai levar a bola.">{{ old('notes') }}</textarea>
+                @error('notes')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @else
+                    <div class="form-text">
+                        Anotação da arena sobre esta reserva. Aparece nos detalhes dela.
+                    </div>
+                @enderror
             </div>
         </div>
 

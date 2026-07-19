@@ -438,7 +438,8 @@ class BookingController extends Controller
             );
         });
 
-        $booking->notificarStaffCanceladaPeloCliente($validated['motivo']);
+        // Informa a taxa no mesmo aviso do cancelamento (é dinheiro que entrou).
+        $booking->notificarStaffCanceladaPeloCliente($validated['motivo'], $taxa);
 
         return redirect()->route('client.bookings.index')->with('status',
             'Reserva cancelada. Taxa de R$ ' . number_format($taxa, 2, ',', '.') . ' paga. ✅');
@@ -508,6 +509,10 @@ class BookingController extends Controller
         // é interna; o cliente só precisa saber que foi pago).
         PaymentService::registrar($booking, $metodo, (float) $booking->total_amount, 'online', auth()->id());
 
+        // A arena precisa saber que entrou dinheiro — e que pode haver
+        // lançamento pendente, se o caixa estiver fechado.
+        $booking->notificarStaffPagamentoRecebido((float) $booking->total_amount);
+
         return redirect()->route($rotaVolta)
             ->with('status', 'Pagamento confirmado! Sua reserva está paga. ✅');
     }
@@ -560,7 +565,7 @@ class BookingController extends Controller
 
         try {
             // Tudo ou nada: ou todas as reservas são criadas, ou nenhuma.
-            $reservas = DB::transaction(function () use ($horarios, $validated, $arena, $court, $client, $user) {
+            $reservas = DB::transaction(function () use ($horarios, $validated, $arena, $court, $client) {
                 // Serializa pedidos concorrentes para a MESMA quadra: sem isso, duas
                 // requisições simultâneas passariam pela checagem e criariam a mesma reserva.
                 Court::whereKey($court->id)->lockForUpdate()->first();
@@ -598,8 +603,12 @@ class BookingController extends Controller
                         'end_time' => $endTime,
                         'total_amount' => $court->hourly_rate,
                         'status' => 'pending',
-                        'notes' => 'Responsável: ' . $user->name
-                            . ' | Telefone: ' . ($user->phone ?: '—'),
+                        // NÃO gravar nome/telefone aqui. A reserva já aponta para
+                        // o cliente, e a tela de detalhes mostra esses dados por
+                        // nomeCliente()/telefoneCliente(). Copiá-los para um campo
+                        // de texto livre criava uma segunda cópia do dado pessoal,
+                        // que a anonimização não alcançava e ficava visível para
+                        // sempre em "Observações" (LGPD).
                     ]);
                 }
 
