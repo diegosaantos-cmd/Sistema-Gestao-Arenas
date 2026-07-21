@@ -24,6 +24,28 @@ class CashRegisterEntry extends Model
         'amount' => 'decimal:2',
     ];
 
+    /**
+     * Números dos lançamentos de uma arena ([id => nº]), na ordem de criação.
+     *
+     * O lançamento era identificado pelo próprio id da tabela, que é global:
+     * numa arena os ids saíam com buracos (ex.: 1–11, depois 16–19), porque
+     * outros ids foram consumidos por outras arenas ou por transações
+     * descartadas. Aqui vira uma sequência limpa e contínua por arena (1, 2,
+     * 3…). Espelha Booking::numerosNaArena.
+     */
+    public static function numerosDaArena(int $arenaId): array
+    {
+        $registros = CashRegister::where('arena_id', $arenaId)->pluck('id');
+
+        return static::whereIn('cash_register_id', $registros)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->flip()
+            ->map(fn ($pos) => $pos + 1)
+            ->all();
+    }
+
     public function cashRegister()
     {
         return $this->belongsTo(CashRegister::class);

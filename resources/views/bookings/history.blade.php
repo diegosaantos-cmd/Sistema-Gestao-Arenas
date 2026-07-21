@@ -39,6 +39,11 @@
             <option value="site" @selected(request('origem') === 'site')>Online</option>
             <option value="presencial" @selected(request('origem') === 'presencial')>Na arena</option>
         </select>
+        <select name="ordenar" class="form-select" style="max-width: 230px;" title="Ordenar a lista">
+            @foreach (\App\Models\Booking::ORDENS as $chave => $rotulo)
+                <option value="{{ $chave }}" @selected(($ordenar ?? \App\Models\Booking::ORDEM_PADRAO) === $chave)>{{ $rotulo }}</option>
+            @endforeach
+        </select>
         <button class="btn btn-primary">Filtrar</button>
         @if (request('q') || request('situacao') || request('origem'))
             <a href="{{ route('bookings.history') }}" class="btn btn-outline-secondary">Limpar</a>

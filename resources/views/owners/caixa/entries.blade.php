@@ -50,6 +50,7 @@
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
+                            <th>Nº</th>
                             <th>Quando</th>
                             <th>Tipo</th>
                             <th>Descrição</th>
@@ -60,6 +61,7 @@
                     <tbody>
                         @forelse ($caixaAberto->entries as $entry)
                             <tr>
+                                <td class="fw-semibold text-nowrap">#{{ $numerosLancamentos[$entry->id] ?? $entry->id }}</td>
                                 <td class="text-nowrap">{{ optional($entry->created_at)->format('d/m H:i') ?? '—' }}</td>
                                 <td>
                                     @if ($entry->type === 'income')
@@ -80,7 +82,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="6" class="text-center text-muted">
                                     Nenhum lançamento ainda.
                                 </td>
                             </tr>

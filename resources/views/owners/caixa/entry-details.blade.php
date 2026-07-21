@@ -11,7 +11,7 @@
     @php $entrada = $entry->type === 'income'; @endphp
 
     <div class="d-flex align-items-center gap-2 mb-1">
-        <h1 class="fw-bold mb-0">Lançamento #{{ $entry->id }}</h1>
+        <h1 class="fw-bold mb-0">Lançamento #{{ $numerosLancamentos[$entry->id] ?? $entry->id }}</h1>
         @if ($entrada)
             <span class="badge bg-success">Entrada</span>
         @else

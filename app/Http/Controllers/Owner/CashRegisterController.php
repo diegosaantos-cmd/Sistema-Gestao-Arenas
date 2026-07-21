@@ -226,7 +226,10 @@ class CashRegisterController extends Controller
             return redirect()->route('caixa.index');
         }
 
-        return view('owners.caixa.entries', compact('arena', 'caixaAberto'));
+        // Sequência por arena (1, 2, 3…), no lugar do id global com buracos.
+        $numerosLancamentos = CashRegisterEntry::numerosDaArena($arena->id);
+
+        return view('owners.caixa.entries', compact('arena', 'caixaAberto', 'numerosLancamentos'));
     }
 
     /**
@@ -348,10 +351,13 @@ class CashRegisterController extends Controller
         $lucro = $entradas - $saidas;
 
         $numeros = $this->numerosDaArena($arena);
+        // Sequência por arena dos lançamentos (1, 2, 3…), para a lista não
+        // exibir o id global cheio de buracos.
+        $numerosLancamentos = CashRegisterEntry::numerosDaArena($arena->id);
 
         return view('owners.caixa.report-entries', compact(
             'arena', 'mesSelecionado', 'mesLabel',
-            'entradas', 'saidas', 'lucro', 'lancamentos', 'numeros'
+            'entradas', 'saidas', 'lucro', 'lancamentos', 'numeros', 'numerosLancamentos'
         ));
     }
 
@@ -764,9 +770,12 @@ class CashRegisterController extends Controller
 
         $numeros = $this->numerosDaArena($entry->cashRegister->arena);
         $numeroReserva = $entry->booking?->numeroNaArena();
+        // Sequência do lançamento por arena (1, 2, 3…), no lugar do id global
+        // que saía com buracos na tela.
+        $numerosLancamentos = CashRegisterEntry::numerosDaArena($entry->cashRegister->arena_id);
 
         return view('owners.caixa.entry-details', compact(
-            'entry', 'pagamento', 'ehReembolso', 'numeros', 'numeroReserva'
+            'entry', 'pagamento', 'ehReembolso', 'numeros', 'numeroReserva', 'numerosLancamentos'
         ));
     }
 

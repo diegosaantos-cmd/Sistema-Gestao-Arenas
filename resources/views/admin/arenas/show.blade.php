@@ -95,8 +95,10 @@
                class="dashboard-card h-100 w-100 border-0 text-start text-decoration-none text-reset">
                 <div>
                     <h5 class="fw-bold text-dark" style="opacity: 1;">Reservas da arena</h5>
-                    <h2>{{ $reservasMes }}</h2>
-                    <small class="text-muted">{{ $reservasTotal }} no histórico</small>
+                    {{-- Número grande: total de todos os meses (visão geral).
+                         Subtítulo: quantas caem no mês atual. --}}
+                    <h2>{{ $reservasTotal }}</h2>
+                    <small class="text-muted">{{ $reservasMes }} neste mês</small>
                 </div>
                 <i class="bi bi-calendar-check dashboard-icon text-warning"></i>
             </a>

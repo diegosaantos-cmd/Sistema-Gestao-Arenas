@@ -62,6 +62,11 @@ class User extends Authenticatable implements MustVerifyEmail
             // telas mostravam um branco, sem dizer isso a ninguém. Ver
             // App\Support\Anonimizacao.
             'phone' => Anonimizacao::REMOVIDO,
+            // Excluído não é "ativo". O soft delete (deleted_at) já governa
+            // tudo, mas manter active=true num registro excluído é a mesma
+            // incoerência das arenas/quadras — e uma armadilha para qualquer
+            // consulta futura que faça withTrashed()->where('active', true).
+            'active' => false,
         ])->save();
 
         // Derruba o acesso na hora, sem depender do próximo request.

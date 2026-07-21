@@ -136,6 +136,24 @@ class Booking extends Model
     }
 
     /**
+     * Números de todas as reservas de um cliente de uma vez ([id => nº]).
+     *
+     * Mesma sequência do numeroDoCliente(), mas numa consulta só. Para listas:
+     * chamar o método por linha faria um COUNT por reserva (N+1). Espelha o
+     * numerosNaArena().
+     */
+    public static function numerosDoCliente(int $clientId): array
+    {
+        return static::where('client_id', $clientId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->flip()
+            ->map(fn ($pos) => $pos + 1)
+            ->all();
+    }
+
+    /**
      * Número da reserva na sequência da ARENA (1, 2, 3...), na ordem de
      * criação dentro daquela arena. Conta reservas de quadras já excluídas
      * também, para a sequência não pular.
@@ -174,6 +192,47 @@ class Booking extends Model
     protected static function courtIdsDaArena(int $arenaId)
     {
         return Court::withTrashed()->where('arena_id', $arenaId)->pluck('id');
+    }
+
+    /**
+     * Ordenações oferecidas nas listas de reservas (chave da URL => rótulo).
+     *
+     * O padrão é "num_desc": a lista segue o número da reserva (#N), do maior
+     * para o menor. Assim a coluna Nº lê em sequência (…, 3, 2, 1) em vez de
+     * embaralhar — o que acontecia quando a lista ia por data e o número por
+     * criação. O número continua estável (nasce da ordem de criação e nunca
+     * renumera); quem quiser ver por data escolhe no controle.
+     */
+    public const ORDENS = [
+        'num_desc'  => 'Nº decrescente (maior → 1)',
+        'num_asc'   => 'Nº crescente (1 → maior)',
+        'data_desc' => 'Data do jogo (mais recente)',
+        'data_asc'  => 'Data do jogo (mais antiga)',
+    ];
+
+    /** Ordem usada quando nenhuma (ou uma inválida) é pedida. */
+    public const ORDEM_PADRAO = 'num_desc';
+
+    /** Normaliza a ordem vinda da URL; valor inválido vira o padrão. */
+    public static function ordemValida(?string $ordem): string
+    {
+        return array_key_exists((string) $ordem, self::ORDENS) ? $ordem : self::ORDEM_PADRAO;
+    }
+
+    /**
+     * Ordena a lista de reservas conforme a escolha do usuário.
+     *
+     * O número #N é o posto por `id` (ver numerosNaArena), então ordenar por
+     * `id` faz a coluna Nº aparecer em sequência.
+     */
+    public function scopeOrdenado($query, ?string $ordem)
+    {
+        return match (self::ordemValida($ordem)) {
+            'num_asc'   => $query->orderBy('id'),
+            'data_desc' => $query->orderByDesc('date')->orderByDesc('start_time'),
+            'data_asc'  => $query->orderBy('date')->orderBy('start_time'),
+            default     => $query->orderByDesc('id'), // num_desc
+        };
     }
 
     public function payments()
@@ -632,7 +691,7 @@ class Booking extends Model
             $arena,
             'Reserva concluída sem pagamento',
             'A reserva ' . $this->descricaoCurta() . ' (cliente: ' . UserNotification::CLIENTE . ')'
-                . ' foi realizada e ficou sem pagamento — entrou em "a receber" no caixa.',
+                . ' foi realizada e ficou sem pagamento.',
             $this
         );
     }

@@ -69,7 +69,20 @@
 
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-                <h2 class="h5 fw-bold mb-3">Reservas do cliente</h2>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h2 class="h5 fw-bold mb-0">Reservas do cliente</h2>
+                    @if ($reservas->total() > 1)
+                        <form method="GET" class="d-flex align-items-center gap-2">
+                            <label for="ordenar" class="small text-muted mb-0">Ordenar:</label>
+                            <select name="ordenar" id="ordenar" class="form-select form-select-sm"
+                                    style="max-width: 230px;" onchange="this.form.submit()">
+                                @foreach (\App\Models\Booking::ORDENS as $chave => $rotulo)
+                                    <option value="{{ $chave }}" @selected($ordenar === $chave)>{{ $rotulo }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                    @endif
+                </div>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0">
                         <thead class="table-light">
@@ -87,7 +100,7 @@
                         <tbody>
                             @forelse ($reservas as $r)
                                 <tr>
-                                    <td class="fw-semibold text-nowrap">#{{ $r->numeroDoCliente() }}</td>
+                                    <td class="fw-semibold text-nowrap">#{{ $numerosCliente[$r->id] ?? $r->numeroDoCliente() }}</td>
                                     <td class="text-nowrap">
                                         {{ $r->date->format('d/m/Y') }}
                                         {{ substr($r->start_time, 0, 5) }}–{{ substr($r->end_time, 0, 5) }}

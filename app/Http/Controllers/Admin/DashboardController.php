@@ -121,15 +121,24 @@ class DashboardController extends Controller
             'employee.createdBy',
         ]);
 
+        // Ordem escolhida no topo da lista; padrão número decrescente, para a
+        // coluna Nº não embaralhar (ver Booking::scopeOrdenado).
+        $ordenar = Booking::ordemValida(request('ordenar'));
+
         $reservas = collect();
+        $numerosCliente = [];
         if ($user->client) {
             $reservas = Booking::with(['court.arena', 'payments.paymentMethod'])
                 ->where('client_id', $user->client->id)
-                ->orderByDesc('date')->orderByDesc('start_time')
-                ->paginate(20);
+                ->ordenado($ordenar)
+                ->paginate(20)->withQueryString();
+
+            // Números da sequência do cliente em lote: sem isto, a view chamaria
+            // numeroDoCliente() por linha, um COUNT cada.
+            $numerosCliente = Booking::numerosDoCliente($user->client->id);
         }
 
-        return view('admin.users.show', compact('user', 'reservas'));
+        return view('admin.users.show', compact('user', 'reservas', 'ordenar', 'numerosCliente'));
     }
 
     /**
@@ -158,10 +167,21 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                // Total gasto = valor das reservas não canceladas MENOS o desconto
-                // que o cliente teve ao pagar (abate o desconto), + a taxa que ele
-                // pagou nas canceladas (também é gasto na arena).
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                // Total gasto = o que o cliente REALMENTE pagou. Sai da tabela
+                // `payments`, não do valor das reservas: a fórmula antiga somava
+                // o total_amount de toda reserva não cancelada, incluindo as que
+                // nunca foram pagas — inflava o "gasto" com dívida.
+                //
+                // Pagamentos 'paid' já trazem o líquido (desconto abatido) e as
+                // taxas de cancelamento pagas; os reembolsos abatem o que voltou.
+                Booking::selectRaw("
+                    COALESCE(SUM(
+                        COALESCE((SELECT SUM(pg.amount) FROM payments pg
+                                   WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0)
+                      - COALESCE((SELECT SUM(pr.refund_amount) FROM payments pr
+                                   WHERE pr.booking_id = bookings.id AND pr.refunded_at IS NOT NULL), 0)
+                    ), 0)
+                ")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'
@@ -205,9 +225,24 @@ class DashboardController extends Controller
     {
         $idsQuadras = Court::withTrashed()->where('arena_id', $arena->id)->select('id');
 
-        $consulta = Booking::with(['courtWithTrashed', 'client.user', 'cancelledBy', 'payments.paymentMethod'])
-            ->whereIn('court_id', clone $idsQuadras)
-            ->orderByDesc('date')->orderByDesc('start_time');
+        // Ordem escolhida no topo. Padrão: número crescente, para a coluna Nº
+        // não embaralhar (ver Booking::scopeOrdenado).
+        $ordenar = Booking::ordemValida(request('ordenar_reserva'));
+
+        // Mês selecionado no topo (?mes=AAAA-MM), padrão o mês atual. Filtra a
+        // PÁGINA TODA: as três abas passam a ser do mesmo mês (reservas,
+        // atrasados e canceladas daquele mês). Sem isto a aba de mês ficava
+        // presa em now() e os outros meses não tinham como ser alcançados.
+        $mesRef = now()->startOfMonth();
+        if (preg_match('/^(\d{4})-(\d{2})$/', (string) request('mes'), $pm)
+            && (int) $pm[2] >= 1 && (int) $pm[2] <= 12) {
+            $mesRef = \Carbon\Carbon::create((int) $pm[1], (int) $pm[2], 1)->startOfMonth();
+        }
+
+        // Total de todas as reservas da arena, de todos os meses — mostrado ao
+        // lado do título, para separar o "acervo inteiro" do que as abas
+        // (filtradas pelo mês) exibem.
+        $reservasTotalArena = Booking::whereIn('court_id', clone $idsQuadras)->count();
 
         $busca = trim((string) request('busca_reserva'));
         $chave = preg_replace('/\s+/u', '', mb_strtolower($busca));
@@ -215,22 +250,41 @@ class DashboardController extends Controller
         if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $busca, $p) && checkdate((int) $p[2], (int) $p[1], (int) $p[3])) {
             $data = sprintf('%04d-%02d-%02d', $p[3], $p[2], $p[1]);
         }
+        $temBusca = $busca !== '';
+
+        $consulta = Booking::with(['courtWithTrashed', 'client.user', 'cancelledBy', 'payments.paymentMethod'])
+            ->whereIn('court_id', clone $idsQuadras)
+            ->ordenado($ordenar);
+
+        // O mês filtra a página SÓ quando não há busca. Buscando um nome ou uma
+        // data, procura em TODOS os meses — senão um cliente com reserva em
+        // outro mês nunca apareceria. A busca vale mais que o mês.
+        if (! $temBusca) {
+            $consulta->whereBetween('date', [$mesRef->toDateString(), $mesRef->copy()->endOfMonth()->toDateString()]);
+        }
+
         $consulta->when($chave !== '' && ! $data, function ($query) use ($chave) {
             $termo = '%' . $chave . '%';
             $query->whereHas('client.user', fn ($u) => $u->whereRaw("REPLACE(LOWER(name), ' ', '') LIKE ?", [$termo]));
         })->when($data, fn ($query) => $query->whereDate('date', $data));
 
         $aba = request('aba_reservas', 'mes');
-        $filtros = ['busca_reserva' => $busca, 'aba_reservas' => $aba];
 
+        // ordenar_reserva e mes viajam com a paginação para não se perderem ao
+        // trocar de página em qualquer aba.
+        $filtros = [
+            'busca_reserva' => $busca, 'aba_reservas' => $aba,
+            'ordenar_reserva' => $ordenar, 'mes' => $mesRef->format('Y-m'),
+        ];
+
+        // Todas as reservas do mês (o mês já está no $consulta base).
         $reservasMesLista = (clone $consulta)
-            ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
             ->paginate(25, ['*'], 'mes_page')->appends($filtros);
         $reservasCanceladasLista = (clone $consulta)->where('status', 'cancelled')
             ->paginate(25, ['*'], 'canceladas_page')->appends($filtros);
 
-        // Pagamentos atrasados: confirmada/realizada, sem pagamento pago e cujo
-        // horário já terminou (mesma regra do Booking::situacaoPagamento()).
+        // Pagamentos atrasados do mês: confirmada/realizada, sem pagamento pago e
+        // cujo horário já terminou (mesma regra do Booking::situacaoPagamento()).
         $reservasAtrasadasLista = (clone $consulta)
             ->whereIn('status', ['confirmed', 'completed'])
             ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'))
@@ -245,7 +299,7 @@ class DashboardController extends Controller
             ->paginate(25, ['*'], 'historico_page')->appends($filtros);
 
         return view('admin.arenas.reservas-page', compact(
-            'arena', 'aba', 'busca',
+            'arena', 'aba', 'busca', 'ordenar', 'mesRef', 'reservasTotalArena', 'temBusca',
             'reservasMesLista', 'reservasCanceladasLista', 'reservasAtrasadasLista', 'historicoReservasLista'
         ));
     }
@@ -910,7 +964,11 @@ class DashboardController extends Controller
                 'reservas_na_empresa'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                // Total gasto = o que o cliente REALMENTE pagou (payments 'paid'
+                // já líquidos, menos reembolsos). A fórmula antiga somava o valor
+                // de toda reserva não cancelada, inclusive as não pagas, inflando
+                // o gasto com dívida. Ver clientesComReservas.
+                Booking::selectRaw("COALESCE(SUM(COALESCE((SELECT SUM(pg.amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) - COALESCE((SELECT SUM(pr.refund_amount) FROM payments pr WHERE pr.booking_id = bookings.id AND pr.refunded_at IS NOT NULL), 0)), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadrasEmpresa),
                 'valor_total_na_empresa'
@@ -969,7 +1027,11 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                // Total gasto = o que o cliente REALMENTE pagou (payments 'paid'
+                // já líquidos, menos reembolsos). A fórmula antiga somava o valor
+                // de toda reserva não cancelada, inclusive as não pagas, inflando
+                // o gasto com dívida. Ver clientesComReservas.
+                Booking::selectRaw("COALESCE(SUM(COALESCE((SELECT SUM(pg.amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) - COALESCE((SELECT SUM(pr.refund_amount) FROM payments pr WHERE pr.booking_id = bookings.id AND pr.refunded_at IS NOT NULL), 0)), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'
@@ -1196,6 +1258,10 @@ class DashboardController extends Controller
             ])
             ->count();
 
+        // Mesma ordem escolhida no controle; padrão número crescente, para a
+        // coluna Nº não embaralhar (ver Booking::scopeOrdenado).
+        $ordenarReserva = Booking::ordemValida(request('ordenar_reserva'));
+
         $consultaReservas = Booking::with([
             'courtWithTrashed',
             'client.user',
@@ -1203,8 +1269,7 @@ class DashboardController extends Controller
             'payments.paymentMethod',
         ])
             ->whereIn('court_id', clone $idsQuadras)
-            ->orderByDesc('date')
-            ->orderByDesc('start_time');
+            ->ordenado($ordenarReserva);
 
         $buscaReserva = trim((string) request('busca_reserva'));
         $chaveBuscaReserva = preg_replace('/\s+/u', '', mb_strtolower($buscaReserva));
@@ -1228,6 +1293,7 @@ class DashboardController extends Controller
         $filtrosReservas = [
             'reservas_modal' => 1,
             'busca_reserva' => $buscaReserva,
+            'ordenar_reserva' => $ordenarReserva,
         ];
 
         $reservasMesLista = (clone $consultaReservas)
@@ -1274,7 +1340,11 @@ class DashboardController extends Controller
                 'reservas_na_arena'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                // Total gasto = o que o cliente REALMENTE pagou (payments 'paid'
+                // já líquidos, menos reembolsos). A fórmula antiga somava o valor
+                // de toda reserva não cancelada, inclusive as não pagas, inflando
+                // o gasto com dívida. Ver clientesComReservas.
+                Booking::selectRaw("COALESCE(SUM(COALESCE((SELECT SUM(pg.amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) - COALESCE((SELECT SUM(pr.refund_amount) FROM payments pr WHERE pr.booking_id = bookings.id AND pr.refunded_at IS NOT NULL), 0)), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total_na_arena'
@@ -1333,7 +1403,11 @@ class DashboardController extends Controller
                 'reservas_total'
             )
             ->selectSub(
-                Booking::selectRaw("COALESCE(SUM(CASE WHEN status <> 'cancelled' THEN total_amount - COALESCE((SELECT SUM(pg.discount_amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) ELSE COALESCE(cancellation_fee_amount, 0) END), 0)")
+                // Total gasto = o que o cliente REALMENTE pagou (payments 'paid'
+                // já líquidos, menos reembolsos). A fórmula antiga somava o valor
+                // de toda reserva não cancelada, inclusive as não pagas, inflando
+                // o gasto com dívida. Ver clientesComReservas.
+                Booking::selectRaw("COALESCE(SUM(COALESCE((SELECT SUM(pg.amount) FROM payments pg WHERE pg.booking_id = bookings.id AND pg.status = 'paid'), 0) - COALESCE((SELECT SUM(pr.refund_amount) FROM payments pr WHERE pr.booking_id = bookings.id AND pr.refunded_at IS NOT NULL), 0)), 0)")
                     ->whereColumn('bookings.client_id', 'clients.id')
                     ->whereIn('court_id', clone $idsQuadras),
                 'valor_total'

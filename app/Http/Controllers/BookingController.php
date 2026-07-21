@@ -122,10 +122,14 @@ class BookingController extends Controller
                 ->whereRaw('TIMESTAMP(`date`, `end_time`) < ?', [now()]);
         }
 
-        $bookings = $query->orderBy('date', 'desc')->orderBy('start_time', 'desc')
+        // Ordem escolhida no topo. Padrão: número crescente, para a coluna Nº
+        // não embaralhar (ver Booking::scopeOrdenado).
+        $ordenar = Booking::ordemValida(request('ordenar'));
+
+        $bookings = $query->ordenado($ordenar)
             ->paginate(20)->withQueryString();
 
-        return view('bookings.history', compact('arena', 'bookings', 'situacao', 'origem'));
+        return view('bookings.history', compact('arena', 'bookings', 'situacao', 'origem', 'ordenar'));
     }
 
     /**
