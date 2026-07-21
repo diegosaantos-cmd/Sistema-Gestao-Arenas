@@ -28,23 +28,22 @@ use App\Http\Controllers\Admin\HomeSlideController;
 Route::get('/', function (\Illuminate\Http\Request $request) {
     $busca = trim((string) $request->query('busca'));
 
+    // A vitrine é paginada (e carregada aos poucos pelo scroll infinito), então
+    // a ordem precisa ser estável durante a visita: a semente vem da URL.
+    $semente = Arena::sementeDaVitrine($request->query('ordem'));
+
     $arenas = Arena::where('active', true)
         ->pesquisar($busca)
         ->with('owner.user', 'photos')
         ->withCount([
             'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
         ])
-        // Sem pesquisa: ordem aleatória a cada carregamento, para não
-        // beneficiar nenhuma arena. Com pesquisa: ordem alfabética (previsível).
-        ->when(
-            $busca === '',
-            fn ($query) => $query->inRandomOrder(),
-            fn ($query) => $query->orderBy('name'),
-        )
-        ->get();
-
-    // Fotos/textos do cabeçalho, gerenciados pelo admin em /admin/aparencia.
-    $slides = \App\Models\HomeSlide::paraHome();
+        ->emOrdemDeVitrine($busca, $semente)
+        ->paginate(Arena::POR_PAGINA)
+        ->withQueryString()
+        // Leva a semente adiante: sem ela, "carregar mais" sortearia outra
+        // ordem e traria arenas repetidas.
+        ->appends(['ordem' => $semente]);
 
     // Para o coração do card já aparecer preenchido nas arenas que o cliente
     // logado favoritou. Visitante não autenticado: lista vazia.
@@ -55,6 +54,15 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
         $cliente = \App\Models\Client::where('user_id', $usuario->id)->first();
         $favoritasIds = $cliente ? $cliente->favoritas()->pluck('arenas.id')->all() : [];
     }
+
+    // Pedido do scroll infinito: devolve só os cards da página seguinte, para
+    // a tela anexar ao que já está na lista.
+    if ($request->boolean('parcial')) {
+        return view('_arenas-cards', compact('arenas', 'favoritasIds'));
+    }
+
+    // Fotos/textos do cabeçalho, gerenciados pelo admin em /admin/aparencia.
+    $slides = \App\Models\HomeSlide::paraHome();
 
     return view('welcome', compact('arenas', 'busca', 'slides', 'favoritasIds'));
 });

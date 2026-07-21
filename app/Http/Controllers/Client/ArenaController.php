@@ -33,21 +33,20 @@ class ArenaController extends Controller
     {
         $busca = trim((string) $request->query('busca'));
 
+        // A semente mantém a ordem sorteada estável enquanto o cliente navega
+        // entre as páginas; sem ela, cada página re-sorteava e repetia arenas.
+        $semente = Arena::sementeDaVitrine($request->query('ordem'));
+
         $arenas = Arena::where('active', true)
             ->pesquisar($busca)
             ->with('owner.user', 'photos')
             ->withCount([
                 'courts as quadras_ativas_count' => fn ($query) => $query->where('active', true),
             ])
-            // Sem pesquisa: ordem aleatória a cada carregamento, para não
-            // beneficiar nenhuma arena. Com pesquisa: alfabética (previsível).
-            ->when(
-                $busca === '',
-                fn ($query) => $query->inRandomOrder(),
-                fn ($query) => $query->orderBy('name'),
-            )
-            ->paginate(12)
-            ->withQueryString();
+            ->emOrdemDeVitrine($busca, $semente)
+            ->paginate(Arena::POR_PAGINA)
+            ->withQueryString()
+            ->appends(['ordem' => $semente]);
 
         $favoritasIds = $this->favoritasIds();
 

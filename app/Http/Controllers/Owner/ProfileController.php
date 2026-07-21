@@ -43,13 +43,18 @@ class ProfileController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
         ]);
 
+        // trocarEmail: se o e-mail mudou e a verificação estiver ligada, a conta
+        // volta a "não verificada" e o link vai para o NOVO endereço.
+        $reverificar = $user->trocarEmail($validated['email']);
+
         $user->update([
             'name' => $validated['name'],
-            'email' => mb_strtolower(trim($validated['email'])),
             'phone' => $validated['phone'] ?? null,
         ]);
 
-        return back()->with('status', 'Dados pessoais atualizados.');
+        return back()->with('status', $reverificar
+            ? 'Dados atualizados. Enviamos um link para o novo e-mail — confirme-o para continuar usando o sistema.'
+            : 'Dados pessoais atualizados.');
     }
 
     /**

@@ -57,7 +57,7 @@ class BookingController extends Controller
             ? Booking::where('client_id', $client->id)
                 ->where('status', 'confirmed')
                 ->whereDate('date', '>=', now()->toDateString())
-                ->with('court.arena', 'payments', 'paymentMethod')
+                ->with('court.arena', 'payments')
                 ->orderBy('date')->orderBy('start_time')->paginate(12)
             : collect();
 
@@ -82,7 +82,7 @@ class BookingController extends Controller
                 ->whereDate('date', today())
                 ->where('status', 'confirmed')
                 ->where('end_time', '>', now()->format('H:i:s'))
-                ->with('court.arena', 'payments', 'paymentMethod')
+                ->with('court.arena', 'payments')
                 ->orderBy('start_time')
                 ->paginate(12)
             : collect();
@@ -109,7 +109,7 @@ class BookingController extends Controller
             ? Booking::where('client_id', $client->id)
                 ->whereDate('date', '>=', today())
                 ->where('status', 'pending')
-                ->with('court.arena', 'payments', 'paymentMethod')
+                ->with('court.arena', 'payments')
                 ->orderBy('date')
                 ->orderBy('start_time')
                 ->paginate(12)
@@ -138,7 +138,7 @@ class BookingController extends Controller
             ? Booking::where('client_id', $client->id)
                 ->where('status', 'completed')
                 ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'paid'))
-                ->with('court.arena', 'payments', 'paymentMethod')
+                ->with('court.arena', 'payments')
                 ->orderBy('date', 'desc')
                 ->orderBy('start_time', 'desc')
                 ->paginate(12)
@@ -452,7 +452,7 @@ class BookingController extends Controller
     public function pay(Booking $booking)
     {
         $this->autorizarClienteDaReserva($booking);
-        $booking->load('court.arena.paymentMethods', 'paymentMethod', 'payments');
+        $booking->load('court.arena.paymentMethods', 'payments');
 
         if (! in_array($booking->status, ['confirmed', 'completed'])) {
             return redirect()->route('client.bookings.index')
@@ -496,8 +496,10 @@ class BookingController extends Controller
 
         $metodo = $arena->paymentMethods->firstWhere('type', $validated['payment_method']);
 
-        // Guarda a forma escolhida na reserva (pode ter trocado aqui).
-        $booking->update(['payment_method_id' => $metodo->id]);
+        // A forma escolhida NÃO é guardada na reserva: quem registra a forma é o
+        // pagamento (tabela payments), criado abaixo. Guardar também no booking
+        // duplicava o dado e ficava ambíguo quando divergiam — o cliente marcava
+        // PIX e acabava pagando em dinheiro no balcão.
 
         // Dinheiro: não paga online, acerta na arena.
         if ($metodo->type === 'cash') {

@@ -1,10 +1,17 @@
 <?php
 namespace App\Models;
+use App\Support\Anonimizacao;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 class Arena extends Model
 {
     use SoftDeletes;
+
+    /** Quantas arenas por página nas listagens públicas. */
+    public const POR_PAGINA = 12;
+
+    /** Maior semente de embaralhamento da vitrine — curta porque viaja na URL. */
+    private const SEMENTE_MAX = 999999;
 
     protected $fillable = [
         'owner_id',
@@ -50,6 +57,48 @@ class Arena extends Model
         return round((float) $this->cancellation_fee_value, 2);
     }
 
+    /**
+     * Semente que embaralha a vitrine, resolvida a partir da requisição.
+     *
+     * Um carregamento novo da home (sem `ordem` na URL) sorteia uma semente, e
+     * os pedidos seguintes de "carregar mais" devolvem a mesma. Assim cada
+     * visita embaralha de um jeito — como era antes —, mas dentro da visita a
+     * ordem não muda, que é o que impede a página 2 de repetir arenas da 1.
+     *
+     * Viaja na URL, e não na sessão, para duas abas abertas não disputarem a
+     * mesma semente. Valor fora da faixa (ou ausente) vira sorteio novo, então
+     * mexer na URL na mão não quebra nada.
+     */
+    public static function sementeDaVitrine(mixed $informada): int
+    {
+        $semente = (int) $informada;
+
+        return $semente >= 1 && $semente <= self::SEMENTE_MAX
+            ? $semente
+            : random_int(1, self::SEMENTE_MAX);
+    }
+
+    /**
+     * Ordem em que as arenas aparecem para o público.
+     *
+     * Com pesquisa: alfabética — quem procurou por nome espera ordem previsível.
+     * Sem pesquisa: aleatória, para nenhuma arena levar vantagem por ter sido
+     * cadastrada antes.
+     *
+     * O sorteio usa `RAND(semente)` em vez de `inRandomOrder()` porque este
+     * re-sorteia a cada consulta: como a listagem é paginada, a página 2 vinha
+     * de um embaralhamento diferente do da página 1 — repetindo umas arenas e
+     * escondendo outras.
+     */
+    public function scopeEmOrdemDeVitrine($query, ?string $busca, int $semente)
+    {
+        if (trim((string) $busca) !== '') {
+            return $query->orderBy('name');
+        }
+
+        return $query->orderByRaw('RAND(?)', [$semente]);
+    }
+
     public function scopePesquisar($query, ?string $busca)
     {
         $chave = preg_replace('/\s+/u', '', mb_strtolower(trim((string) $busca)));
@@ -86,9 +135,15 @@ class Arena extends Model
      */
     public function anonimizarContato(): void
     {
+        // Marcador, e não nulo: o contato existia e foi retirado, e é isso que
+        // as telas precisam poder dizer. Ver App\Support\Anonimizacao.
+        //
+        // Não atrapalha a checagem de e-mail já em uso por outra arena
+        // (ArenaController::emailDeArenaEmUsoPorOutroDono): o escopo de soft
+        // delete do model já tira as arenas excluídas daquela busca.
         $this->forceFill([
-            'phone' => null,
-            'contact_email' => null,
+            'phone' => Anonimizacao::REMOVIDO,
+            'contact_email' => Anonimizacao::REMOVIDO,
         ])->save();
     }
 

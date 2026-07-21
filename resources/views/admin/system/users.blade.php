@@ -133,6 +133,33 @@
             messageEl.textContent = trigger.getAttribute('data-confirm-message') || 'Tem certeza?';
             okBtn.textContent = trigger.getAttribute('data-confirm-label') || 'Confirmar';
 
+            // Alerta em destaque (hoje: cliente devendo). Vai num elemento
+            // próprio, montado aqui, em vez de virar HTML dentro da mensagem:
+            // o texto carrega o nome do cliente, que é digitado por ele, e
+            // trocar textContent por innerHTML abriria injeção.
+            var alerta = trigger.getAttribute('data-confirm-alert');
+            var alertaEl = modalEl.querySelector('[data-confirm-modal-alert]');
+
+            if (alertaEl) {
+                alertaEl.remove();
+            }
+
+            if (alerta) {
+                alertaEl = document.createElement('div');
+                alertaEl.className = 'alert alert-danger d-flex align-items-start gap-2 mt-3 mb-0';
+                alertaEl.setAttribute('data-confirm-modal-alert', '');
+
+                var icone = document.createElement('i');
+                icone.className = 'bi bi-exclamation-triangle-fill flex-shrink-0';
+
+                var texto = document.createElement('strong');
+                texto.textContent = alerta;
+
+                alertaEl.appendChild(icone);
+                alertaEl.appendChild(texto);
+                messageEl.after(alertaEl);
+            }
+
             variantes.forEach(function (v) { okBtn.classList.remove(v); });
             okBtn.classList.add('btn-' + (trigger.getAttribute('data-confirm-variant') || 'danger'));
 

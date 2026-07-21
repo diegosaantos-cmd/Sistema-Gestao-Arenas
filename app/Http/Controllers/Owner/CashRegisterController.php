@@ -601,6 +601,9 @@ class CashRegisterController extends Controller
                 'discount_reason' => $motivo,
                 'status' => 'paid',
                 'origin' => 'local',
+                // Aqui o lançamento nasce junto, então nunca fica pendente.
+                // Guardado assim mesmo para todo pagamento saber o próprio texto.
+                'description' => $descricao,
                 'cash_register_entry_id' => $entry->id,
                 'paid_at' => now(),
             ]);
@@ -648,13 +651,15 @@ class CashRegisterController extends Controller
 
         $valor = (float) $booking->cancellation_fee_amount;
 
-        DB::transaction(function () use ($booking, $metodo, $valor, $caixa) {
+        $descricao = 'Taxa de cancelamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label;
+
+        DB::transaction(function () use ($booking, $metodo, $valor, $caixa, $descricao) {
             $entry = CashRegisterEntry::create([
                 'cash_register_id' => $caixa->id,
                 'booking_id' => $booking->id,
                 'type' => 'income',
                 'amount' => $valor,
-                'description' => 'Taxa de cancelamento reserva #' . $booking->numeroNaArena() . ' — ' . $metodo->label,
+                'description' => $descricao,
                 'created_by' => auth()->id(),
             ]);
 
@@ -664,6 +669,7 @@ class CashRegisterController extends Controller
                 'amount' => $valor,
                 'status' => 'paid',
                 'origin' => 'local',
+                'description' => $descricao,
                 'cash_register_entry_id' => $entry->id,
                 'paid_at' => now(),
             ]);
@@ -737,15 +743,31 @@ class CashRegisterController extends Controller
         // O lançamento tem de ser da arena que o usuário gerencia agora.
         abort_unless($entry->cashRegister?->arena_id === $arena->id, 403);
 
-        // Pagamento vinculado a esta entrada (quando é lançamento de reserva).
+        // Pagamento vinculado a esta entrada. Um mesmo pagamento aponta para
+        // DOIS lançamentos por colunas diferentes: a entrada do pagamento
+        // (cash_register_entry_id) e a saída do reembolso
+        // (refund_cash_register_entry_id). Procurar só pela primeira deixava a
+        // saída de reembolso sem pagamento — e é justamente nela que o operador
+        // precisa ver a forma original, porque é ela que decide como o dinheiro
+        // volta (dinheiro devolve na arena, PIX/cartão estorna igual — RN05).
         $pagamento = $entry->booking
             ? $entry->booking->payments->firstWhere('cash_register_entry_id', $entry->id)
             : null;
 
+        $ehReembolso = false;
+
+        if (! $pagamento && $entry->booking) {
+            $pagamento = $entry->booking->payments
+                ->firstWhere('refund_cash_register_entry_id', $entry->id);
+            $ehReembolso = (bool) $pagamento;
+        }
+
         $numeros = $this->numerosDaArena($entry->cashRegister->arena);
         $numeroReserva = $entry->booking?->numeroNaArena();
 
-        return view('owners.caixa.entry-details', compact('entry', 'pagamento', 'numeros', 'numeroReserva'));
+        return view('owners.caixa.entry-details', compact(
+            'entry', 'pagamento', 'ehReembolso', 'numeros', 'numeroReserva'
+        ));
     }
 
     /**

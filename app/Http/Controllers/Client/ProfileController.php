@@ -24,7 +24,14 @@ class ProfileController extends Controller
         $user = auth()->user();
         $client = Client::where('user_id', $user->id)->first();
 
-        return view('client.profile.edit', compact('user', 'client'));
+        // Dívida com a arena: a tela avisa disso ANTES, em vez de deixar o
+        // cliente digitar a senha para só então descobrir que está travado.
+        $reservasEmAberto = $client?->reservasEmAberto()->count() ?? 0;
+        $valorEmAberto = $reservasEmAberto > 0 ? $client->valorEmAberto() : 0.0;
+
+        return view('client.profile.edit', compact(
+            'user', 'client', 'reservasEmAberto', 'valorEmAberto'
+        ));
     }
 
     /**
@@ -44,9 +51,12 @@ class ProfileController extends Controller
             'date_of_birth' => ['nullable', 'date', 'before_or_equal:today'],
         ]);
 
+        // trocarEmail: se o e-mail mudou e a verificação estiver ligada, a conta
+        // volta a "não verificada" e o link vai para o NOVO endereço.
+        $reverificar = $user->trocarEmail($validated['email']);
+
         $user->update([
             'name' => $validated['name'],
-            'email' => mb_strtolower(trim($validated['email'])),
             'phone' => $validated['phone'] ?? null,
         ]);
 
@@ -55,7 +65,9 @@ class ProfileController extends Controller
             ['date_of_birth' => $validated['date_of_birth'] ?? null]
         );
 
-        return back()->with('status', 'Dados atualizados com sucesso.');
+        return back()->with('status', $reverificar
+            ? 'Dados atualizados. Enviamos um link para o novo e-mail — confirme-o para continuar usando o sistema.'
+            : 'Dados atualizados com sucesso.');
     }
 
     /**
@@ -147,6 +159,24 @@ class ProfileController extends Controller
             $impedimentos[] = 'Você não pode excluir a conta enquanto possuir pagamentos pendentes.';
         }
 
+        // Horários já usados e não pagos: é dívida com a arena, então a conta
+        // não sai sem quitar. O bloqueio acima não cobre isto — ele procura um
+        // pagamento com status pendente, e quem nunca pagou não tem pagamento
+        // nenhum registrado.
+        $emAberto = $client?->reservasEmAberto()->count() ?? 0;
+
+        if ($emAberto > 0) {
+            $valor = number_format($client->valorEmAberto(), 2, ',', '.');
+
+            // Diz quanto e quantos: sem isso o cliente sabe que está travado,
+            // mas não o que fazer para destravar.
+            $impedimentos[] = $emAberto === 1
+                ? "Você tem 1 horário realizado e não pago, no valor de R$ {$valor}. "
+                    .'Quite o pagamento antes de excluir a conta.'
+                : "Você tem {$emAberto} horários realizados e não pagos, num total de R$ {$valor}. "
+                    .'Quite os pagamentos antes de excluir a conta.';
+        }
+
         if ($impedimentos) {
             return back()->withErrors([
                 'delete_account' => implode(' ', $impedimentos),
@@ -160,6 +190,7 @@ class ProfileController extends Controller
             //    O registro (data, quadra, valor, pagamento, caixa) fica; a
             //    identidade não. A reserva passa a mostrar "Cliente excluído".
             $client?->desligarReservasAnonimizando();
+            $client?->anonimizarDadosPessoais();
 
             // 2. Encerra a conta: anonimiza, libera o e-mail, derruba a sessão e
             //    desativa o acesso. O NOME é apagado aqui (ao contrário de

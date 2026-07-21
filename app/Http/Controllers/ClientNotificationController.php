@@ -11,7 +11,9 @@ class ClientNotificationController extends Controller
      */
     public function index()
     {
-        $notifications = UserNotification::with('arena')
+        // booking.client.user: corpoResolvido() monta o nome do cliente a
+        // partir da reserva. Sem o eager load seria uma consulta por linha.
+        $notifications = UserNotification::with('arena', 'booking.client.user')
             ->where('user_id', auth()->id())
             ->latest()
             ->paginate(20);
@@ -30,7 +32,7 @@ class ClientNotificationController extends Controller
             $notification->update(['read_at' => now()]);
         }
 
-        $notification->load('arena');
+        $notification->load('arena', 'booking.client.user');
 
         return view('client.notifications.show', compact('notification'));
     }

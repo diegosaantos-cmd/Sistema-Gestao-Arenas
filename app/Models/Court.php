@@ -40,6 +40,23 @@ class Court extends Model
         'hourly_rate' => 'decimal:2',
     ];
 
+    /**
+     * Exclui a quadra DESLIGANDO-A.
+     *
+     * Excluída não é "ativa". Antes o soft delete deixava `active = true`, e o
+     * registro passava a afirmar duas coisas contraditórias: que a quadra não
+     * existe mais e que está em operação. Na prática ela continuava aparecendo
+     * em qualquer consulta por quadra ativa que não filtrasse o soft delete.
+     *
+     * Único caminho para excluir quadra — usado na exclusão avulsa e quando a
+     * arena inteira é excluída —, para a regra não precisar ser repetida.
+     */
+    public function excluirDesativando(): void
+    {
+        $this->forceFill(['active' => false])->save();
+        $this->delete(); // soft delete: o histórico das reservas permanece
+    }
+
     public function arena()
     {
         // withTrashed: arena excluída (soft delete) continua aparecendo no

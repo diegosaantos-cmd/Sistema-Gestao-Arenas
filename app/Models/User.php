@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Anonimizacao;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Laravel\Fortify\Features;
 use Database\Factories\UserFactory;
@@ -56,7 +57,11 @@ class User extends Authenticatable implements MustVerifyEmail
             // sem isso a linha em soft delete continuaria "segurando" o e-mail
             // original, e a pessoa nunca mais poderia se cadastrar com ele.
             'email' => 'removido_'.$this->id.'_'.Str::lower(Str::random(8)).'@conta.invalid',
-            'phone' => null,
+            // Marcador, e não nulo: o telefone é obrigatório no cadastro, então
+            // uma coluna vazia aqui só poderia ter vindo da exclusão — mas as
+            // telas mostravam um branco, sem dizer isso a ninguém. Ver
+            // App\Support\Anonimizacao.
+            'phone' => Anonimizacao::REMOVIDO,
         ])->save();
 
         // Derruba o acesso na hora, sem depender do próximo request.
@@ -69,6 +74,46 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         $this->delete();
+    }
+
+    /**
+     * Troca o e-mail da conta, exigindo nova confirmação quando o recurso de
+     * verificação estiver ligado.
+     *
+     * Sem isto, quem verificasse um endereço no cadastro podia trocá-lo depois
+     * por qualquer outro e a conta continuava marcada como verificada — o que
+     * anula o propósito da verificação. As telas de perfil (cliente, funcionário
+     * e dono) gravavam o e-mail direto e passavam por fora dessa regra.
+     *
+     * A reverificação só acontece com `EMAIL_VERIFICATION_ENABLED=true`. Com o
+     * recurso desligado o Fortify NÃO registra as rotas de verificação, então
+     * zerar `email_verified_at` deixaria o usuário barrado pelo middleware
+     * `verified` sem nenhuma tela onde se verificar.
+     *
+     * @return bool  true se disparou a reverificação (a tela avisa o usuário)
+     */
+    public function trocarEmail(string $novoEmail): bool
+    {
+        $novoEmail = mb_strtolower(trim($novoEmail));
+
+        if ($novoEmail === $this->email) {
+            return false;
+        }
+
+        $exigirConfirmacao = Features::enabled(Features::emailVerification());
+
+        $dados = ['email' => $novoEmail];
+        if ($exigirConfirmacao) {
+            $dados['email_verified_at'] = null;
+        }
+
+        $this->forceFill($dados)->save();
+
+        if ($exigirConfirmacao) {
+            $this->sendEmailVerificationNotification();
+        }
+
+        return $exigirConfirmacao;
     }
 
     /**

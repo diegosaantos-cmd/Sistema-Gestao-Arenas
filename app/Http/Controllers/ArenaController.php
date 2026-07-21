@@ -467,8 +467,12 @@ class ArenaController extends Controller
             'numero' => ['required', 'string', 'max:15'],
             'telefone' => ['required', 'string', 'max:20'],
             'descricao' => ['nullable', 'string', 'max:300'],
-            'email_contato' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($owner) {
-                if (self::emailDeArenaEmUsoPorOutroDono($value, $owner->id)) {
+            // O dono sai da ARENA que está sendo editada. Antes o `use` trazia
+            // um $owner que não existe neste método: virava null, e a checagem
+            // passava a tratar as arenas do PRÓPRIO dono como "de outro" — ele
+            // não conseguia salvar o formulário mantendo o próprio e-mail.
+            'email_contato' => ['required', 'email', 'max:150', function ($attribute, $value, $fail) use ($arena) {
+                if (self::emailDeArenaEmUsoPorOutroDono($value, $arena->owner_id)) {
                     $fail('Este e-mail já está sendo usado por uma arena de outro proprietário.');
                 } elseif (self::emailPertenceAOutroUsuario($value, auth()->id())) {
                     $fail('Este e-mail pertence à conta de outra pessoa. Use um e-mail que não seja de outro usuário.');
@@ -751,7 +755,23 @@ class ArenaController extends Controller
 
         self::fecharCaixaAbertoDaArena($arena);
         self::encerrarFuncionariosDaArena($arena);
-        $arena->anonimizarContato(); // telefone/e-mail somem; nome e endereço ficam
+        $arena->anonimizarContato(); // telefone/e-mail viram marcador; nome e endereço ficam
+
+        // As quadras vão junto. Sem isto elas continuavam ATIVAS e sem
+        // deleted_at, penduradas numa arena que já não existe: apareciam em
+        // qualquer consulta por quadra ativa. As reservas afetadas já foram
+        // canceladas em bloco por quem chamou este método.
+        //
+        // Passa pelo mesmo excluirDesativando() da exclusão avulsa, para não
+        // existirem dois jeitos de excluir quadra que possam divergir.
+        foreach ($arena->courts as $quadra) {
+            $quadra->excluirDesativando();
+        }
+
+        // Excluída não é "ativa". Manter active=true num registro excluído faz
+        // as telas de histórico mostrarem a arena como se estivesse operando.
+        $arena->forceFill(['active' => false])->save();
+
         $arena->delete(); // soft delete: histórico permanece
     }
 

@@ -36,7 +36,10 @@
             {{-- Ações em linha (horizontal), como nas outras tabelas do admin. --}}
             <div class="d-flex flex-wrap justify-content-end gap-1 client-actions-wrap">
                 <a href="{{ route('admin.users.show', $usuario) }}" class="btn btn-primary btn-sm">Detalhes</a>
-                @include('admin.system._client-actions', ['usuario' => $usuario])
+                @include('admin.system._client-actions', [
+                    'usuario' => $usuario,
+                    'divida' => ($dividas ?? collect())->get($usuario->client?->id),
+                ])
             </div>
         </td>
     </tr>

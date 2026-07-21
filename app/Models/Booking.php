@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\PaymentService;
+use App\Support\Anonimizacao;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,7 +19,7 @@ class Booking extends Model
 
     protected $fillable = [
         'court_id', 'client_id', 'date',
-        'start_time', 'end_time', 'total_amount', 'payment_method_id', 'status', 'notes',
+        'start_time', 'end_time', 'total_amount', 'status', 'notes',
         'cancelled_by', 'cancellation_reason', 'cancelled_at', 'cancellation_fee_amount',
         // Reserva presencial: cliente sem cadastro + quem registrou.
         'guest_name', 'guest_phone', 'guest_email', 'created_by', 'origin',
@@ -78,11 +79,14 @@ class Booking extends Model
      * cadastrado. Sem isto, cada uma das ~65 telas que mostram o nome teria
      * que repetir a mesma verificação.
      */
-    /** Marcador gravado em `guest_name` quando o cliente encerra a conta. */
-    public const CLIENTE_EXCLUIDO = 'Cliente excluído';
+    /**
+     * Marcadores da anonimização. O texto mora em App\Support\Anonimizacao,
+     * que é o vocabulário comum a reserva, usuário e arena; aqui ficam só os
+     * apelidos, para o código que já os usava continuar valendo.
+     */
+    public const CLIENTE_EXCLUIDO = Anonimizacao::CLIENTE_EXCLUIDO;
 
-    /** Marcador neutro para os campos apagados na anonimização. */
-    public const REMOVIDO = 'Removido';
+    public const REMOVIDO = Anonimizacao::REMOVIDO;
 
     public function nomeCliente(): string
     {
@@ -177,21 +181,6 @@ class Booking extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function paymentMethod()
-    {
-        return $this->belongsTo(PaymentMethod::class);
-    }
-
-    /**
-     * O cliente pode pagar online agora? (confirmada, não paga e forma PIX/cartão).
-     * Dinheiro é pago na arena, então não entra no fluxo online.
-     */
-    public function podePagarOnline(): bool
-    {
-        return $this->status === 'confirmed'
-            && ! $this->isPaga()
-            && in_array($this->paymentMethod?->type, ['pix', 'card']);
-    }
 
     /**
      * Confirmada, não paga e a forma é dinheiro (paga na arena ao usar).
@@ -231,6 +220,25 @@ class Booking extends Model
      * - null       : não se aplica (pendente ou cancelada — ainda não é uma
      *                reserva que vai acontecer).
      */
+    /**
+     * Reservas em aberto: já aconteceram e não foram pagas.
+     *
+     * É a versão em consulta de `situacaoPagamento() === 'atrasado'`, para quem
+     * precisa perguntar isso de muitas reservas de uma vez (a exclusão de conta
+     * do cliente e a lista de clientes do admin) sem carregar cada uma.
+     *
+     * "Não paga" é a AUSÊNCIA de pagamento confirmado, e não a presença de um
+     * pagamento pendente: quem nunca pagou não tem linha nenhuma em `payments`.
+     * Era essa diferença que deixava uma conta devendo ser excluída.
+     */
+    public function scopeEmAberto($query)
+    {
+        return $query
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->whereRaw('TIMESTAMP(`date`, `end_time`) < ?', [now()])
+            ->whereDoesntHave('payments', fn ($pagamento) => $pagamento->where('status', 'paid'));
+    }
+
     public function situacaoPagamento(): ?string
     {
         // Só confirmadas/realizadas têm situação de pagamento.
@@ -467,15 +475,38 @@ class Booking extends Model
      */
     public static function cancelarEmLote(iterable $reservas, string $motivo, ?int $sentBy = null): int
     {
-        $total = 0;
+        $reservas = $reservas instanceof \Illuminate\Support\Collection
+            ? $reservas
+            : collect($reservas);
+
+        if ($reservas->isEmpty()) {
+            return 0;
+        }
+
+        // Carrega de uma vez as relações que o laço usaria por reserva. Sem
+        // isto, o reembolso e as notificações refaziam as mesmas consultas
+        // (quadra, arena, pagamentos, cliente) a cada volta — o custo crescia
+        // reta com o número de reservas e travava a exclusão de uma arena cheia.
+        $reservas->load('court.arena', 'payments', 'client.user');
+
+        // O status vai num UPDATE único, em vez de um por reserva. Os modelos
+        // em memória são acertados na mão para o resto do laço (reembolso,
+        // avisos) enxergar o novo estado sem reconsultar.
+        $agora = now();
+        static::whereIn('id', $reservas->modelKeys())->update([
+            'status' => 'cancelled',
+            'cancelled_by' => $sentBy,
+            'cancelled_at' => $agora,
+            'cancellation_reason' => $motivo,
+        ]);
 
         foreach ($reservas as $booking) {
-            $booking->update([
+            $booking->forceFill([
                 'status' => 'cancelled',
                 'cancelled_by' => $sentBy,
-                'cancelled_at' => now(),
+                'cancelled_at' => $agora,
                 'cancellation_reason' => $motivo,
-            ]);
+            ])->syncOriginal();
 
             // Devolve o dinheiro se estava paga. `reembolsar` retorna null
             // quando não havia pagamento, então não precisa checar antes.
@@ -486,11 +517,9 @@ class Booking extends Model
             if ($pagamento) {
                 $booking->notificarClienteReembolso((float) $pagamento->refund_amount, 0.0, $sentBy);
             }
-
-            $total++;
         }
 
-        return $total;
+        return $reservas->count();
     }
 
     public function notificarClienteCancelada(?string $motivo = null, ?int $sentBy = null): void
@@ -574,9 +603,13 @@ class Booking extends Model
         UserNotification::paraStaffDaArena(
             $arena,
             'Pagamento recebido',
-            $this->nomeCliente() . ' pagou R$ ' . number_format($valor, 2, ',', '.')
+            // {cliente} no lugar do nome: resolvido na exibição pela reserva
+            // passada abaixo, para não congelar o nome de quem talvez encerre
+            // a conta depois. Ver UserNotification::corpoResolvido().
+            UserNotification::CLIENTE . ' pagou R$ ' . number_format($valor, 2, ',', '.')
                 . ' pelo site — reserva ' . $this->descricaoCurta() . '.'
-                . ' Se o caixa estiver fechado, o lançamento fica pendente para a próxima abertura.'
+                . ' Se o caixa estiver fechado, o lançamento fica pendente para a próxima abertura.',
+            $this
         );
     }
 
@@ -598,8 +631,9 @@ class Booking extends Model
         UserNotification::paraStaffDaArena(
             $arena,
             'Reserva concluída sem pagamento',
-            'A reserva ' . $this->descricaoCurta() . ' (cliente: ' . $this->nomeCliente() . ')'
-                . ' foi realizada e ficou sem pagamento — entrou em "a receber" no caixa.'
+            'A reserva ' . $this->descricaoCurta() . ' (cliente: ' . UserNotification::CLIENTE . ')'
+                . ' foi realizada e ficou sem pagamento — entrou em "a receber" no caixa.',
+            $this
         );
     }
 
@@ -616,7 +650,8 @@ class Booking extends Model
             $arena,
             'Nova reserva pendente',
             'Nova reserva aguardando confirmação: ' . $this->descricaoCurta()
-                . ' (cliente: ' . $this->nomeCliente() . ').'
+                . ' (cliente: ' . UserNotification::CLIENTE . ').',
+            $this
         );
     }
 
@@ -632,7 +667,7 @@ class Booking extends Model
             return;
         }
 
-        $texto = 'O cliente ' . $this->nomeCliente() . ' cancelou a reserva: '
+        $texto = 'O cliente ' . UserNotification::CLIENTE . ' cancelou a reserva: '
             . $this->descricaoCurta() . '.';
         if ($motivo) {
             $texto .= ' Motivo: ' . $motivo;
@@ -646,6 +681,6 @@ class Booking extends Model
                 . ' (lançada no caixa, ou pendente se ele estiver fechado).';
         }
 
-        UserNotification::paraStaffDaArena($arena, 'Reserva cancelada pelo cliente', $texto);
+        UserNotification::paraStaffDaArena($arena, 'Reserva cancelada pelo cliente', $texto, $this);
     }
 }

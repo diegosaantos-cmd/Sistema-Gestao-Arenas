@@ -37,7 +37,10 @@
             <form method="POST" action="{{ route('client.bookings.pay.confirm', $booking) }}">
                 @csrf
                 <input type="hidden" name="origem" value="{{ $origem ?? '' }}">
-                @php $atual = old('payment_method', $booking->paymentMethod?->type); @endphp
+                {{-- Sem pré-seleção pela reserva: a forma escolhida não é mais
+                     guardada nela (quem registra a forma é o pagamento). Mantém
+                     apenas o old() para não perder a escolha se a validação falhar. --}}
+                @php $atual = old('payment_method'); @endphp
 
                 <div class="mb-3">
                     <label class="form-label">Forma de pagamento</label>

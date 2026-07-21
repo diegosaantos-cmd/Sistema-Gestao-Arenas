@@ -79,36 +79,48 @@
         </div>
     </form>
 
-    <div class="row" data-arena-results>
-        @forelse($arenas as $arena)
+    {{-- A lista rola dentro da própria caixa, e não empurrando a página.
 
-            <div class="col-6 col-lg-3 mb-4">
-                @include('client.arenas._gallery-card', [
-                    'favoritasIds' => $favoritasIds ?? [],
-                    'arenaUrl' => route('client.arenas.show', [$arena, 'origem' => 'inicio']),
-                    'botaoTexto' => 'Ver arena',
-                ])
-            </div>
+         Sem isso, cada carga do scroll infinito alongava a página, e o fim dela
+         passava a depender de as arenas acabarem — some o ponto de referência
+         de "cheguei ao fim". Com a caixa, o fim da página fica logo abaixo
+         dela, no mesmo lugar, tendo 12 arenas carregadas ou 500.
 
-        @empty
+         Só no desktop: no celular, rolagem dentro de rolagem prende o dedo na
+         caixa, então lá a lista flui na página e só cresce quando a pessoa
+         toca em "ver mais" (ver _arenas-scroll-infinito). --}}
+    <div class="arena-vitrine" data-arena-scroll
+         tabindex="0" role="region" aria-label="Lista de arenas">
 
-            <div class="col-12 text-center py-5">
-                @if (trim($busca) !== '')
-                    <h4 class="mb-1">Nenhuma arena encontrada com "{{ $busca }}"</h4>
-                    <p class="text-muted mb-0">Tente outro nome ou veja todas as arenas.</p>
-                    <a href="{{ url('/') }}" class="btn btn-primary btn-sm mt-3">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> Ver todas as arenas
-                    </a>
-                @else
-                    <h4>Nenhuma arena cadastrada ainda</h4>
-                @endif
-            </div>
+        {{-- O botão "ver mais" fica DENTRO deste bloco, junto dos cards: assim a
+             busca ao vivo, que troca o conteúdo daqui inteiro, já substitui o
+             botão pelo da nova lista em vez de deixar um apontando para a
+             lista antiga. --}}
+        <div class="row" data-arena-results>
+            @if ($arenas->isEmpty())
 
-        @endforelse
+                <div class="col-12 text-center py-5">
+                    @if (trim($busca) !== '')
+                        <h4 class="mb-1">Nenhuma arena encontrada com "{{ $busca }}"</h4>
+                        <p class="text-muted mb-0">Tente outro nome ou veja todas as arenas.</p>
+                        <a href="{{ url('/') }}" class="btn btn-primary btn-sm mt-3">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Ver todas as arenas
+                        </a>
+                    @else
+                        <h4>Nenhuma arena cadastrada ainda</h4>
+                    @endif
+                </div>
+
+            @else
+                @include('_arenas-cards')
+            @endif
+
+        </div>
 
     </div>
 
 </div>
 
 @include('client.arenas._live-search')
+@include('_arenas-scroll-infinito')
 @endsection

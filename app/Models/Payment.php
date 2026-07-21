@@ -20,6 +20,10 @@ class Payment extends Model
         'pix_transaction_id',
         'receipt_url',
         'origin',
+        // Texto com que este pagamento aparece no caixa. Gravado na criação
+        // porque só o pagamento sabe se é reserva ou taxa de cancelamento —
+        // quem lança depois não teria como deduzir.
+        'description',
         'cash_register_entry_id',
         'paid_at',
         'refunded_at',

@@ -602,7 +602,9 @@ class DashboardController extends Controller
             ->simplePaginate(25)
             ->appends(['busca_cliente' => request('busca_cliente')]);
 
-        return view('admin.system.users', compact('usuarios'));
+        $dividas = $this->dividasDosClientes($usuarios);
+
+        return view('admin.system.users', compact('usuarios', 'dividas'));
     }
 
     public function systemClientsData()
@@ -611,10 +613,40 @@ class DashboardController extends Controller
             ->simplePaginate(25)
             ->appends(['busca_cliente' => request('busca_cliente')]);
 
+        $dividas = $this->dividasDosClientes($usuarios);
+
         return response()->json([
-            'html' => view('admin.system._client-rows', compact('usuarios'))->render(),
+            'html' => view('admin.system._client-rows', compact('usuarios', 'dividas'))->render(),
             'next_url' => $usuarios->nextPageUrl(),
         ]);
+    }
+
+    /**
+     * Quanto cada cliente da página deve, indexado por id de cliente.
+     *
+     * O admin pode excluir mesmo assim — é ação administrativa —, mas precisa
+     * ver o valor antes de confirmar, para não apagar uma dívida sem saber.
+     *
+     * Resolve a página inteira numa consulta só: perguntar por linha custaria
+     * 25 consultas a cada carga, e esta lista tem rolagem infinita.
+     */
+    private function dividasDosClientes($usuarios): \Illuminate\Support\Collection
+    {
+        $clienteIds = collect($usuarios->items())
+            ->pluck('client.id')
+            ->filter()
+            ->all();
+
+        if (! $clienteIds) {
+            return collect();
+        }
+
+        return Booking::whereIn('client_id', $clienteIds)
+            ->emAberto()
+            ->groupBy('client_id')
+            ->selectRaw('client_id, COUNT(*) AS quantidade, SUM(total_amount) AS total')
+            ->get()
+            ->keyBy('client_id');
     }
 
     private function systemClientsQuery()
@@ -708,6 +740,7 @@ class DashboardController extends Controller
                 );
 
                 $client->desligarReservasAnonimizando();
+                $client->anonimizarDadosPessoais();
                 $client->delete();
             }
 

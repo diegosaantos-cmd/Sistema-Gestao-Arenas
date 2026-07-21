@@ -25,6 +25,8 @@ erDiagram
         timestamp deleted_at
         string empresa_ativa "gerada: razao social unica (ativas)"
         string documento_ativo "gerada: CPF/CNPJ unico (ativas)"
+        string empresa_ativa "gerada: razao social unica (ativas)"
+        string documento_ativo "gerada: CPF/CNPJ unico (ativas)"
     }
     employees {
         bigint id PK
@@ -49,6 +51,7 @@ erDiagram
         enum cancellation_fee_mode "always|window"
         timestamp deleted_at
         string nome_ativo "gerada: nome unico entre as ativas"
+        string nome_ativo "gerada: nome unico entre as ativas"
     }
     courts {
         bigint id PK
@@ -57,6 +60,7 @@ erDiagram
         decimal hourly_rate
         boolean active
         timestamp deleted_at
+        string nome_ativo "gerada: nome unico por arena (ativas)"
         string nome_ativo "gerada: nome unico por arena (ativas)"
     }
     arena_business_hours {
@@ -112,7 +116,6 @@ erDiagram
         time start_time
         time end_time
         decimal total_amount
-        bigint payment_method_id FK
         enum status "pending|confirmed|cancelled|completed"
         decimal cancellation_fee_amount
         string slot_ativo "UK gerado"
@@ -125,6 +128,7 @@ erDiagram
         decimal discount_amount
         enum status "pending|paid|refunded"
         enum origin "online|local"
+        string description "texto no caixa: reserva ou taxa"
         bigint cash_register_entry_id FK
         decimal refund_amount
         bigint refund_cash_register_entry_id FK
@@ -143,6 +147,7 @@ erDiagram
         bigint id PK
         bigint user_id FK "destinatário"
         bigint arena_id FK "remetente"
+        bigint booking_id FK "reserva: resolve o nome do cliente"
         bigint sent_by
         string title
         timestamp read_at
@@ -171,6 +176,7 @@ erDiagram
     arenas ||--o{ employees : "arena_id"
     bookings ||--o{ cash_register_entries : "booking_id"
     bookings ||--o{ payments : "booking_id"
+    bookings ||--o{ user_notifications : "booking_id"
     cash_register ||--o{ cash_register_entries : "cash_register_id"
     cash_register_entries ||--o{ payments : "cash_register_entry_id"
     cash_register_entries ||--o{ payments : "refund_cash_register_entry_id"
@@ -180,7 +186,6 @@ erDiagram
     courts ||--o{ court_sports : "court_id"
     owners ||--o{ arenas : "owner_id"
     payment_methods ||--o{ arena_payment_methods : "payment_method_id"
-    payment_methods ||--o{ bookings : "payment_method_id"
     payment_methods ||--o{ payments : "payment_method_id"
     users ||--o{ bookings : "created_by"
     users ||--o{ cash_register : "user_id"

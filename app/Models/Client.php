@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Anonimizacao;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -39,6 +40,13 @@ class Client extends Model
      * deixou de ser preenchido (ver Client\BookingController), mas os registros
      * antigos precisam ser limpos aqui.
      *
+     * O VÍNCULO (`client_id`) é PRESERVADO. Antes ele era anulado, e isso
+     * quebrava quem seguia a reserva até a pessoa: o lançamento de um pagamento
+     * pendente, por exemplo, não encontrava mais o cliente e acabava creditado
+     * a quem estava lançando. Manter o vínculo não expõe ninguém — do outro
+     * lado está um Client excluído cujo User já foi anonimizado, e a própria
+     * reserva já carrega "Cliente excluído" no lugar do nome.
+     *
      * @return int quantas reservas foram anonimizadas
      */
     public function desligarReservasAnonimizando(): int
@@ -48,12 +56,45 @@ class Client extends Model
         // tela mostra, e nenhuma tela precisa decidir o que exibir no lugar de
         // um campo vazio (que seria ambíguo entre "não havia" e "foi apagado").
         return Booking::where('client_id', $this->id)->update([
-            'guest_name'  => Booking::CLIENTE_EXCLUIDO,
-            'guest_phone' => Booking::REMOVIDO,
-            'guest_email' => Booking::REMOVIDO,
-            'notes'       => Booking::REMOVIDO,
-            'client_id'   => null,
+            'guest_name'  => Anonimizacao::CLIENTE_EXCLUIDO,
+            'guest_phone' => Anonimizacao::REMOVIDO,
+            'guest_email' => Anonimizacao::REMOVIDO,
+            'notes'       => Anonimizacao::REMOVIDO,
         ]);
+    }
+
+    /**
+     * Apaga os dados pessoais guardados no próprio cliente.
+     *
+     * Hoje é só a data de nascimento, e aqui ela fica NULA mesmo: é coluna
+     * `date`, não comporta marcador de texto. É a exceção consciente à regra de
+     * substituir em vez de esvaziar — nenhuma tela identifica alguém pela data
+     * de nascimento, então não há rastro que o marcador precisasse preservar.
+     *
+     * Sem isto, encerrar a conta deixava a data de nascimento intacta no
+     * registro: o User era anonimizado, mas o Client só levava soft delete.
+     */
+    public function anonimizarDadosPessoais(): void
+    {
+        $this->forceFill(['date_of_birth' => null])->save();
+    }
+
+    /**
+     * Horários que o cliente já usou e não pagou — a dívida dele com a arena.
+     *
+     * A regra de "em aberto" mora em `Booking::scopeEmAberto()`, para o admin
+     * poder aplicá-la à página inteira de clientes de uma vez sem repetir a
+     * definição em outro lugar.
+     */
+    public function reservasEmAberto()
+    {
+        return Booking::where('client_id', $this->id)->emAberto();
+    }
+
+    /** Quanto o cliente deve, somando os horários usados e não pagos. */
+    public function valorEmAberto(): float
+    {
+        return (float) $this->reservasEmAberto()->sum('total_amount');
     }
 
     public function user()

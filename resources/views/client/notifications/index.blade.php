@@ -32,7 +32,7 @@
                             @endif
                         </div>
                         <div class="text-muted small">
-                            {{ \Illuminate\Support\Str::limit($n->body, 120) }}
+                            {{ \Illuminate\Support\Str::limit($n->corpoResolvido(), 120) }}
                         </div>
                         @if ($n->arena)
                             <div class="text-muted" style="font-size: .75rem;">De: {{ $n->arena->name }}</div>

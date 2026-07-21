@@ -23,6 +23,22 @@
         </form>
     @endif
 
+    @php
+        // Dívida do cliente (horários usados e não pagos). A exclusão pelo admin
+        // acontece mesmo assim — é ação administrativa —, mas o valor aparece na
+        // confirmação para ele não apagar uma cobrança sem saber que existia.
+        $divida = $divida ?? null;
+
+        // Vai num atributo separado (data-confirm-alert) para o modal poder
+        // destacá-lo em vermelho: é alerta, não continuação da frase.
+        $avisoDivida = $divida
+            ? 'ATENÇÃO: este cliente tem '.$divida->quantidade
+                .($divida->quantidade == 1 ? ' horário realizado e não pago' : ' horários realizados e não pagos')
+                .', num total de R$ '.number_format((float) $divida->total, 2, ',', '.')
+                .'. Excluindo, essa cobrança deixa de ter a quem ser cobrada.'
+            : '';
+    @endphp
+
     <form method="POST" action="{{ route('admin.users.destroy', $usuario) }}">
         @csrf
         @method('DELETE')
@@ -30,6 +46,7 @@
                 data-confirm
                 data-confirm-title="Excluir cliente"
                 data-confirm-message="Deseja realmente excluir {{ $usuario->name }}? O histórico será preservado."
+                @if ($avisoDivida) data-confirm-alert="{{ $avisoDivida }}" @endif
                 data-confirm-label="Sim, excluir"
                 data-confirm-variant="danger">Excluir</button>
     </form>

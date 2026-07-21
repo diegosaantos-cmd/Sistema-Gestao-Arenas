@@ -127,37 +127,76 @@
                 </div>
 
                 <div class="modal-body">
-                    <div class="alert alert-danger">
-                        <strong>Esta ação é permanente.</strong>
-                        Sua conta e seus dados serão excluídos definitivamente e não poderão ser recuperados.
-                    </div>
+                    @if ($reservasEmAberto > 0)
 
-                    <p class="text-muted">
-                        A exclusão não será permitida caso existam horários agendados ou pagamentos pendentes.
-                    </p>
-
-                    @if ($errors->deleteAccount->any())
-                        <div class="alert alert-danger">
-                            <ul class="mb-0">
-                                @foreach ($errors->deleteAccount->all() as $erro)
-                                    <li>{{ $erro }}</li>
-                                @endforeach
-                            </ul>
+                        {{-- Devendo: mostra o valor e o caminho para quitar em vez
+                             de pedir a senha. O servidor bloqueia de qualquer
+                             forma (ver ProfileController::destroy); aqui é para o
+                             cliente não descobrir isso só depois de tentar. --}}
+                        <div class="alert alert-warning">
+                            <strong>
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                @if ($reservasEmAberto === 1)
+                                    Você tem 1 horário realizado e não pago.
+                                @else
+                                    Você tem {{ $reservasEmAberto }} horários realizados e não pagos.
+                                @endif
+                            </strong>
+                            <div class="mt-1">
+                                Total em aberto:
+                                <strong>R$ {{ number_format($valorEmAberto, 2, ',', '.') }}</strong>
+                            </div>
                         </div>
-                    @endif
 
-                    <label for="delete_password" class="form-label">Digite sua senha para confirmar</label>
-                    <input type="password" id="delete_password" name="delete_password"
-                           class="form-control" autocomplete="current-password" required>
+                        <p class="text-muted mb-0">
+                            A conta só pode ser excluída depois de quitar esses horários.
+                        </p>
+
+                    @else
+
+                        <div class="alert alert-danger">
+                            <strong>Esta ação é permanente.</strong>
+                            Sua conta e seus dados serão excluídos definitivamente e não poderão ser recuperados.
+                        </div>
+
+                        <p class="text-muted">
+                            A exclusão não será permitida caso existam horários agendados ou pagamentos pendentes.
+                        </p>
+
+                        @if ($errors->deleteAccount->any())
+                            <div class="alert alert-danger">
+                                <ul class="mb-0">
+                                    @foreach ($errors->deleteAccount->all() as $erro)
+                                        <li>{{ $erro }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        <label for="delete_password" class="form-label">Digite sua senha para confirmar</label>
+                        <input type="password" id="delete_password" name="delete_password"
+                               class="form-control" autocomplete="current-password" required>
+
+                    @endif
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Cancelar
+                        {{ $reservasEmAberto > 0 ? 'Fechar' : 'Cancelar' }}
                     </button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash me-2"></i> Excluir permanentemente
-                    </button>
+
+                    @if ($reservasEmAberto > 0)
+                        {{-- Tela dedicada aos não pagos. "Próximos agendamentos"
+                             (client.bookings.index) não serve aqui: ela lista o
+                             que está por vir, não o que ficou devendo. --}}
+                        <a href="{{ route('client.bookings.unpaid') }}" class="btn btn-success">
+                            <i class="bi bi-cash-coin me-2"></i> Ver horários a pagar
+                        </a>
+                    @else
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-2"></i> Excluir permanentemente
+                        </button>
+                    @endif
                 </div>
             </form>
         </div>

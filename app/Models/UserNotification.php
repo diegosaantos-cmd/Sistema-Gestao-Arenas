@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Notifications\AvisoDoSistema;
+use App\Support\Anonimizacao;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -12,8 +13,15 @@ class UserNotification extends Model
     protected $table = 'user_notifications';
 
     protected $fillable = [
-        'user_id', 'arena_id', 'sent_by', 'title', 'body', 'read_at',
+        'user_id', 'arena_id', 'booking_id', 'sent_by', 'title', 'body', 'read_at',
     ];
+
+    /**
+     * Marcador que o corpo usa no lugar do nome do cliente. É resolvido na
+     * exibição (corpoResolvido), nunca gravado como nome de verdade — assim o
+     * texto acompanha a anonimização em vez de congelar o nome de quem saiu.
+     */
+    public const CLIENTE = '{cliente}';
 
     protected $casts = [
         'read_at' => 'datetime',
@@ -51,7 +59,8 @@ class UserNotification extends Model
         }
 
         $titulo = $this->title;
-        $corpo = $this->body;
+        // Resolvido, e não o cru: o e-mail sairia com "{cliente}" no texto.
+        $corpo = $this->corpoResolvido();
         $id = $this->id;
         // Nome da arena que gerou o aviso (withTrashed: mostra mesmo se ela foi
         // excluída depois). Fica nulo em avisos sem arena.
@@ -70,6 +79,35 @@ class UserNotification extends Model
                 ]);
             }
         });
+    }
+
+    /**
+     * O corpo pronto para mostrar: com o marcador {cliente} trocado pelo nome
+     * atual da reserva.
+     *
+     * O nome não fica gravado — é montado aqui, a partir do estado de agora. Se
+     * o cliente encerrou a conta, Booking::nomeCliente() devolve "Cliente
+     * excluído" e é isso que aparece, sem nenhum texto antigo a limpar.
+     *
+     * Sem marcador (a maioria dos avisos) ou sem reserva ligada, devolve o
+     * corpo como está.
+     */
+    public function corpoResolvido(): string
+    {
+        if (! str_contains($this->body, self::CLIENTE)) {
+            return $this->body;
+        }
+
+        $nome = $this->booking?->nomeCliente() ?? Anonimizacao::CLIENTE_EXCLUIDO;
+
+        return str_replace(self::CLIENTE, $nome, $this->body);
+    }
+
+    public function booking()
+    {
+        // Booking não usa soft delete (reservas são canceladas, nunca apagadas),
+        // então a reserva referenciada está sempre lá para resolver o nome.
+        return $this->belongsTo(Booking::class);
     }
 
     public function user()
@@ -101,11 +139,12 @@ class UserNotification extends Model
         }
 
         static::create([
-            'user_id'  => $userId,
-            'arena_id' => $booking->court?->arena_id,
-            'sent_by'  => $sentBy,
-            'title'    => $title,
-            'body'     => $body,
+            'user_id'    => $userId,
+            'arena_id'   => $booking->court?->arena_id,
+            'booking_id' => $booking->id,
+            'sent_by'    => $sentBy,
+            'title'      => $title,
+            'body'       => $body,
         ]);
     }
 
@@ -143,15 +182,20 @@ class UserNotification extends Model
      * e o staff precisa saber. `sent_by` fica nulo: o gatilho é uma ação do
      * cliente, não um envio manual.
      */
-    public static function paraStaffDaArena(Arena $arena, string $title, string $body): void
+    public static function paraStaffDaArena(Arena $arena, string $title, string $body, ?Booking $booking = null): void
     {
         foreach (static::idsStaffDaArena($arena) as $userId) {
             static::create([
-                'user_id'  => $userId,
-                'arena_id' => $arena->id,
-                'sent_by'  => null,
-                'title'    => $title,
-                'body'     => $body,
+                'user_id'    => $userId,
+                'arena_id'   => $arena->id,
+                // Quando o aviso é sobre uma reserva, guarda a referência: o
+                // corpo traz o marcador {cliente}, resolvido na exibição a
+                // partir dela. É o que impede o nome de ficar congelado no
+                // texto depois que a conta do cliente é excluída.
+                'booking_id' => $booking?->id,
+                'sent_by'    => null,
+                'title'      => $title,
+                'body'       => $body,
             ]);
         }
     }

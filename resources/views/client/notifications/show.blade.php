@@ -18,7 +18,7 @@
                 {{ $notification->created_at->format('d/m/Y H:i') }}
             </div>
             <hr>
-            <div style="white-space: pre-wrap;">{{ $notification->body }}</div>
+            <div style="white-space: pre-wrap;">{{ $notification->corpoResolvido() }}</div>
         </div>
     </div>
 

@@ -291,7 +291,7 @@ class QuadraController extends Controller
         $afetados = self::agendamentosAtivosDaQuadra($quadra);
 
         if ($afetados->isEmpty()) {
-            $quadra->delete(); // soft delete: histórico permanece
+            $quadra->excluirDesativando(); // soft delete + active=false
 
             return redirect()->route('quadras.index')->with('msg', 'Quadra excluída.');
         }
@@ -327,7 +327,7 @@ class QuadraController extends Controller
             // cancelarEmLote: cancela E avisa cada cliente com o motivo.
             Booking::cancelarEmLote(self::agendamentosAtivosDaQuadra($quadra), $motivo, auth()->id());
 
-            $quadra->delete(); // soft delete: histórico permanece
+            $quadra->excluirDesativando(); // soft delete + active=false
         });
 
         return redirect()->route('quadras.index')
