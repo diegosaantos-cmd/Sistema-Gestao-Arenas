@@ -32,7 +32,7 @@
         {{-- Preserva o mês escolhido ao buscar/ordenar. --}}
         <input type="hidden" name="mes" value="{{ $mesRef->format('Y-m') }}">
         <input type="text" name="busca_reserva" value="{{ $busca }}"
-               class="form-control" style="max-width: 300px;" placeholder="Nome do cliente ou data (dd/mm/aaaa)">
+               class="form-control" style="max-width: 300px;" placeholder="Cliente ou data (dd/mm/aaaa)">
         <select name="ordenar_reserva" class="form-select" style="max-width: 230px;"
                 title="Ordenar as reservas" onchange="this.form.submit()">
             @foreach (\App\Models\Booking::ORDENS as $chave => $rotulo)

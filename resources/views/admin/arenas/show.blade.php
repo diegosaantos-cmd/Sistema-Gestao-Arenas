@@ -364,7 +364,7 @@
                                    value="{{ request('busca_reserva') }}"
                                    class="form-control form-control-sm"
                                    style="width: min(300px, 48vw);"
-                                   placeholder="Nome do cliente ou data (dd/mm/aaaa)"
+                                   placeholder="Cliente ou data (dd/mm/aaaa)"
                                    aria-label="Pesquisar pelo nome do cliente ou pela data">
                         </form>
                     </div>

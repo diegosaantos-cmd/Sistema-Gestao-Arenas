@@ -13,7 +13,7 @@
 
     <form method="GET" class="mb-4 d-flex gap-2 flex-wrap align-items-center" style="max-width: 640px;">
         <input type="text" name="q" value="{{ request('q') }}"
-               class="form-control min-w-0" style="max-width: 260px;" placeholder="Pesquise por nome ou e-mail">
+               class="form-control min-w-0" style="max-width: 260px;" placeholder="Nome ou e-mail…">
 
         <select name="tipo" class="form-select min-w-0" style="max-width: 190px;"
                 onchange="this.form.submit()">

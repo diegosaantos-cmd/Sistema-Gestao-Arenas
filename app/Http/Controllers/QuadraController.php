@@ -220,8 +220,9 @@ class QuadraController extends Controller
         }
 
         $arena = $quadra->arena;
+        $reembolsos = Booking::resumoReembolsos($afetados);
 
-        return view('courts.deactivate-confirm', compact('quadra', 'arena', 'afetados'));
+        return view('courts.deactivate-confirm', compact('quadra', 'arena', 'afetados', 'reembolsos'));
     }
 
     /**
@@ -235,10 +236,13 @@ class QuadraController extends Controller
         $motivo = trim((string) $request->input('motivo'));
 
         if ($motivo === '') {
+            $afetados = self::agendamentosAtivosDaQuadra($quadra);
+
             return view('courts.deactivate-confirm', [
                 'quadra' => $quadra,
                 'arena' => $quadra->arena,
-                'afetados' => self::agendamentosAtivosDaQuadra($quadra),
+                'afetados' => $afetados,
+                'reembolsos' => Booking::resumoReembolsos($afetados),
                 'erroMotivo' => 'Informe o motivo do cancelamento.',
                 'motivo' => $motivo,
             ]);
@@ -300,6 +304,7 @@ class QuadraController extends Controller
             'quadra' => $quadra,
             'arena' => $quadra->arena,
             'afetados' => $afetados,
+            'reembolsos' => Booking::resumoReembolsos($afetados),
         ]);
     }
 
@@ -314,10 +319,13 @@ class QuadraController extends Controller
         $motivo = trim((string) $request->input('motivo'));
 
         if ($motivo === '') {
+            $afetados = self::agendamentosAtivosDaQuadra($quadra);
+
             return view('courts.delete-confirm', [
                 'quadra' => $quadra,
                 'arena' => $quadra->arena,
-                'afetados' => self::agendamentosAtivosDaQuadra($quadra),
+                'afetados' => $afetados,
+                'reembolsos' => Booking::resumoReembolsos($afetados),
                 'erroMotivo' => 'Informe o motivo do cancelamento.',
                 'motivo' => $motivo,
             ]);

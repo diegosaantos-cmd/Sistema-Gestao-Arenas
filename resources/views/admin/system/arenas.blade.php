@@ -15,7 +15,7 @@
         <div class="col-12 col-md-6">
             <div class="input-group arena-search-box shadow-sm">
                 <input type="search" class="form-control"
-                       placeholder="Pesquise por nome da arena, empresa ou proprietário"
+                       placeholder="Arena, empresa ou proprietário…"
                        aria-label="Pesquisar arena"
                        data-arena-search-input>
                 <span class="input-group-text bg-white border-0">

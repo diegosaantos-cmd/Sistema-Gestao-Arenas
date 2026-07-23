@@ -15,7 +15,7 @@
         <div class="col-12 col-md-6">
             <div class="input-group arena-search-box shadow-sm">
                 <input type="search" class="form-control"
-                       placeholder="Pesquise por nome da quadra, arena ou empresa"
+                       placeholder="Quadra, arena ou empresa…"
                        aria-label="Pesquisar quadra"
                        data-court-search-input>
                 <span class="input-group-text bg-white border-0">

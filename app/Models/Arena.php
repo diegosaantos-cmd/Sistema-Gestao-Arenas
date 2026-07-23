@@ -149,7 +149,10 @@ class Arena extends Model
 
     public function owner()
     {
-        return $this->belongsTo(Owner::class);
+        // withTrashed: empresa excluída (soft delete) continua identificada no
+        // histórico — a razão social e o CPF/CNPJ permanecem (RN10). Sem isto,
+        // a arena de uma empresa excluída perdia o vínculo com o dono.
+        return $this->belongsTo(Owner::class)->withTrashed();
     }
 
     public function businessHours()

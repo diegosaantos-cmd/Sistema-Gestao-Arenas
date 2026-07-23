@@ -101,12 +101,16 @@ class ProfileController extends Controller
      *
      * Estratégia de ANONIMIZAÇÃO — o REGISTRO fica, o DADO PESSOAL some:
      *
-     * 1. As reservas são desligadas do cliente (client_id = null) e passam a
-     *    mostrar "Cliente excluído", sem telefone nem e-mail.
-     * 2. A conta é encerrada: nome vira "Cliente removido #id", telefone é
-     *    apagado e o e-mail vira placeholder — LIBERANDO o original para um
-     *    novo cadastro. A sessão é derrubada.
-     * 3. O vínculo de cliente vira soft delete.
+     * 1. Os dados pessoais nas reservas são anonimizados: guest_name/phone/email
+     *    e notes viram marcadores. O VÍNCULO com o cliente (client_id) é
+     *    PRESERVADO — a reserva passa a mostrar "Cliente removido", que vem do
+     *    nome (já anonimizado) do usuário, não de um campo solto.
+     * 2. A data de nascimento do cliente é apagada (coluna de data, sem marcador).
+     * 3. A conta é encerrada (User::encerrarConta): nome vira o rótulo genérico
+     *    ("Cliente removido"), telefone vira o marcador "Removido", o e-mail é
+     *    liberado (placeholder) para um novo cadastro, active=false e a sessão é
+     *    derrubada.
+     * 4. O vínculo de cliente vira soft delete.
      *
      * Reservas, pagamentos e caixa NÃO são apagados — é o registro contábil da
      * arena, e ele não identifica mais ninguém. Um novo cadastro com o e-mail

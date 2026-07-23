@@ -206,12 +206,13 @@ class EmployeeController extends Controller
         $this->guardEmployee($employee);
 
         DB::transaction(function () use ($employee) {
-            // Encerra a conta (anonimiza, libera o e-mail, derruba a sessão).
-            // O nome vira "Gerente/Atendente removido #id": o histórico (caixa,
-            // reservas registradas, cancelamentos) mantém a FUNÇÃO de quem agiu,
-            // sem guardar o dado pessoal.
+            // Encerra a conta (anonimiza, libera o e-mail, derruba a sessão,
+            // active=false). O nome vira "Gerente removido"/"Atendente removido":
+            // o histórico (caixa, reservas registradas, cancelamentos) mantém a
+            // FUNÇÃO de quem agiu, sem guardar o dado pessoal.
             $employee->user?->encerrarConta();
 
+            // active=false do vínculo é garantido pelo evento deleting do model.
             $employee->delete(); // soft delete do vínculo de funcionário
         });
 

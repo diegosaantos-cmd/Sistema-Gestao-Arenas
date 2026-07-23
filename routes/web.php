@@ -685,7 +685,10 @@ Route::middleware(['auth', 'pode.gerir', 'verified'])->group(function () {
         ->name('arenas.hours.update');
     Route::post('/arenas/{arena}/horarios/confirmar', [ArenaController::class, 'confirmBusinessHours'])
         ->name('arenas.hours.confirm');
-    Route::resource('arenas', ArenaController::class);
+    // Sem 'update': a edição da arena é granular (updateName, updateContact,
+    // updateBusinessHours, updatePayments, updateCancellationFee), cada uma na
+    // sua rota. O update genérico do resource era um método vazio sem uso.
+    Route::resource('arenas', ArenaController::class)->except(['update']);
 
     // Fotos da arena (galeria/carrossel) — dono/gerente adiciona/exclui/reordena.
     Route::get('/arenas/{arena}/fotos', [ArenaPhotoController::class, 'index'])

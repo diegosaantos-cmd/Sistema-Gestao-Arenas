@@ -196,3 +196,8 @@ erDiagram
     users ||--o{ owners : "deactivated_by"
     users ||--o| owners : "user_id"
     users ||--o| system_admins : "user_id"
+    users ||--o{ bookings : "cancelled_by"
+    users ||--o{ feedbacks : "user_id"
+    users ||--o{ user_notifications : "user_id"
+    users ||--o{ user_notifications : "sent_by"
+    arenas ||--o{ user_notifications : "arena_id"

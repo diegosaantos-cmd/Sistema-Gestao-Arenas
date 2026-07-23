@@ -14,7 +14,7 @@
 
     <form method="GET" class="mb-4 d-flex gap-2 flex-wrap" style="max-width: 520px;">
         <input type="text" name="busca_cliente" value="{{ request('busca_cliente') }}"
-               class="form-control" placeholder="Pesquise por nome, e-mail ou telefone">
+               class="form-control" placeholder="Nome, e-mail ou telefone…">
         <button class="btn btn-primary">Buscar</button>
         @if (request('busca_cliente'))
             <a href="{{ route('admin.owners.clients.page', $owner) }}" class="btn btn-outline-secondary">Limpar</a>

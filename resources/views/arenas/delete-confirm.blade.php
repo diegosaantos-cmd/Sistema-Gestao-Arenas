@@ -38,13 +38,32 @@
     <div class="alert alert-danger">
         A arena será <strong>excluída</strong> (sai da sua gestão e dos catálogos)
         @if ($afetados->isNotEmpty())
-            e os agendamentos abaixo serão <strong>cancelados</strong> (com devolução do que já foi pago).
+            e os agendamentos abaixo serão <strong>cancelados</strong>.
             O <strong>histórico de reservas é mantido</strong>. Informe o motivo (será aplicado a todos) e confirme.
         @else
             . O <strong>histórico de reservas é mantido</strong>.
         @endif
         <strong>Esta ação não pode ser desfeita.</strong>
     </div>
+
+    {{-- Impacto financeiro explícito: quantas reservas pagas serão reembolsadas
+         e quanto no total. Só aparece se houver alguma paga — a exclusão pela
+         arena devolve integral (RN05). --}}
+    @if (($reembolsos['quantidade'] ?? 0) > 0)
+        <div class="alert alert-warning d-flex align-items-start gap-2">
+            <i class="bi bi-cash-coin fs-5"></i>
+            <div>
+                <strong>
+                    {{ $reembolsos['quantidade'] }}
+                    {{ $reembolsos['quantidade'] === 1 ? 'reserva paga será reembolsada' : 'reservas pagas serão reembolsadas' }},
+                    somando R$ {{ number_format($reembolsos['total'], 2, ',', '.') }}.
+                </strong>
+                <div class="small">
+                    A devolução é <strong>integral</strong>.
+                </div>
+            </div>
+        </div>
+    @endif
 
     @php
         $statusInfo = [
@@ -68,10 +87,12 @@
                         <th>Data</th>
                         <th>Horário</th>
                         <th>Status</th>
+                        <th>Pagamento</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($afetados as $b)
+                        @php $pago = ($reembolsos['pagos'] ?? collect())->get($b->id); @endphp
                         <tr>
                             <td>{{ $b->nomeCliente() }}</td>
                             <td>{{ $b->court->name ?? '—' }}</td>
@@ -80,6 +101,14 @@
                             <td>
                                 @php $st = $statusInfo[$b->status] ?? [$b->status, 'bg-secondary']; @endphp
                                 <span class="badge {{ $st[1] }}">{{ $st[0] }}</span>
+                            </td>
+                            <td>
+                                @if ($pago)
+                                    <span class="text-success fw-semibold">Pago R$ {{ number_format($pago, 2, ',', '.') }}</span>
+                                    <div class="small text-muted">será reembolsado</div>
+                                @else
+                                    <span class="text-muted">Não pago</span>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

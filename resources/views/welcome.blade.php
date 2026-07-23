@@ -39,7 +39,7 @@
                 <div class="carousel-caption">
                     <div class="slide-legenda" style="color: #FFFFFF; background-color: rgba(0, 0, 0, .45);">
                         <h1>Bem-vindo à ArenaPlay</h1>
-                        <p>Os melhores jogos e campeonatos.</p>
+                        <p>Gerencie tudo em um só lugar.</p>
                     </div>
                 </div>
             </div>
@@ -70,7 +70,7 @@
         <div class="input-group">
             <input type="search" name="busca" class="form-control border-end-0"
                    value="{{ $busca }}"
-                   placeholder="Pesquisar pelo nome da arena"
+                   placeholder="Nome da arena…"
                    aria-label="Pesquisar arena">
             <button type="submit" class="btn bg-white text-secondary border border-start-0"
                     aria-label="Pesquisar" title="Pesquisar">

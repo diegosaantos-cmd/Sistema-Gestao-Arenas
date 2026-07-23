@@ -16,7 +16,7 @@
             <div class="input-group arena-search-box shadow-sm">
                 <input type="search"
                        class="form-control"
-                       placeholder="Pesquise por nome, cargo, arena ou empresa"
+                       placeholder="Nome, cargo, arena ou empresa…"
                        aria-label="Pesquisar funcionário"
                        data-employee-search-input>
                 <span class="input-group-text bg-white border-0">

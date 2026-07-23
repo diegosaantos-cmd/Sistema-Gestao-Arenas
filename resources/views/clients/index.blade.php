@@ -22,7 +22,7 @@
             <div class="d-flex gap-1 align-items-center">
                 <input type="text" name="q" value="{{ request('q') }}"
                        class="form-control" style="max-width: 240px;"
-                       placeholder="Buscar cliente por nome ou e-mail...">
+                       placeholder="Nome ou e-mail…">
                 @if (request('q'))
                     <a href="{{ route('clients.index', array_filter(['filtro' => request('filtro')])) }}"
                        class="btn btn-outline-secondary" title="Limpar busca">Limpar</a>

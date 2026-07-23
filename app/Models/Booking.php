@@ -493,6 +493,39 @@ class Booking extends Model
     }
 
     /**
+     * Resumo dos reembolsos que um cancelamento em lote vai gerar, a partir das
+     * reservas afetadas: quanto cada uma tem pago (para a coluna da tabela),
+     * quantas são pagas e o total a devolver (para o aviso no topo).
+     *
+     * Usado nas confirmações de excluir/desativar arena e excluir/desativar
+     * quadra — todas passam por cancelarEmLote, que reembolsa integral. O
+     * responsável vê o impacto financeiro ANTES de confirmar. Consulta agregada,
+     * sem N+1.
+     *
+     * @return array{pagos: \Illuminate\Support\Collection, quantidade: int, total: float}
+     */
+    public static function resumoReembolsos($afetados): array
+    {
+        $ids = collect($afetados)->pluck('id');
+
+        $pagos = $ids->isEmpty()
+            ? collect()
+            : Payment::whereIn('booking_id', $ids)
+                ->where('status', 'paid')
+                ->whereNull('refunded_at')
+                ->selectRaw('booking_id, SUM(amount) AS total')
+                ->groupBy('booking_id')
+                ->pluck('total', 'booking_id')
+                ->map(fn ($v) => (float) $v);
+
+        return [
+            'pagos' => $pagos,           // [booking_id => valor pago]
+            'quantidade' => $pagos->count(),
+            'total' => (float) $pagos->sum(),
+        ];
+    }
+
+    /**
      * Descrição curta da reserva para mensagens/notificações.
      */
     public function descricaoCurta(): string

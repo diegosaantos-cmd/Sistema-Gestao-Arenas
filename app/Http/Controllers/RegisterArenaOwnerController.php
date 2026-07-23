@@ -6,6 +6,7 @@ use App\Models\Arena;
 use App\Models\Court;
 use App\Models\Owner;
 use App\Models\User;
+use App\Services\SlideImageService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -82,6 +83,10 @@ class RegisterArenaOwnerController extends Controller
                 'required', 'string', 'regex:/^(\d{11}|\d{14})$/',
                 Rule::unique('owners', 'tax_id')->whereNull('deleted_at'),
             ],
+            // Fotos da arena são opcionais no cadastro (até 15). Podem ser
+            // adicionadas/reordenadas depois na tela "Fotos da arena".
+            'fotos' => ['nullable', 'array', 'max:15'],
+            'fotos.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:' . SlideImageService::limiteUploadKb()],
             'name_arena' => ['required', 'string', 'max:120', function ($attribute, $value, $fail) {
                 $chave = ArenaController::chaveComparacao($value);
                 if (Arena::whereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$chave])->exists()) {
@@ -161,9 +166,11 @@ class RegisterArenaOwnerController extends Controller
         $pagamentos = $request->input('pagamentos', []);
         $quadras = $request->input('quadras', []);
         $dadosTaxa = ArenaController::dadosTaxaCancelamento($request);
+        $fotos = $request->file('fotos', []);
 
-        // Transação: ou faz TUDO, ou não faz nada.
-        $user = DB::transaction(function () use ($validated, $horarios, $pagamentos, $quadras, $dadosTaxa, $usarContaAtual) {
+        // Transação: ou faz TUDO, ou não faz nada. As fotos ficam de fora, para
+        // depois do commit (evita arquivo órfão numa reversão).
+        $resultado = DB::transaction(function () use ($validated, $horarios, $pagamentos, $quadras, $dadosTaxa, $usarContaAtual) {
             if ($usarContaAtual) {
                 // Cliente logado vira proprietário com a MESMA conta. Encerra o
                 // papel de cliente (soft delete) — o histórico de reservas
@@ -207,8 +214,19 @@ class RegisterArenaOwnerController extends Controller
 
             $arena->paymentMethods()->sync($pagamentos);
 
-            return $user;
+            // A arena volta junto para as fotos serem salvas DEPOIS do commit
+            // (ver abaixo): assim, se a transação reverter, nenhum arquivo de
+            // imagem fica órfão no disco — o Storage não é transacional.
+            return ['user' => $user, 'arena' => $arena];
         });
+
+        $user = $resultado['user'];
+
+        // Fotos opcionais, agora que a arena está gravada de verdade. Ficar fora
+        // da transação troca o risco: em vez de arquivo órfão numa reversão, o
+        // pior caso é a arena existir sem as fotos — e elas são opcionais, dá
+        // para adicionar depois em "Fotos da arena". salvarFotos é defensivo.
+        ArenaController::salvarFotos($resultado['arena'], $fotos);
 
         // Conta NOVA: dispara Registered (envia o e-mail de verificação, se a
         // verificação estiver ligada). No "usar conta atual" a conta já existe e

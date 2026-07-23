@@ -23,6 +23,21 @@
         reagendar. Informe o motivo (será aplicado a todos) e confirme.
     </div>
 
+    {{-- Impacto financeiro: cancelar reembolsa as pagas (cancelarEmLote). --}}
+    @if (($reembolsos['quantidade'] ?? 0) > 0)
+        <div class="alert alert-warning d-flex align-items-start gap-2">
+            <i class="bi bi-cash-coin fs-5"></i>
+            <div>
+                <strong>
+                    {{ $reembolsos['quantidade'] }}
+                    {{ $reembolsos['quantidade'] === 1 ? 'reserva paga será reembolsada' : 'reservas pagas serão reembolsadas' }},
+                    somando R$ {{ number_format($reembolsos['total'], 2, ',', '.') }}.
+                </strong>
+                <div class="small">A devolução é <strong>integral</strong>.</div>
+            </div>
+        </div>
+    @endif
+
     @php
         $statusInfo = [
             'pending'   => ['Pendente',   'bg-warning text-dark'],
@@ -44,10 +59,12 @@
                         <th>Data</th>
                         <th>Horário</th>
                         <th>Status</th>
+                        <th>Pagamento</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($afetados as $b)
+                        @php $pago = ($reembolsos['pagos'] ?? collect())->get($b->id); @endphp
                         <tr>
                             <td>{{ $b->nomeCliente() }}</td>
                             <td>{{ $dias[$b->date->dayOfWeek] }}, {{ $b->date->format('d/m/Y') }}</td>
@@ -55,6 +72,14 @@
                             <td>
                                 @php $st = $statusInfo[$b->status] ?? [$b->status, 'bg-secondary']; @endphp
                                 <span class="badge {{ $st[1] }}">{{ $st[0] }}</span>
+                            </td>
+                            <td>
+                                @if ($pago)
+                                    <span class="text-success fw-semibold">Pago R$ {{ number_format($pago, 2, ',', '.') }}</span>
+                                    <div class="small text-muted">será reembolsado</div>
+                                @else
+                                    <span class="text-muted">Não pago</span>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

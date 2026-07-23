@@ -31,7 +31,11 @@ class CashRegister extends Model
 
     public function arena()
     {
-        return $this->belongsTo(Arena::class);
+        // withTrashed: o caixa é registro contábil e permanece após a arena ser
+        // excluída (soft delete). Sem isto, o histórico de caixa de uma arena
+        // excluída perdia o vínculo com ela — e `cashRegister->arena` voltava
+        // nulo em pontos que não são null-safe.
+        return $this->belongsTo(Arena::class)->withTrashed();
     }
 
     public function user()

@@ -74,7 +74,8 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('register.arena.owners.store') }}" data-wizard novalidate>
+            <form method="POST" action="{{ route('register.arena.owners.store') }}" data-wizard novalidate
+                  enctype="multipart/form-data">
                 @csrf
 
                 {{-- ETAPA 1 — Você e sua empresa --}}
@@ -192,9 +193,9 @@
                 </div>
 
                 {{-- ETAPA 2 — Sua arena --}}
-                <div data-etapa data-campos="name_arena,description,address_rua,address_bairro,address_numero,phone,email_arena" class="d-none">
+                <div data-etapa data-campos="name_arena,description,fotos,address_rua,address_bairro,address_numero,phone,email_arena" class="d-none">
 
-                    @include("auth._erros-da-etapa", ["campos" => explode(",", "name_arena,description,address_rua,address_bairro,address_numero,phone,email_arena")])
+                    @include("auth._erros-da-etapa", ["campos" => explode(",", "name_arena,description,fotos,address_rua,address_bairro,address_numero,phone,email_arena")])
                     <h2 class="h5 fw-bold mb-3">Dados da arena</h2>
 
                     <div class="row g-3">
@@ -212,6 +213,22 @@
                             <textarea class="form-control" id="description" name="description" rows="3"
                                       maxlength="300" placeholder="Conte o que sua arena tem de melhor.">{{ old('description') }}</textarea>
                             <div class="form-text">Até 300 caracteres.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="fotos">
+                                Fotos da arena <span class="text-muted fw-normal">(opcional · até 15)</span>
+                            </label>
+                            <input type="file" class="form-control @error('fotos.*') is-invalid @enderror"
+                                   id="fotos" name="fotos[]"
+                                   accept="image/jpeg,image/png,image/webp" multiple>
+                            @error('fotos.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">
+                                JPG, PNG ou WEBP. Aparecem no carrossel do card e da página da arena.
+                                <strong>Prefira fotos horizontais (paisagem), proporção 16:9</strong>
+                                (ex.: 1920×1080). Você também pode adicionar/reordenar depois em
+                                "Fotos da arena".
+                            </div>
                         </div>
 
                         <div class="col-12 col-md-7">

@@ -21,7 +21,7 @@
                            name="busca_cliente"
                            value="{{ request('busca_cliente') }}"
                            class="form-control"
-                           placeholder="Pesquise por nome ou e-mail"
+                           placeholder="Nome ou e-mail…"
                            aria-label="Pesquisar cliente">
                     <span class="input-group-text bg-white border-0">
                         <i class="bi bi-search text-secondary"></i>

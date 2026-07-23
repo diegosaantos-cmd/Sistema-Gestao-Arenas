@@ -164,23 +164,37 @@ class ArenaController extends Controller
 
         $arena->paymentMethods()->sync($request->input('pagamentos', []));
 
-        // Fotos opcionais do cadastro. Defensivo: uma foto inválida (ou GD
-        // ausente) é ignorada — nunca bloqueia a criação da arena.
-        if (SlideImageService::disponivel()) {
-            $ordem = 1;
-            foreach (array_slice((array) $request->file('fotos', []), 0, 15) as $foto) {
-                try {
-                    $arena->photos()->create([
-                        'image_path' => SlideImageService::processarEGuardar($foto, 'arenas'),
-                        'ordem' => $ordem++,
-                    ]);
-                } catch (\Throwable $e) {
-                    // ignora a foto problemática e segue
-                }
-            }
-        }
+        self::salvarFotos($arena, $request->file('fotos', []));
 
         return redirect()->route('owners.dashboard');
+    }
+
+    /**
+     * Salva as fotos opcionais enviadas no cadastro da arena (até o limite).
+     *
+     * Compartilhada com o cadastro inicial / "cliente vira dono"
+     * (RegisterArenaOwnerController), para o mesmo comportamento valer nos dois
+     * fluxos. Defensiva: uma foto inválida (ou GD ausente) é ignorada — nunca
+     * bloqueia a criação da arena, já que a foto é opcional e pode ser
+     * adicionada depois em "Fotos da arena".
+     */
+    public static function salvarFotos(Arena $arena, $arquivos, int $limite = 15): void
+    {
+        if (! SlideImageService::disponivel()) {
+            return;
+        }
+
+        $ordem = 1;
+        foreach (array_slice((array) $arquivos, 0, $limite) as $foto) {
+            try {
+                $arena->photos()->create([
+                    'image_path' => SlideImageService::processarEGuardar($foto, 'arenas'),
+                    'ordem' => $ordem++,
+                ]);
+            } catch (\Throwable $e) {
+                // ignora a foto problemática e segue
+            }
+        }
     }
     
     public function show($id)
@@ -211,14 +225,6 @@ class ArenaController extends Controller
     public function edit(string $id)
     {
         //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-
     }
 
     /**
@@ -312,7 +318,9 @@ class ArenaController extends Controller
                 ->with('msg', 'Arena desativada.');
         }
 
-        return view('arenas.deactivate-confirm', compact('arena', 'afetados'));
+        $reembolsos = Booking::resumoReembolsos($afetados);
+
+        return view('arenas.deactivate-confirm', compact('arena', 'afetados', 'reembolsos'));
     }
 
     /**
@@ -331,9 +339,12 @@ class ArenaController extends Controller
         $motivo = trim((string) $request->input('motivo'));
 
         if ($motivo === '') {
+            $afetados = self::agendamentosAtivosDaArena($arena);
+
             return view('arenas.deactivate-confirm', [
                 'arena' => $arena,
-                'afetados' => self::agendamentosAtivosDaArena($arena),
+                'afetados' => $afetados,
+                'reembolsos' => Booking::resumoReembolsos($afetados),
                 'erroMotivo' => 'Informe o motivo do cancelamento.',
                 'motivo' => $motivo,
             ]);
@@ -669,7 +680,9 @@ class ArenaController extends Controller
                 ->with('msg', 'Arena excluída.');
         }
 
-        return view('arenas.delete-confirm', compact('arena', 'afetados', 'ultima'));
+        $reembolsos = Booking::resumoReembolsos($afetados);
+
+        return view('arenas.delete-confirm', compact('arena', 'afetados', 'ultima', 'reembolsos'));
     }
 
     /**
@@ -697,6 +710,7 @@ class ArenaController extends Controller
                 'arena' => $arena,
                 'afetados' => $afetados,
                 'ultima' => $ultima,
+                'reembolsos' => Booking::resumoReembolsos($afetados),
                 'erroMotivo' => 'Informe o motivo do cancelamento.',
                 'motivo' => $motivo,
             ]);
