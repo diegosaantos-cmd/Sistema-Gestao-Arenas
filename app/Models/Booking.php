@@ -6,6 +6,7 @@ use App\Services\PaymentService;
 use App\Support\Anonimizacao;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Booking extends Model
 {
@@ -88,6 +89,16 @@ class Booking extends Model
 
     public const REMOVIDO = Anonimizacao::REMOVIDO;
 
+    /**
+     * Quantos horários podem ser marcados num único envio (cliente ou balcão).
+     *
+     * Cada horário vira uma reserva, e cada reserva dispara aviso para todo o
+     * staff da arena — o custo cresce com a seleção. O dia tem no máximo 24
+     * blocos, então 15 cobre com folga qualquer uso real e ainda segura o caso
+     * de um envio forjado com centenas de horários.
+     */
+    public const MAX_HORARIOS_POR_VEZ = 15;
+
     public function nomeCliente(): string
     {
         return $this->client?->user?->name
@@ -160,6 +171,14 @@ class Booking extends Model
      */
     public function numeroNaArena(): int
     {
+        // Já resolvido em lote? Devolve sem consultar. O COUNT abaixo percorre
+        // TODAS as reservas da arena: numa arena grande custa ~1,5 s por
+        // chamada, e num laço (ex.: reembolso de N reservas) viraria O(n²).
+        // Ver numerosNaArenaPara() e Booking::cancelarEmLote().
+        if ($this->numeroNaArenaResolvido !== null) {
+            return $this->numeroNaArenaResolvido;
+        }
+
         $arenaId = $this->court?->arena_id ?? $this->courtWithTrashed?->arena_id;
 
         if (! $arenaId) {
@@ -169,6 +188,57 @@ class Booking extends Model
         return static::whereIn('court_id', static::courtIdsDaArena($arenaId))
             ->where('id', '<=', $this->id)
             ->count();
+    }
+
+    /** Número na arena já calculado por fora (lote), para não reconsultar. */
+    protected ?int $numeroNaArenaResolvido = null;
+
+    public function definirNumeroNaArena(int $numero): void
+    {
+        $this->numeroNaArenaResolvido = $numero;
+    }
+
+    /**
+     * Números na arena SÓ das reservas informadas, numa consulta.
+     *
+     * Diferente de numerosNaArena(), que traz o mapa inteiro: aqui o interesse
+     * é um punhado de reservas dentro de uma arena que pode ter milhões —
+     * trazer tudo estouraria a memória do PHP.
+     *
+     * ROW_NUMBER() numera as reservas da arena até o maior id pedido; o filtro
+     * externo devolve só as procuradas. É UMA varredura para o conjunto todo,
+     * no lugar de um COUNT por reserva.
+     *
+     * @param  array<int>  $ids
+     * @return array<int,int>  [booking_id => número]
+     */
+    public static function numerosNaArenaPara(int $arenaId, array $ids): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $courtIds = static::courtIdsDaArena($arenaId)->all();
+
+        if (! $ids || ! $courtIds) {
+            return [];
+        }
+
+        $courts = implode(',', array_fill(0, count($courtIds), '?'));
+        $alvos = implode(',', array_fill(0, count($ids), '?'));
+
+        $linhas = DB::select(
+            "SELECT id, n FROM (
+                 SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n
+                   FROM bookings
+                  WHERE court_id IN ($courts) AND id <= ?
+             ) t WHERE id IN ($alvos)",
+            [...$courtIds, max($ids), ...$ids]
+        );
+
+        $mapa = [];
+        foreach ($linhas as $l) {
+            $mapa[(int) $l->id] = (int) $l->n;
+        }
+
+        return $mapa;
     }
 
     /**
@@ -580,6 +650,23 @@ class Booking extends Model
         // (quadra, arena, pagamentos, cliente) a cada volta — o custo crescia
         // reta com o número de reservas e travava a exclusão de uma arena cheia.
         $reservas->load('court.arena', 'payments', 'client.user');
+
+        // Números da reserva na arena, resolvidos EM LOTE (uma consulta por
+        // arena envolvida). Sem isto, cada reembolso chamaria numeroNaArena(),
+        // que faz um COUNT sobre TODAS as reservas da arena: numa arena grande
+        // é ~1,5 s por chamada, e no laço o conjunto viraria O(n²) — medido em
+        // teste de carga, 1.000 reembolsos levariam ~25 minutos.
+        foreach ($reservas->groupBy(fn ($b) => $b->court?->arena_id) as $arenaId => $doGrupo) {
+            if (! $arenaId) {
+                continue;
+            }
+
+            $numeros = static::numerosNaArenaPara((int) $arenaId, $doGrupo->modelKeys());
+
+            foreach ($doGrupo as $booking) {
+                $booking->definirNumeroNaArena($numeros[$booking->id] ?? $booking->id);
+            }
+        }
 
         // O status vai num UPDATE único, em vez de um por reserva. Os modelos
         // em memória são acertados na mão para o resto do laço (reembolso,

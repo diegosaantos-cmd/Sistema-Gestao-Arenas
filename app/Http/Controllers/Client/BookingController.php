@@ -547,11 +547,17 @@ class BookingController extends Controller
         $arena->load(['paymentMethods', 'businessHours']);
         $validated = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
-            'horarios' => ['required', 'array', 'min:1'],
+            // Teto por envio: cada horário vira uma reserva, e cada reserva
+            // avisa todo o staff da arena. Sem limite, uma seleção enorme
+            // deixaria a confirmação lenta e o usuário esperando. Ver
+            // Booking::MAX_HORARIOS_POR_VEZ.
+            'horarios' => ['required', 'array', 'min:1', 'max:'.Booking::MAX_HORARIOS_POR_VEZ],
             'horarios.*' => ['required', 'regex:/^\d{2}:\d{2}-\d{2}:\d{2}$/'],
         ], [
             'horarios.required' => 'Selecione ao menos um horário.',
             'horarios.min' => 'Selecione ao menos um horário.',
+            'horarios.max' => 'Você pode reservar até '.Booking::MAX_HORARIOS_POR_VEZ
+                .' horários por vez. Selecione menos horários e repita para os demais.',
         ]);
 
         // O responsável é o próprio cliente logado: usamos os dados do cadastro.

@@ -112,7 +112,10 @@ class PresencialBookingController extends Controller
         $dados = $request->validate([
             'court_id' => ['required', 'integer'],
             'date' => ['required', 'date', 'after_or_equal:today'],
-            'horarios' => ['required', 'array', 'min:1'],
+            // Mesmo teto do agendamento pelo site (Booking::MAX_HORARIOS_POR_VEZ):
+            // cada horário vira uma reserva, e a confirmação fica lenta se a
+            // seleção crescer sem limite.
+            'horarios' => ['required', 'array', 'min:1', 'max:'.Booking::MAX_HORARIOS_POR_VEZ],
             'horarios.*' => ['required', 'regex:/^\d{2}:\d{2}-\d{2}:\d{2}$/'],
             'tipo_cliente' => ['required', Rule::in(['cadastrado', 'avulso'])],
 
@@ -129,6 +132,8 @@ class PresencialBookingController extends Controller
         ], [
             'horarios.required' => 'Escolha ao menos um horário.',
             'horarios.min' => 'Escolha ao menos um horário.',
+            'horarios.max' => 'É possível registrar até '.Booking::MAX_HORARIOS_POR_VEZ
+                .' horários por vez. Escolha menos horários e repita para os demais.',
             'client_id.required_if' => 'Escolha o cliente cadastrado.',
             'guest_name.required_if' => 'Informe o nome de quem vai jogar.',
             'guest_phone.required_if' => 'Informe o telefone de contato.',

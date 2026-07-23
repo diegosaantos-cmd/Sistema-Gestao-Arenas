@@ -110,25 +110,25 @@ class DadosDeTesteSeeder extends Seeder
             $hoje = Carbon::today();
 
             // A) Confirmada e PAGA (online, cliente 1) — Quadra 1
-            $bA = $this->reserva($q1, $cli1, $hoje->copy()->addDays(3), '19:00', '20:00', 80, $pix, 'confirmed');
+            $bA = $this->reserva($q1, $cli1, $hoje->copy()->addDays(3), '19:00', '20:00', 80, 'confirmed');
             $this->pagamento($bA, $pix, 80, 'online');
 
             // B) PENDENTE (a confirmar, cliente 1) — Quadra 2
-            $this->reserva($q2, $cli2, $hoje->copy()->addDays(4), '20:00', '21:00', 120, $card, 'pending');
+            $this->reserva($q2, $cli2, $hoje->copy()->addDays(4), '20:00', '21:00', 120, 'pending');
 
             // C) Confirmada NÃO PAGA (a pagar, cliente 2) — Quadra 1
-            $this->reserva($q1, $cli2, $hoje->copy()->addDays(5), '18:00', '19:00', 80, $pix, 'confirmed');
+            $this->reserva($q1, $cli2, $hoje->copy()->addDays(5), '18:00', '19:00', 80, 'confirmed');
 
             // D) REALIZADA e paga (histórico, cliente 2) — Quadra 3
-            $bD = $this->reserva($q3, $cli2, $hoje->copy()->subDays(7), '09:00', '10:00', 100, $card, 'completed');
+            $bD = $this->reserva($q3, $cli2, $hoje->copy()->subDays(7), '09:00', '10:00', 100, 'completed');
             $this->pagamento($bD, $card, 100, 'online');
 
             // E) CANCELADA com taxa (cliente 1) — Quadra 2
-            $bE = $this->reserva($q2, $cli1, $hoje->copy()->addDays(6), '21:00', '22:00', 120, $pix, 'cancelled');
+            $bE = $this->reserva($q2, $cli1, $hoje->copy()->addDays(6), '21:00', '22:00', 120, 'cancelled');
             $bE->update(['cancelled_by' => $cli1User->id, 'cancelled_at' => now(), 'cancellation_reason' => 'Imprevisto (dados de teste).', 'cancellation_fee_amount' => 24]);
 
             // F) PRESENCIAL confirmada e paga em dinheiro (registrada pelo atendente) — Quadra 3, hoje
-            $bF = $this->reservaPresencial($q3, 'Visitante Balcão', $atdUser, $hoje->copy(), '10:00', '11:00', 100, $cash);
+            $bF = $this->reservaPresencial($q3, 'Visitante Balcão', $atdUser, $hoje->copy(), '10:00', '11:00', 100);
             $this->pagamento($bF, $cash, 100, 'local');
 
             // ---- Caixa aberto do dia -----------------------------------------
@@ -170,22 +170,26 @@ class DadosDeTesteSeeder extends Seeder
         return $court;
     }
 
-    private function reserva(Court $court, Client $cliente, Carbon $data, string $ini, string $fim, float $total, PaymentMethod $forma, string $status): Booking
+    // A reserva NÃO guarda forma de pagamento: quem registra isso é `payments`,
+    // na hora do pagamento (a coluna bookings.payment_method_id foi removida).
+    // Por isso estes dois métodos não recebem mais a forma — ela vai só para
+    // pagamento().
+    private function reserva(Court $court, Client $cliente, Carbon $data, string $ini, string $fim, float $total, string $status): Booking
     {
         return Booking::create([
             'court_id' => $court->id, 'client_id' => $cliente->id, 'origin' => 'site',
             'date' => $data->toDateString(), 'start_time' => $ini, 'end_time' => $fim,
-            'total_amount' => $total, 'payment_method_id' => $forma->id, 'status' => $status,
+            'total_amount' => $total, 'status' => $status,
         ]);
     }
 
-    private function reservaPresencial(Court $court, string $nome, User $operador, Carbon $data, string $ini, string $fim, float $total, PaymentMethod $forma): Booking
+    private function reservaPresencial(Court $court, string $nome, User $operador, Carbon $data, string $ini, string $fim, float $total): Booking
     {
         return Booking::create([
             'court_id' => $court->id, 'client_id' => null, 'guest_name' => $nome,
             'created_by' => $operador->id, 'origin' => 'presencial',
             'date' => $data->toDateString(), 'start_time' => $ini, 'end_time' => $fim,
-            'total_amount' => $total, 'payment_method_id' => $forma->id, 'status' => 'confirmed',
+            'total_amount' => $total, 'status' => 'confirmed',
         ]);
     }
 
