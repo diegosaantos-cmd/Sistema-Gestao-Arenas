@@ -214,30 +214,47 @@ class BookingController extends Controller
         }
 
         $booking->load('court.arena.businessHours');
-        $slots = CourtScheduleService::slotsDoDia(
-            $booking->court,
-            $booking->court->arena,
-            $validated['date'],
-            $booking->id
-        );
 
-        $disponivel = $slots->contains(fn ($slot) =>
-            ! $slot['ocupado']
-            && $slot['start'] === $startTime
-            && $slot['end'] === $endTime
-        );
+        try {
+            DB::transaction(function () use ($booking, $validated, $startTime, $endTime) {
+                // Serializa pedidos concorrentes para a MESMA quadra. Sem isto, dois
+                // usuários podem passar pela checagem e disputar o mesmo horário.
+                Court::whereKey($booking->court_id)->lockForUpdate()->first();
 
-        if (! $disponivel) {
+                // Grade recalculada DENTRO do lock: entre montar a tela e salvar,
+                // o horário pode ter sido tomado por outra pessoa.
+                $slots = CourtScheduleService::slotsDoDia(
+                    $booking->court,
+                    $booking->court->arena,
+                    $validated['date'],
+                    $booking->id
+                );
+
+                $disponivel = $slots->contains(fn ($slot) =>
+                    ! $slot['ocupado']
+                    && $slot['start'] === $startTime
+                    && $slot['end'] === $endTime
+                );
+
+                if (! $disponivel) {
+                    throw new \RuntimeException('slot-indisponivel');
+                }
+
+                $booking->update([
+                    'date' => $validated['date'],
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() !== 'slot-indisponivel') {
+                throw $e;
+            }
+
             return back()
                 ->withErrors(['horario' => 'Esse horário não está disponível. Escolha outro.'])
                 ->withInput();
         }
-
-        $booking->update([
-            'date' => $validated['date'],
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-        ]);
 
         // Volta para a tela de origem (próximos, pendentes ou hoje).
         return redirect()->route($this->origemAgendamentos($request->input('from')))
