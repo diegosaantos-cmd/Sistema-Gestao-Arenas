@@ -88,42 +88,43 @@ Usuário que pode visualizar locais disponíveis, consultar horários e realizar
 Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 
 ---
-## Telas do Sistema
+
+### 📸 Telas do Sistema
 
 Confira abaixo as principais telas do sistema, destacando as funcionalidades de gerenciamento de usuários, arenas, quadras e agendamentos, com interfaces desenvolvidas para diferentes perfis de acesso.
 
 ### Página Inicial
-![Página Inicial](docs/imagens/pagina-inicial.png)
+<img src="docs/imagens/pagina-inicial.png" width="800">
 
 ### Tela de Login
-![Tela de Login](docs/imagens/tela-login.png)
+<img src="docs/imagens/tela-login.png" width="800">
 
 ### Tela de Criar Conta
-![Tela de Criar Conta](docs/imagens/tela-criar-conta.png)
+<img src="docs/imagens/tela-criar-conta.png" width="800">
 
 ### Painel do Administrador
-![Painel do Administrador](docs/imagens/painel-administrador.png)
+<img src="docs/imagens/painel-administrador.png" width="800">
 
 ### Painel do Proprietário
-![Painel do Proprietário](docs/imagens/painel-proprietario.png)
+<img src="docs/imagens/painel-proprietario.png" width="800">
 
 ### Painel do Gerente
-![Painel do Gerente](docs/imagens/painel-gerente.png)
+<img src="docs/imagens/painel-gerente.png" width="800">
 
 ### Painel do Atendente
-![Painel do Atendente](docs/imagens/painel-atendente.png)
+<img src="docs/imagens/painel-atendente.png" width="800">
 
 ### Painel do Cliente
-![Painel do Cliente](docs/imagens/painel-cliente.png)
+<img src="docs/imagens/painel-cliente.png" width="800">
 
 ### Tela de Arenas
-![Tela de Arenas](docs/imagens/tela-arenas.png)
+<img src="docs/imagens/tela-arenas.png" width="800">
 
 ### Tela de Quadras
-![Tela de Quadras](docs/imagens/tela-quadras.png)
+<img src="docs/imagens/tela-quadras.png" width="800">
 
 ### Tela de Agendamento
-![Tela de Agendamento](docs/imagens/tela-agendamento.png)
+<img src="docs/imagens/tela-agendamento.png" width="800">
 
 ---
 
