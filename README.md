@@ -10,7 +10,7 @@ A aplicação busca oferecer uma solução web que permita automatizar processos
 
 ---
 
-## 🚧 Status do projeto
+## Status do projeto
 
 O ArenaPlay encontra-se em fase de desenvolvimento.
 
@@ -224,7 +224,7 @@ Acesse a documentação completa:
 [Documentação do Sistema de Gestão de Arenas](documentos/Documentacao-Sistema-Gestao-Arenas.pdf)
 
 ---
-## 🚀 Instalação
+## Instalação
 
 Para instruções detalhadas de instalação e configuração do ambiente, consulte a documentação completa do projeto.
 
