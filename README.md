@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white">
 </p>
 > Também desenvolvi individualmente um projeto no mesmo domínio, evoluindo partes do trabalho aqui realizado: [ArenaPlay](https://github.com/diegosaantos-cmd/ArenaPlay). 
-
+<
 
 ## Índice
 
