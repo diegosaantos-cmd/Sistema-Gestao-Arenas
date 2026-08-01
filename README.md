@@ -232,8 +232,25 @@ A documentação completa do sistema contém:
 - Requisitos não funcionais;
 - Modelagem do banco de dados;
 - Protótipos das interfaces.
+- Manual de instalação.
+- Manual de ultilização
   
 Para instruções detalhadas de instalação e configuração do ambiente, consulte a documentação completa do projeto.
+
+Resumo dos passos:
+
+```bash
+git clone https://github.com/diegosaantos-cmd/Sistema-Gestao-Arenas.git
+cd Sistema-Gestao-Arenas
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+npm install
+npm run build
+php artisan serve
+```
 
 Acesse a documentação completa:
 
