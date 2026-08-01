@@ -1,7 +1,7 @@
 # ArenaPlay - Sistema de Gestão de Arenas e Quadras Esportivas
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20pagina-inicial.png" width="800">
+  <img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/pagina-inicial.png" width="800">
 </p>
 
 <p align="center">
@@ -128,37 +128,37 @@ Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 Confira abaixo as principais telas do sistema, destacando as funcionalidades de gerenciamento de usuários, arenas, quadras e agendamentos, com interfaces desenvolvidas para diferentes perfis de acesso.
 
 ### Página Inicial
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20pagina-inicial.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/pagina-inicial.png" width="800">
 
 ### Tela de Login
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-login.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-login.png" width="800">
 
 ### Tela de Criar Conta
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-criar-conta.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-criar-conta.png" width="800">
 
 ### Painel do Administrador
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-administrador.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-administrador.png" width="800">
 
 ### Painel do Proprietário
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-proprietario.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-proprietario.png" width="800">
 
 ### Painel do Gerente
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-gerente.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-gerente.png" width="800">
 
 ### Painel do Atendente
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-atendente.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-atendente.png" width="800">
 
 ### Painel do Cliente
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-cliente.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-cliente.png" width="800">
 
 ### Tela de Arenas
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-arenas.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-arenas.png" width="800">
 
 ### Tela de Quadras
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-quadras.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-quadras.png" width="800">
 
 ### Tela de Agendamento
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-agendamento.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-agendamento.png" width="800">
 
 ---
 
