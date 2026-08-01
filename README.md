@@ -317,3 +317,28 @@ php artisan db:seed
 npm install
 npm run build
 php artisan serve
+
+```
+---
+## Desenvolvimento
+
+Projeto desenvolvido em equipe durante a disciplina de Programação Web do curso de Sistemas de Informação da Universidade Federal do Pará (UFPA).
+
+---
+
+## Equipe
+
+Diego dos Santos Lopes
+Eduardo da Silva Mugo
+Renato da Silva
+Tanilo Vulcão de Freitas
+
+Projeto acadêmico desenvolvido para aplicação prática de conceitos de Desenvolvimento Web, Banco de Dados, Engenharia de Software e Programação Orientada a Objetos.
+
+---
+
+## Conclusão
+
+O desenvolvimento do ArenaPlay permitiu aplicar na prática conhecimentos fundamentais da área de Sistemas de Informação, envolvendo análise de requisitos, modelagem de banco de dados, desenvolvimento Full Stack e utilização de padrões de arquitetura de software.
+Por meio da construção do sistema, foi possível compreender a importância de um processo organizado de desenvolvimento, desde o levantamento das necessidades até a implementação das funcionalidades.
+Além dos conhecimentos técnicos, o projeto proporcionou experiência com trabalho em equipe, divisão de atividades, organização do código e aplicação de conceitos de Engenharia de Software no desenvolvimento de uma solução real.
