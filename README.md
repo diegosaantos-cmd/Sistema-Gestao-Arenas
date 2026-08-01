@@ -207,6 +207,13 @@ Acesse a documentação completa:
 [Documentação do Sistema de Gestão de Arenas](documentos/Documentacao-Sistema-Gestao-Arenas.pdf)
 
 ---
+## 🚀 Instalação
+
+Para instruções detalhadas de instalação e configuração do ambiente, consulte a documentação completa do projeto.
+
+[📘 Documentação do Sistema de Gestão de Arenas](documentos/Documentacao-Sistema-Gestao-Arenas.pdf)
+
+---
 
 # Desenvolvimento
 
@@ -222,3 +229,13 @@ Projeto desenvolvido em equipe durante a disciplina de **Programação Web** do 
 ---
 
 Projeto acadêmico desenvolvido para aplicação prática de conceitos de Desenvolvimento Web, Banco de Dados, Engenharia de Software e Programação Orientada a Objetos.
+
+---
+
+# Conclusão
+
+O desenvolvimento do ArenaPlay permitiu aplicar na prática conhecimentos fundamentais da área de Sistemas de Informação, envolvendo análise de requisitos, modelagem de banco de dados, desenvolvimento Full Stack e utilização de padrões de arquitetura de software.
+
+Por meio da construção do sistema, foi possível compreender a importância de um processo organizado de desenvolvimento, desde o levantamento das necessidades até a implementação das funcionalidades.
+
+Além dos conhecimentos técnicos, o projeto proporcionou experiência com trabalho em equipe, divisão de atividades, organização do código e aplicação de conceitos de Engenharia de Software no desenvolvimento de uma solução real.
