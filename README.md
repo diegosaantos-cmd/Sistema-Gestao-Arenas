@@ -1,58 +1,213 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ArenaPlay - Sistema de Gestão de Arenas e Quadras Esportivas
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Sobre o projeto
 
-## About Laravel
+O **ArenaPlay** é um sistema Full Stack para gerenciamento de arenas e quadras esportivas, desenvolvido em equipe durante a disciplina de **Programação Web** do curso de **Sistemas de Informação da Universidade Federal do Pará (UFPA)**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+O projeto tem como objetivo solucionar problemas relacionados ao gerenciamento manual de arenas esportivas, como controle de agendamentos, organização de horários, dificuldade de acompanhamento remoto e ausência de uma plataforma centralizada para administração do negócio.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+A aplicação busca oferecer uma solução web que permita automatizar processos, melhorar a experiência dos clientes e facilitar o gerenciamento das atividades da arena.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Objetivo do projeto
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+O desenvolvimento do ArenaPlay teve como objetivo aplicar na prática conhecimentos adquiridos durante a graduação, integrando conceitos de:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Desenvolvimento Web;
+- Banco de Dados;
+- Engenharia de Software;
+- Programação Orientada a Objetos (POO);
+- Arquitetura de software utilizando MVC.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+Durante o desenvolvimento foram realizados levantamentos de requisitos, modelagem do banco de dados, criação de protótipos de interface e implementação das funcionalidades do sistema.
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Problema identificado
 
-```bash
-composer require laravel/boost --dev
+Muitas arenas e quadras esportivas realizam seu gerenciamento de forma manual, utilizando ferramentas inadequadas para controle de reservas e organização das informações.
 
-php artisan boost:install
+Entre os principais problemas identificados estão:
+
+- Falta de automação dos processos;
+- Conflitos de horários nos agendamentos;
+- Dificuldade de acompanhamento das atividades;
+- Dependência de comunicação manual;
+- Ausência de controle centralizado das informações.
+
+---
+
+## Solução proposta
+
+O ArenaPlay propõe uma plataforma web capaz de centralizar a gestão das arenas esportivas, permitindo:
+
+- Visualização dos espaços disponíveis;
+- Gerenciamento de quadras;
+- Organização de agendamentos;
+- Controle de usuários;
+- Administração das informações do negócio.
+
+A solução busca reduzir erros, melhorar a organização e proporcionar uma experiência mais eficiente para administradores, funcionários e clientes.
+
+---
+
+# Usuários do sistema
+
+## Administrador
+Responsável pelo gerenciamento da arena, controle financeiro, usuários e tomada de decisões administrativas.
+
+## Funcionário
+Responsável pelo acompanhamento da agenda, pagamentos e gerenciamento das reservas.
+
+## Cliente
+Usuário que pode visualizar locais disponíveis, consultar horários e realizar agendamentos.
+
+## Visitante
+Usuário que acessa a plataforma para conhecer os serviços disponíveis.
+
+---
+
+# Arquitetura do sistema
+
+O sistema utiliza o padrão arquitetural **MVC (Model-View-Controller)**, organizando a aplicação em três principais camadas:
+
+### Model
+Responsável pela representação dos dados e comunicação com o banco de dados.
+
+### View
+Responsável pela interface visual apresentada ao usuário.
+
+### Controller
+Responsável pelo controle das requisições e aplicação das regras de negócio.
+
+A utilização do MVC facilita a organização, manutenção e evolução do sistema.
+
+---
+
+# Tecnologias utilizadas
+
+## Backend
+- Laravel
+- PHP
+
+## Frontend
+- HTML5
+- CSS3
+- JavaScript
+- Bootstrap
+
+## Banco de dados
+- MySQL
+
+## Ferramentas utilizadas
+- MySQL Workbench (Modelagem do banco de dados)
+- Figma (Prototipação das interfaces)
+
+---
+
+# Funcionalidades
+
+## Área pública
+- Exibição da página inicial;
+- Listagem de locais disponíveis;
+- Visualização de informações das arenas;
+- Visualização das quadras e horários disponíveis.
+
+## Área administrativa
+- Cadastro de locais;
+- Cadastro de espaços esportivos;
+- Gerenciamento de funcionários;
+- Controle de agendamentos;
+- Controle financeiro;
+- Gerenciamento de usuários.
+
+## Área do cliente
+- Cadastro e login;
+- Consulta de horários;
+- Solicitação de reservas;
+- Histórico de agendamentos.
+
+## Área do funcionário
+- Visualização da agenda;
+- Atualização do status das reservas;
+- Controle de pagamentos.
+
+---
+
+# Requisitos do sistema
+
+O sistema foi desenvolvido considerando requisitos funcionais e não funcionais.
+
+## Requisitos funcionais
+
+Entre as principais funcionalidades:
+
+- Cadastro de usuários;
+- Login e autenticação;
+- Gerenciamento de arenas;
+- Gerenciamento de quadras;
+- Agendamento de horários;
+- Controle de pagamentos;
+- Histórico de reservas.
+
+## Requisitos não funcionais
+
+O sistema considera:
+
+- Usabilidade;
+- Responsividade;
+- Segurança;
+- Desempenho;
+- Disponibilidade;
+- Integridade dos dados;
+- Manutenibilidade utilizando arquitetura MVC.
+
+---
+
+#  Banco de dados
+
+A modelagem do banco de dados foi desenvolvida utilizando o **MySQL Workbench**, com criação do modelo entidade-relacionamento (DER) para estruturar as entidades e seus relacionamentos.
+
+---
+
+#  Protótipos
+
+Os protótipos iniciais das interfaces foram desenvolvidos utilizando o **Figma**, servindo como base para criação do design da aplicação.
+
+---
+
+#  Documentação
+
+A documentação completa do projeto contém:
+
+- Contexto do problema;
+- Solução proposta;
+- Análise de usuários e personas;
+- Requisitos funcionais;
+- Requisitos não funcionais;
+- Modelagem do banco de dados;
+- Protótipos das telas.
+
+A documentação está disponível na pasta:
+
+```
+/docs
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+# Desenvolvimento
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Projeto desenvolvido em equipe durante a disciplina de **Programação Web** do curso de **Sistemas de Informação - UFPA**.
 
-## Code of Conduct
+## Equipe
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- Diego dos Santos Lopes
+- Eduardo da Silva Mugo
+- Renato da Silva
+- Tanilo Vulcão de Freitas
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Projeto acadêmico desenvolvido para aplicação prática de conceitos de Engenharia de Software e Desenvolvimento Web.
