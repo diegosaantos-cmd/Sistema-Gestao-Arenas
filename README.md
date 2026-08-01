@@ -221,14 +221,14 @@ A documentação completa do sistema contém:
 
 Acesse a documentação completa:
 
-[Documentação do Sistema de Gestão de Arenas](documentos/Documentacao-Sistema-Gestao-Arenas.pdf)
+[Documentação completa do ArenaPlay](docs/Documentacao-ArenaPlay.pdf)
 
 ---
 ## Instalação
 
 Para instruções detalhadas de instalação e configuração do ambiente, consulte a documentação completa do projeto.
 
-[📘 Documentação do Sistema de Gestão de Arenas](documentos/Documentacao-Sistema-Gestao-Arenas.pdf)
+[📄 Documentação completa do ArenaPlay](docs/Documentacao-ArenaPlay.pdf)
 
 ---
 
