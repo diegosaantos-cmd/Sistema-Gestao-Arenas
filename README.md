@@ -55,15 +55,19 @@ A solução busca reduzir erros, melhorar a organização e proporcionar uma exp
 # Usuários do sistema
 
 ## Administrador
+
 Responsável pelo gerenciamento da arena, controle financeiro, usuários e tomada de decisões administrativas.
 
 ## Funcionário
+
 Responsável pelo acompanhamento da agenda, pagamentos e gerenciamento das reservas.
 
 ## Cliente
+
 Usuário que pode visualizar locais disponíveis, consultar horários e realizar agendamentos.
 
 ## Visitante
+
 Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 
 ---
@@ -73,12 +77,15 @@ Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 O sistema utiliza o padrão arquitetural **MVC (Model-View-Controller)**, organizando a aplicação em três principais camadas:
 
 ### Model
+
 Responsável pela representação dos dados e comunicação com o banco de dados.
 
 ### View
+
 Responsável pela interface visual apresentada ao usuário.
 
 ### Controller
+
 Responsável pelo controle das requisições e aplicação das regras de negócio.
 
 A utilização do MVC facilita a organização, manutenção e evolução do sistema.
@@ -88,118 +95,122 @@ A utilização do MVC facilita a organização, manutenção e evolução do sis
 # Tecnologias utilizadas
 
 ## Backend
+
 - Laravel
 - PHP
 
 ## Frontend
+
 - HTML5
 - CSS3
 - JavaScript
 - Bootstrap
 
-## Banco de dados
+## Banco de Dados
+
 - MySQL
 
 ## Ferramentas utilizadas
+
 - MySQL Workbench (Modelagem do banco de dados)
-- Figma (Prototipação das interfaces)
+- Figma (Protótipos das interfaces)
 
 ---
 
-# Funcionalidades
+#  Funcionalidades
+
+O sistema contempla funcionalidades para diferentes tipos de usuários:
 
 ## Área pública
-- Exibição da página inicial;
-- Listagem de locais disponíveis;
-- Visualização de informações das arenas;
-- Visualização das quadras e horários disponíveis.
+
+- Visualização da página inicial;
+- Consulta dos locais disponíveis;
+- Visualização das informações das arenas e quadras.
 
 ## Área administrativa
-- Cadastro de locais;
-- Cadastro de espaços esportivos;
-- Gerenciamento de funcionários;
-- Controle de agendamentos;
-- Controle financeiro;
-- Gerenciamento de usuários.
+
+- Cadastro e gerenciamento de arenas;
+- Gerenciamento de espaços esportivos;
+- Controle de usuários;
+- Gerenciamento de agendamentos;
+- Administração das informações do negócio.
 
 ## Área do cliente
-- Cadastro e login;
-- Consulta de horários;
-- Solicitação de reservas;
-- Histórico de agendamentos.
+
+- Cadastro e autenticação;
+- Consulta de horários disponíveis;
+- Realização de agendamentos;
+- Visualização do histórico de reservas.
 
 ## Área do funcionário
-- Visualização da agenda;
-- Atualização do status das reservas;
+
+- Gerenciamento da agenda;
+- Atualização de reservas;
 - Controle de pagamentos.
 
 ---
 
-# Requisitos do sistema
+#  Requisitos do sistema
 
-O sistema foi desenvolvido considerando requisitos funcionais e não funcionais.
+O desenvolvimento do sistema envolveu o levantamento e análise de requisitos funcionais e não funcionais.
 
 ## Requisitos funcionais
 
-Entre as principais funcionalidades:
+Entre as principais funcionalidades estão:
 
 - Cadastro de usuários;
-- Login e autenticação;
+- Autenticação no sistema;
 - Gerenciamento de arenas;
 - Gerenciamento de quadras;
 - Agendamento de horários;
-- Controle de pagamentos;
-- Histórico de reservas.
+- Controle de informações da arena.
 
 ## Requisitos não funcionais
 
-O sistema considera:
+Foram considerados requisitos como:
 
 - Usabilidade;
 - Responsividade;
 - Segurança;
 - Desempenho;
-- Disponibilidade;
 - Integridade dos dados;
 - Manutenibilidade utilizando arquitetura MVC.
 
 ---
 
-#  Banco de dados
+# Banco de dados
 
-A modelagem do banco de dados foi desenvolvida utilizando o **MySQL Workbench**, com criação do modelo entidade-relacionamento (DER) para estruturar as entidades e seus relacionamentos.
-
----
-
-#  Protótipos
-
-Os protótipos iniciais das interfaces foram desenvolvidos utilizando o **Figma**, servindo como base para criação do design da aplicação.
+A modelagem do banco de dados foi realizada utilizando o **MySQL Workbench**, com desenvolvimento do modelo entidade-relacionamento (DER) para definição das entidades, atributos e relacionamentos do sistema.
 
 ---
 
-#  Documentação
+# Protótipos
 
-A documentação completa do projeto contém:
+Os protótipos iniciais das interfaces foram desenvolvidos utilizando o **Figma**, servindo como referência para criação do design e estrutura visual da aplicação.
+
+---
+
+#  Documentação do projeto
+
+A documentação completa do sistema contém:
 
 - Contexto do problema;
 - Solução proposta;
-- Análise de usuários e personas;
+- Usuários do sistema;
 - Requisitos funcionais;
 - Requisitos não funcionais;
 - Modelagem do banco de dados;
-- Protótipos das telas.
+- Protótipos das interfaces.
 
-A documentação está disponível na pasta:
+Acesse a documentação completa:
 
-```
-/docs
-```
+[Documentação do Sistema de Gestão de Arenas](documentos/Documentacao-Sistema-Gestao-Arenas.pdf)
 
 ---
 
 # Desenvolvimento
 
-Projeto desenvolvido em equipe durante a disciplina de **Programação Web** do curso de **Sistemas de Informação - UFPA**.
+Projeto desenvolvido em equipe durante a disciplina de **Programação Web** do curso de **Sistemas de Informação da Universidade Federal do Pará (UFPA)**.
 
 ## Equipe
 
@@ -210,4 +221,4 @@ Projeto desenvolvido em equipe durante a disciplina de **Programação Web** do 
 
 ---
 
-Projeto acadêmico desenvolvido para aplicação prática de conceitos de Engenharia de Software e Desenvolvimento Web.
+Projeto acadêmico desenvolvido para aplicação prática de conceitos de Desenvolvimento Web, Banco de Dados, Engenharia de Software e Programação Orientada a Objetos.
