@@ -1,5 +1,39 @@
 # ArenaPlay - Sistema de Gestão de Arenas e Quadras Esportivas
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20pagina-inicial.png" width="800">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/PHP-777BB4?style=for-the-badge&logo=php&logoColor=white">
+  <img src="https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white">
+  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black">
+  <img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white">
+</p>
+
+## Índice
+
+- [Sobre o projeto](#sobre-o-projeto)
+- [Status do projeto](#status-do-projeto)
+- [Objetivo do projeto](#objetivo-do-projeto)
+- [Problema identificado](#problema-identificado)
+- [Solução proposta](#solução-proposta)
+- [Usuários do sistema](#usuários-do-sistema)
+- [Telas do Sistema](#telas-do-sistema)
+- [Arquitetura do sistema](#arquitetura-do-sistema)
+- [Tecnologias utilizadas](#tecnologias-utilizadas)
+- [Ambiente de Desenvolvimento](#ambiente-de-desenvolvimento)
+- [Ferramentas utilizadas](#ferramentas-utilizadas)
+- [Funcionalidades](#funcionalidades)
+- [Requisitos do sistema](#requisitos-do-sistema)
+- [Protótipos](#protótipos)
+- [Documentação do projeto](#documentação-do-projeto)
+- [Desenvolvimento](#desenvolvimento)
+- [Conclusão](#conclusão)
+
+---
+
 ## Sobre o projeto
 
 O **ArenaPlay** é um sistema Full Stack para gerenciamento de arenas e quadras esportivas, desenvolvido em equipe durante a disciplina de **Programação Web** do curso de **Sistemas de Informação da Universidade Federal do Pará (UFPA)**.
@@ -69,21 +103,21 @@ A solução busca reduzir erros, melhorar a organização e proporcionar uma exp
 
 ---
 
-# Usuários do sistema
+## Usuários do sistema
 
-## Administrador
+### Administrador
 
 Responsável pelo gerenciamento da arena, controle financeiro, usuários e tomada de decisões administrativas.
 
-## Funcionário
+### Funcionário
 
 Responsável pelo acompanhamento da agenda, pagamentos e gerenciamento das reservas.
 
-## Cliente
+### Cliente
 
 Usuário que pode visualizar locais disponíveis, consultar horários e realizar agendamentos.
 
-## Visitante
+### Visitante
 
 Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 
@@ -94,41 +128,41 @@ Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 Confira abaixo as principais telas do sistema, destacando as funcionalidades de gerenciamento de usuários, arenas, quadras e agendamentos, com interfaces desenvolvidas para diferentes perfis de acesso.
 
 ### Página Inicial
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/pagina-inicial.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20pagina-inicial.png" width="800">
 
 ### Tela de Login
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-login.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-login.png" width="800">
 
 ### Tela de Criar Conta
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-criar-conta.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-criar-conta.png" width="800">
 
 ### Painel do Administrador
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-administrador.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-administrador.png" width="800">
 
 ### Painel do Proprietário
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-proprietario.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-proprietario.png" width="800">
 
 ### Painel do Gerente
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-gerente.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-gerente.png" width="800">
 
 ### Painel do Atendente
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-atendente.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-atendente.png" width="800">
 
 ### Painel do Cliente
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/painel-cliente.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20painel-cliente.png" width="800">
 
 ### Tela de Arenas
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-arenas.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-arenas.png" width="800">
 
 ### Tela de Quadras
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-quadras.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-quadras.png" width="800">
 
 ### Tela de Agendamento
-<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/tela-agendamento.png" width="800">
+<img src="https://raw.githubusercontent.com/diegosaantos-cmd/Sistema-Gestao-Arenas/main/docs/imagens/%20tela-agendamento.png" width="800">
 
 ---
 
-# Arquitetura do sistema
+## Arquitetura do sistema
 
 O sistema utiliza o padrão arquitetural **MVC (Model-View-Controller)**, organizando a aplicação em três principais camadas:
 
@@ -148,33 +182,33 @@ A utilização do MVC facilita a organização, manutenção e evolução do sis
 
 ---
 
-# Tecnologias utilizadas
+## Tecnologias utilizadas
 
-## Backend
+### Backend
 
 - Laravel
 - PHP
 
-## Frontend
+### Frontend
 
 - HTML5
 - CSS3
 - JavaScript
 - Bootstrap
 
-## Banco de Dados
+### Banco de Dados
 
-O banco de dados do sistema foi desenvolvido utilizando o MySQL, sendo administrado localmente através do phpMyAdmin integrado ao ambiente WampServer.
+O banco de dados do sistema foi desenvolvido utilizando o **MySQL**, sendo administrado localmente através do phpMyAdmin integrado ao ambiente WampServer.
 
-A modelagem do banco de dados foi realizada utilizando o MySQL Workbench, com desenvolvimento do modelo entidade-relacionamento (DER) para definição das entidades, atributos e relacionamentos do sistema.
+A modelagem do banco de dados foi realizada utilizando o **MySQL Workbench**, com desenvolvimento do modelo entidade-relacionamento (DER) para definição das entidades, atributos e relacionamentos do sistema.
 
 - MySQL
 - phpMyAdmin (gerenciamento e administração do banco)
 - MySQL Workbench (modelagem do banco de dados)
 
-  ---
+---
 
-  ## Ambiente de Desenvolvimento
+## Ambiente de Desenvolvimento
 
 - WampServer (ambiente local para execução do Apache, PHP e MySQL)
 
@@ -187,17 +221,17 @@ A modelagem do banco de dados foi realizada utilizando o MySQL Workbench, com de
 
 ---
 
-#  Funcionalidades
+## Funcionalidades
 
 O sistema contempla funcionalidades para diferentes tipos de usuários:
 
-## Área pública
+### Área pública
 
 - Visualização da página inicial;
 - Consulta dos locais disponíveis;
 - Visualização das informações das arenas e quadras.
 
-## Área administrativa
+### Área administrativa
 
 - Cadastro e gerenciamento de arenas;
 - Gerenciamento de espaços esportivos;
@@ -205,14 +239,14 @@ O sistema contempla funcionalidades para diferentes tipos de usuários:
 - Gerenciamento de agendamentos;
 - Administração das informações do negócio.
 
-## Área do cliente
+### Área do cliente
 
 - Cadastro e autenticação;
 - Consulta de horários disponíveis;
 - Realização de agendamentos;
 - Visualização do histórico de reservas.
 
-## Área do funcionário
+### Área do funcionário
 
 - Gerenciamento da agenda;
 - Atualização de reservas;
@@ -220,11 +254,11 @@ O sistema contempla funcionalidades para diferentes tipos de usuários:
 
 ---
 
-#  Requisitos do sistema
+## Requisitos do sistema
 
 O desenvolvimento do sistema envolveu o levantamento e análise de requisitos funcionais e não funcionais.
 
-## Requisitos funcionais
+### Requisitos funcionais
 
 Entre as principais funcionalidades estão:
 
@@ -235,7 +269,7 @@ Entre as principais funcionalidades estão:
 - Agendamento de horários;
 - Controle de informações da arena.
 
-## Requisitos não funcionais
+### Requisitos não funcionais
 
 Foram considerados requisitos como:
 
@@ -248,19 +282,13 @@ Foram considerados requisitos como:
 
 ---
 
-# Banco de dados
-
-A modelagem do banco de dados foi realizada utilizando o **MySQL Workbench**, com desenvolvimento do modelo entidade-relacionamento (DER) para definição das entidades, atributos e relacionamentos do sistema.
-
----
-
-# Protótipos
+## Protótipos
 
 Os protótipos iniciais das interfaces foram desenvolvidos utilizando o **Figma**, servindo como referência para criação do design e estrutura visual da aplicação.
 
 ---
 
-#  Documentação do projeto
+## Documentação do projeto
 
 A documentação completa do sistema contém:
 
@@ -270,10 +298,10 @@ A documentação completa do sistema contém:
 - Requisitos funcionais;
 - Requisitos não funcionais;
 - Modelagem do banco de dados;
-- Protótipos das interfaces.
-- Manual de instalação.
-- Manual de ultilização
-  
+- Protótipos das interfaces;
+- Manual de instalação;
+- Manual de utilização.
+
 Para instruções detalhadas de instalação e configuração do ambiente, consulte a documentação completa do projeto.
 
 Resumo dos passos:
@@ -289,35 +317,3 @@ php artisan db:seed
 npm install
 npm run build
 php artisan serve
-```
-
-Acesse a documentação completa:
-
-[Documentação completa do ArenaPlay](docs/Documentacao-ArenaPlay.pdf)
-
----
-
-# Desenvolvimento
-
-Projeto desenvolvido em equipe durante a disciplina de **Programação Web** do curso de **Sistemas de Informação da Universidade Federal do Pará (UFPA)**.
-
-## Equipe
-
-- Diego dos Santos Lopes
-- Eduardo da Silva Mugo
-- Renato da Silva
-- Tanilo Vulcão de Freitas
-
----
-
-Projeto acadêmico desenvolvido para aplicação prática de conceitos de Desenvolvimento Web, Banco de Dados, Engenharia de Software e Programação Orientada a Objetos.
-
----
-
-# Conclusão
-
-O desenvolvimento do ArenaPlay permitiu aplicar na prática conhecimentos fundamentais da área de Sistemas de Informação, envolvendo análise de requisitos, modelagem de banco de dados, desenvolvimento Full Stack e utilização de padrões de arquitetura de software.
-
-Por meio da construção do sistema, foi possível compreender a importância de um processo organizado de desenvolvimento, desde o levantamento das necessidades até a implementação das funcionalidades.
-
-Além dos conhecimentos técnicos, o projeto proporcionou experiência com trabalho em equipe, divisão de atividades, organização do código e aplicação de conceitos de Engenharia de Software no desenvolvimento de uma solução real.
