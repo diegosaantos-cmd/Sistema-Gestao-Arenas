@@ -88,6 +88,44 @@ Usuário que pode visualizar locais disponíveis, consultar horários e realizar
 Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 
 ---
+## Telas do Sistema
+
+Confira abaixo as principais telas do sistema, destacando as funcionalidades de gerenciamento de usuários, arenas, quadras e agendamentos, com interfaces desenvolvidas para diferentes perfis de acesso.
+
+### Página Inicial
+![Página Inicial](documentos/imagens/pagina-inicial.png)
+
+### Tela de Login
+![Tela de Login](documentos/imagens/tela-login.png)
+
+### Tela de Criar Conta
+![Tela de Criar Conta](documentos/imagens/tela-criar-conta.png)
+
+### Painel do Administrador
+![Painel do Administrador](documentos/imagens/painel-administrador.png)
+
+### Painel do Proprietário
+![Painel do Proprietário](documentos/imagens/painel-proprietario.png)
+
+### Painel do Gerente
+![Painel do Gerente](documentos/imagens/painel-gerente.png)
+
+### Painel do Atendente
+![Painel do Atendente](documentos/imagens/painel-atendente.png)
+
+### Painel do Cliente
+![Painel do Cliente](documentos/imagens/painel-cliente.png)
+
+### Tela de Arenas
+![Tela de Arenas](documentos/imagens/tela-arenas.png)
+
+### Tela de Quadras
+![Tela de Quadras](documentos/imagens/tela-quadras.png)
+
+### Tela de Agendamento
+![Tela de Agendamento](documentos/imagens/tela-agendamento.png)
+
+---
 
 # Arquitetura do sistema
 
