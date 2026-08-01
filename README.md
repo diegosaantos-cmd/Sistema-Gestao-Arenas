@@ -125,7 +125,21 @@ A utilização do MVC facilita a organização, manutenção e evolução do sis
 
 ## Banco de Dados
 
+O banco de dados do sistema foi desenvolvido utilizando o MySQL, sendo administrado localmente através do phpMyAdmin integrado ao ambiente WampServer.
+
+A modelagem do banco de dados foi realizada utilizando o MySQL Workbench, com desenvolvimento do modelo entidade-relacionamento (DER) para definição das entidades, atributos e relacionamentos do sistema.
+
 - MySQL
+- phpMyAdmin (gerenciamento e administração do banco)
+- MySQL Workbench (modelagem do banco de dados)
+
+  ---
+
+  ## Ambiente de Desenvolvimento
+
+- WampServer (ambiente local para execução do Apache, PHP e MySQL)
+
+---
 
 ## Ferramentas utilizadas
 
