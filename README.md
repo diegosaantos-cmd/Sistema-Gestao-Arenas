@@ -89,7 +89,7 @@ Usuário que acessa a plataforma para conhecer os serviços disponíveis.
 
 ---
 
-## 📸 Telas do Sistema
+## Telas do Sistema
 
 Confira abaixo as principais telas do sistema, destacando as funcionalidades de gerenciamento de usuários, arenas, quadras e agendamentos, com interfaces desenvolvidas para diferentes perfis de acesso.
 
