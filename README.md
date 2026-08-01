@@ -10,6 +10,23 @@ A aplicação busca oferecer uma solução web que permita automatizar processos
 
 ---
 
+## 🚧 Status do projeto
+
+O ArenaPlay encontra-se em fase de desenvolvimento.
+
+A versão atual contempla a estrutura principal do sistema, incluindo funcionalidades de gerenciamento, organização da aplicação utilizando arquitetura MVC, integração com banco de dados e implementação das principais regras de negócio.
+
+Algumas funcionalidades ainda estão em processo de desenvolvimento ou utilizando simulações para validação do fluxo do sistema, como:
+
+- Integração com sistemas de pagamento;
+- Envio automático de e-mails;
+- Algumas automações do sistema;
+- Funcionalidades necessárias para disponibilização em ambiente de produção.
+
+Novas implementações e melhorias serão realizadas conforme a evolução do projeto, visando tornar o sistema totalmente preparado para testes reais e utilização em ambiente produtivo.
+
+---
+
 ## Objetivo do projeto
 
 O desenvolvimento do ArenaPlay teve como objetivo aplicar na prática conhecimentos adquiridos durante a graduação, integrando conceitos de:
